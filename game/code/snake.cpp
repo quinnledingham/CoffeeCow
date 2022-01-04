@@ -68,14 +68,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         char *Filename = __FILE__;
         
-        /*
         debug_read_file_result File = DEBUGPlatformReadEntireFile(Filename);
         if(File.Contents)
         {
             DEBUGPlatformWriteEntireFile("test.out", File.ContentsSize, File.Contents);
             DEBUGPlatformFreeFileMemory(File.Contents);
         }
-        */
+        
         
         GameState->ToneHz = 256;
         

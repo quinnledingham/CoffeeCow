@@ -19,7 +19,7 @@
     1 - Slow code welcome.
 */
 
-#if HANDMADE_SLOW
+#if SNAKE_SLOW
 // TODO(casey): Complete assertion macro - don't worry everyone!
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #else
@@ -46,7 +46,7 @@ SafeTruncateUInt64(uint64 Value)
 /*
   NOTE(casey): Services that the platform layer provides to the game
 */
-#if HANDMADE_INTERNAL
+#if SNAKE_INTERNAL
 /* IMPORTANT(casey):
 
    These are NOT for doing anything in the shipping game - they are
