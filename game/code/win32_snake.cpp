@@ -712,7 +712,7 @@ WinMain(HINSTANCE Instance,
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
     //    WindowClass.hIcon;
-    WindowClass.lpszClassName = "HandmadeHeroWindowClass";
+    WindowClass.lpszClassName = "SnakeWindowClass";
     
     // TODO(casey): How do we reliably query on this on Windows?
     
@@ -731,7 +731,7 @@ WinMain(HINSTANCE Instance,
             CreateWindowExA(
                             0,
                             WindowClass.lpszClassName,
-                            "Handmade Hero",
+                            "Snake",
                             WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
@@ -982,6 +982,10 @@ WinMain(HINSTANCE Instance,
                     Buffer.Pitch = GlobalBackbuffer.Pitch;
                     Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
                     
+                    LARGE_INTEGER GameCounter = Win32GetWallClock();
+                    real32 GameSecondsElapsed = Win32GetSecondsElapsed(LastCounter, GameCounter);
+                    NewInput->Time = GameSecondsElapsed;
+                    
                     GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
                     
                     if(SoundIsValid)
@@ -991,11 +995,11 @@ WinMain(HINSTANCE Instance,
                         DWORD WriteCursor;
                         GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
                         char TextBuffer[256];
-                        _snprintf_s(TextBuffer, sizeof(TextBuffer),
+                        /*_snprintf_s(TextBuffer, sizeof(TextBuffer),
                                     "LPC:%u BTL:%u TC:%u BTW:%u - PC:%u WC:%u\n",
                                     LastPlayCursor, ByteToLock, TargetCursor, BytesToWrite,
-                                    PlayCursor, WriteCursor);
-                        OutputDebugStringA(TextBuffer);
+                                    PlayCursor, WriteCursor);*/
+                        //OutputDebugStringA(TextBuffer);
 #endif   
                         Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
                     }
@@ -1042,7 +1046,7 @@ WinMain(HINSTANCE Instance,
                     LastCounter = EndCounter;
                     
                     win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-#if HANDMADE_INTERNAL
+#if SNAKE_INTERNAL0
                     Win32DebugSyncDisplay(&GlobalBackbuffer, ArrayCount(DebugTimeMarkers), DebugTimeMarkers,
                                           &SoundOutput, TargetSecondsPerFrame);
 #endif
@@ -1066,7 +1070,7 @@ WinMain(HINSTANCE Instance,
                         SoundIsValid = false;
                     }
                     
-#if HANDMADE_INTERNAL
+#if SNAKE_INTERNAL0
                     // NOTE(casey): This is debug code
                     {
                         win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex++];
@@ -1091,10 +1095,10 @@ WinMain(HINSTANCE Instance,
                     real64 FPS = 0.0f;
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0f * 1000.0f));
                     
-                    char FPSBuffer[256];
-                    _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
-                                "%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
-                    OutputDebugStringA(FPSBuffer);
+                    //char FPSBuffer[256];
+                    //_snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                    //"%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
+                    //OutputDebugStringA(FPSBuffer);
                 }
             }
             else

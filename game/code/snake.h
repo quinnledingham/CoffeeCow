@@ -132,6 +132,7 @@ struct game_input
 {
     // TODO(casey): Insert clock values here.    
     game_controller_input Controllers[5];
+    real32 Time;
 };
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {

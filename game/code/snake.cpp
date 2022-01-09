@@ -6,6 +6,8 @@
    $Notice: (C) Copyright 2014 by Molly Rocket, Inc. All Rights Reserved. $
    ======================================================================== */
 
+#include "stdio.h"
+#include "Windows.h"
 #include "snake.h"
 
 internal void
@@ -102,8 +104,8 @@ RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color)
         }
     }
 }
-#define GRIDWIDTH 10
-#define GRIDHEIGHT 10
+#define GRIDWIDTH 50
+#define GRIDHEIGHT 20
 internal void
 RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY, 
                      int GridWidth, int GridHeight, int GridSize)
@@ -258,6 +260,11 @@ RenderSnake(game_offscreen_buffer *Buffer, Grid *GD, int GridX, int GridY,
     }
 }
 
+real32 TimeTotal = 0;
+int z = 0;
+int c = 0;
+int last = -1;
+
 internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
                     game_sound_output_buffer *SoundBuffer)
@@ -332,6 +339,29 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SetGridValue(&GameData, 4, 2, SNAKE);
         GameInitialized = true;
     }
+    
+    TimeTotal += Input->Time;
+    if (TimeTotal > 0.001 || 1)
+    {
+        TimeTotal = 0;
+        SetGridValue(&GameData, z, c, SNAKE);
+        SetGridValue(&GameData, last, c, NOSNAKE);
+        last = z;
+        
+        if (z < GRIDWIDTH)
+            z++;
+        else
+        {
+            z = 0;
+            last = z;
+            SetGridValue(&GameData, z, c, SNAKE);
+            z++;
+        }
+    }
+    char FPSBuffer[256];
+    _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                "Time: %f\n", TimeTotal);
+    OutputDebugStringA(FPSBuffer);
     
     ClearScreen(Buffer);
     RenderBackgroundGrid(Buffer, 0, 0, GRIDWIDTH, GRIDHEIGHT, 25);
