@@ -346,6 +346,8 @@ internal void
 Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                            HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
+    Buffer->Width = WindowWidth;
+    Buffer->Height = WindowHeight;
     // TODO(casey): Aspect ratio correction
     // TODO(casey): Play with stretch modes
     StretchDIBits(DeviceContext,
@@ -702,7 +704,9 @@ WinMain(HINSTANCE Instance,
     
     WNDCLASSA WindowClass = {};
     
-    Win32ResizeDIBSection(&GlobalBackbuffer, 1280, 720);
+#define WindowWidth 1280
+#define WindowHeight 720
+    Win32ResizeDIBSection(&GlobalBackbuffer, WindowWidth, WindowHeight);
     
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
@@ -731,8 +735,8 @@ WinMain(HINSTANCE Instance,
                             WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
-                            CW_USEDEFAULT,
-                            CW_USEDEFAULT,
+                            WindowWidth,
+                            WindowHeight,
                             0,
                             0,
                             Instance,
@@ -975,7 +979,9 @@ WinMain(HINSTANCE Instance,
                     Buffer.Memory = GlobalBackbuffer.Memory;
                     Buffer.Width = GlobalBackbuffer.Width; 
                     Buffer.Height = GlobalBackbuffer.Height;
-                    Buffer.Pitch = GlobalBackbuffer.Pitch; 
+                    Buffer.Pitch = GlobalBackbuffer.Pitch;
+                    Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
+                    
                     GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
                     
                     if(SoundIsValid)

@@ -15,3 +15,10 @@ build/snake_temp.dll
 build/win32_snake.map
 build/win32_snake.obj
 build/win32_snake.pdb
+build/win32_snake.exe
+build/test.out
+build/.vs/win32_snake/v17/ipch/AutoPCH/ff1da7330ab632a6/WIN32_SNAKE.ipch
+build/.vs/win32_snake/v17/ipch/AutoPCH/61a0eecc19020e5c/SNAKE.ipch
+build/.vs/win32_snake/v17/Browse.VC.opendb
+build/.vs/win32_snake/v17/Browse.VC.db-wal
+build/.vs/win32_snake/v17/Browse.VC.db-shm

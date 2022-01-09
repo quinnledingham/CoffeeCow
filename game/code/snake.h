@@ -77,6 +77,7 @@ struct game_offscreen_buffer
     int Width;
     int Height;
     int Pitch;
+    int BytesPerPixel;
 };
 
 struct game_sound_output_buffer
@@ -163,6 +164,36 @@ struct game_state
     int ToneHz;
     int GreenOffset;
     int BlueOffset;
+};
+
+struct Square
+{
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
+struct Node
+{
+    char *Data;
+    int Value;
+    Node *NextR;
+    Node *NextC;
+};
+
+struct Grid
+{
+    int x;
+    int y;
+    int width;
+    int height;
+    Node* head;
+};
+
+struct MemoryManager
+{
+    char* NextStorage;
 };
 
 #define SNAKE_H
