@@ -149,6 +149,7 @@ ClearScreen(game_offscreen_buffer *Buffer)
 global_variable MemoryManager manager;
 global_variable int GameInitialized = false;
 global_variable Grid GameData;
+global_variable Snake player;
 
 #define NOSNAKE 0
 #define SNAKE 1
@@ -180,6 +181,8 @@ CreateGrid(Grid *newGrid, int width, int height)
     head.NextR = 0;
     head.NextC = 0;
     newGrid->head = (Node*)PermanentStorageAssign(&manager, &head, sizeof(Node));
+    newGrid->width = width;
+    newGrid->height = height;
     
     Node* cursorR = newGrid->head;
     for (int i = 0; i < width; i++)
@@ -239,6 +242,58 @@ GetGridValue(Grid *grid, int x, int y)
 }
 
 internal void
+SetGridLocked(Grid *grid, int x, int y, int locked)
+{
+    Node* cursor = grid->head;
+    for (int i = 0; i < x; i++)
+    {
+        cursor = cursor->NextR;
+    }
+    for (int j = 0; j < y; j++)
+    {
+        cursor = cursor->NextC;
+    }
+    cursor->Locked = locked;
+}
+
+internal int
+GetGridLocked(Grid *grid, int x, int y)
+{
+    Node* cursor = grid->head;
+    for (int i = 0; i < x; i++)
+    {
+        cursor = cursor->NextR;
+    }
+    for (int j = 0; j < y; j++)
+    {
+        cursor = cursor->NextC;
+    }
+    return cursor->Locked;
+}
+
+internal void
+UnlockGrid(Grid *GD)
+{
+    for (int i = 0;
+         i < GD->width;
+         i++)
+    {
+        for (int j = 0;
+             j < GD->height;
+             j++)
+        {
+            SetGridLocked(GD, i, j, 0);
+        }
+    }
+}
+
+internal void
+CreateSnake(Grid *GD)
+{
+    
+}
+
+internal void
 RenderSnake(game_offscreen_buffer *Buffer, Grid *GD, int GridX, int GridY, 
             int GridWidth, int GridHeight, int GridSize)
 {
@@ -255,6 +310,47 @@ RenderSnake(game_offscreen_buffer *Buffer, Grid *GD, int GridX, int GridY,
             {
                 Square newSquare = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
                 RenderSquare(Buffer, &newSquare, FILL, 0xFF000000);
+            }
+        }
+    }
+}
+
+internal void
+MoveSnake(Grid *GD, Snake *snake)
+{
+    for (int i = 0;
+         i < GD->width;
+         i++)
+    {
+        for (int j = 0;
+             j < GD->height;
+             j++)
+        {
+            int v = GetGridValue(GD, i, j);
+            int l = GetGridLocked(GD, i, j);
+            if (v == SNAKE && l == 0)
+            {
+                SetGridValue(GD, i, j, NOSNAKE);
+                if (snake->direction == RIGHT)
+                {
+                    SetGridValue(GD, i + 1, j, SNAKE);
+                    SetGridLocked(GD, i + 1, j, 1);
+                }
+                if (snake->direction == UP)
+                {
+                    SetGridValue(GD, i, j - 1, SNAKE);
+                    SetGridLocked(GD, i, j - 1, 1);
+                }
+                if (snake->direction == LEFT)
+                {
+                    SetGridValue(GD, i - 1, j, SNAKE);
+                    SetGridLocked(GD, i - 1, j, 1);
+                }
+                if (snake->direction == DOWN)
+                {
+                    SetGridValue(GD, i, j + 1, SNAKE);
+                    SetGridLocked(GD, i, j + 1, 1);
+                }
             }
         }
     }
@@ -337,11 +433,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         SetGridValue(&GameData, 2, 2, SNAKE);
         SetGridValue(&GameData, 3, 2, SNAKE);
         SetGridValue(&GameData, 4, 2, SNAKE);
+        
+        player.direction = RIGHT;
+        player.length = 3;
+        
         GameInitialized = true;
     }
     
-    TimeTotal += Input->Time;
-    if (TimeTotal > 0.001 || 1)
+    MoveSnake(&GameData, &player);
+    
+#if 0
+    TimeTotal += Input->SecondsElapsed;
+    if (TimeTotal > 0.05)
     {
         TimeTotal = 0;
         SetGridValue(&GameData, z, c, SNAKE);
@@ -362,9 +465,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
                 "Time: %f\n", TimeTotal);
     OutputDebugStringA(FPSBuffer);
+#endif
     
     ClearScreen(Buffer);
     RenderBackgroundGrid(Buffer, 0, 0, GRIDWIDTH, GRIDHEIGHT, 25);
     RenderSnake(Buffer, &GameData, 0, 0, GRIDWIDTH, GRIDHEIGHT, 25);
     //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+    UnlockGrid(&GameData);
 }

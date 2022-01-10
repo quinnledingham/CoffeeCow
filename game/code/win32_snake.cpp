@@ -722,7 +722,7 @@ WinMain(HINSTANCE Instance,
     
 #define FramesOfAudioLatency 3
 #define MonitorRefreshHz 60
-#define GameUpdateHz (MonitorRefreshHz / 2)
+#define GameUpdateHz 30
     real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
     
     if(RegisterClassA(&WindowClass))
@@ -805,6 +805,7 @@ WinMain(HINSTANCE Instance,
                 game_input *OldInput = &Input[1];
                 
                 LARGE_INTEGER LastCounter = Win32GetWallClock();
+                LARGE_INTEGER GameLastCounter = Win32GetWallClock();
                 
                 int DebugTimeMarkerIndex = 0;
                 win32_debug_time_marker DebugTimeMarkers[GameUpdateHz / 2] = {0};
@@ -983,8 +984,9 @@ WinMain(HINSTANCE Instance,
                     Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
                     
                     LARGE_INTEGER GameCounter = Win32GetWallClock();
-                    real32 GameSecondsElapsed = Win32GetSecondsElapsed(LastCounter, GameCounter);
-                    NewInput->Time = GameSecondsElapsed;
+                    real32 GameSecondsElapsed = Win32GetSecondsElapsed(GameLastCounter, GameCounter);
+                    NewInput->SecondsElapsed = GameSecondsElapsed;
+                    GameLastCounter = GameCounter;
                     
                     GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
                     

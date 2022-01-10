@@ -132,7 +132,7 @@ struct game_input
 {
     // TODO(casey): Insert clock values here.    
     game_controller_input Controllers[5];
-    real32 Time;
+    real32 SecondsElapsed;
 };
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
@@ -179,8 +179,10 @@ struct Node
 {
     char *Data;
     int Value;
+    int Locked;
     Node *NextR;
     Node *NextC;
+    Node *NextS;
 };
 
 struct Grid
@@ -195,6 +197,18 @@ struct Grid
 struct MemoryManager
 {
     char* NextStorage;
+};
+
+#define RIGHT 0
+#define UP 1
+#define LEFT 2
+#define DOWN 3
+
+struct Snake
+{
+    int direction;
+    int length;
+    Node* head;
 };
 
 #define SNAKE_H
