@@ -222,19 +222,19 @@ bool HandleEvent(SDL_Event *Event, game_controller_input *NewKeyboardController)
                 }
                 else if(KeyCode == SDLK_UP)
                 {
-                    SDLProcessKeyPress(&NewKeyboardController->ActionUp, IsDown);
+                    SDLProcessKeyPress(&NewKeyboardController->MoveUp, IsDown);
                 }
                 else if(KeyCode == SDLK_LEFT)
                 {
-                    SDLProcessKeyPress(&NewKeyboardController->ActionLeft, IsDown);
+                    SDLProcessKeyPress(&NewKeyboardController->MoveLeft, IsDown);
                 }
                 else if(KeyCode == SDLK_DOWN)
                 {
-                    SDLProcessKeyPress(&NewKeyboardController->ActionDown, IsDown);
+                    SDLProcessKeyPress(&NewKeyboardController->MoveDown, IsDown);
                 }
                 else if(KeyCode == SDLK_RIGHT)
                 {
-                    SDLProcessKeyPress(&NewKeyboardController->ActionRight, IsDown);
+                    SDLProcessKeyPress(&NewKeyboardController->MoveRight, IsDown);
                 }
                 else if(KeyCode == SDLK_ESCAPE)
                 {
@@ -542,8 +542,8 @@ int main (int argc, char *argv[])
     SDL_Window *Window = SDL_CreateWindow("Snake",
                                           SDL_WINDOWPOS_UNDEFINED,
                                           SDL_WINDOWPOS_UNDEFINED,
-                                          1280,
-                                          720,
+                                          900,
+                                          900,
                                           SDL_WINDOW_RESIZABLE);
     
     if (Window)
@@ -640,6 +640,8 @@ int main (int argc, char *argv[])
             
             uint64 LastCounter = SDL_GetPerformanceCounter();
             uint64 LastCycleCount = _rdtsc();
+            
+            uint64 GameLastCounter = SDL_GetPerformanceCounter();
             
             while(Running)
             {
@@ -802,6 +804,12 @@ SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
                 Buffer.Width = GlobalBackbuffer.Width; 
                 Buffer.Height = GlobalBackbuffer.Height;
                 Buffer.Pitch = GlobalBackbuffer.Pitch; 
+                Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
+                
+                uint64 GameCounter = SDL_GetPerformanceCounter();
+                real32 GameSecondsElapsed = SDLGetSecondsElapsed(GameLastCounter, GameCounter);
+                NewInput->SecondsElapsed = GameSecondsElapsed;
+                GameLastCounter = GameCounter;
                 
                 GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
                 

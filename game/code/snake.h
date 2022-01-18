@@ -210,6 +210,7 @@ struct SnakeNode
     int y;
     int nextx;
     int nexty;
+    
     SnakeNode* next;
     SnakeNode* previous;
 };
@@ -218,6 +219,10 @@ struct Snake
 {
     int direction;
     int length;
+    
+    int transitionx;
+    int transitiony;
+    
     SnakeNode* head;
 };
 
