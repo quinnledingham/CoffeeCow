@@ -204,11 +204,21 @@ struct MemoryManager
 #define LEFT 2
 #define DOWN 3
 
+struct SnakeNode
+{
+    int x;
+    int y;
+    int nextx;
+    int nexty;
+    SnakeNode* next;
+    SnakeNode* previous;
+};
+
 struct Snake
 {
     int direction;
     int length;
-    Node* head;
+    SnakeNode* head;
 };
 
 #define SNAKE_H

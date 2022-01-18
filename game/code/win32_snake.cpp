@@ -577,19 +577,19 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
                     }
                     else if(VKCode == VK_UP)
                     {
-                        Win32ProcessKeyboardMessage(&KeyboardController->ActionUp, IsDown);
+                        Win32ProcessKeyboardMessage(&KeyboardController->MoveUp, IsDown);
                     }
                     else if(VKCode == VK_LEFT)
                     {
-                        Win32ProcessKeyboardMessage(&KeyboardController->ActionLeft, IsDown);
+                        Win32ProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
                     }
                     else if(VKCode == VK_DOWN)
                     {
-                        Win32ProcessKeyboardMessage(&KeyboardController->ActionDown, IsDown);
+                        Win32ProcessKeyboardMessage(&KeyboardController->MoveDown, IsDown);
                     }
                     else if(VKCode == VK_RIGHT)
                     {
-                        Win32ProcessKeyboardMessage(&KeyboardController->ActionRight, IsDown);
+                        Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
                     }
                     else if(VKCode == VK_ESCAPE)
                     {
@@ -705,7 +705,7 @@ WinMain(HINSTANCE Instance,
     WNDCLASSA WindowClass = {};
     
 #define WindowWidth 1280
-#define WindowHeight 720
+#define WindowHeight 1280
     Win32ResizeDIBSection(&GlobalBackbuffer, WindowWidth, WindowHeight);
     
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;

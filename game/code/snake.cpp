@@ -104,8 +104,8 @@ RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color)
         }
     }
 }
-#define GRIDWIDTH 50
-#define GRIDHEIGHT 20
+#define GRIDWIDTH 17
+#define GRIDHEIGHT 17
 internal void
 RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY, 
                      int GridWidth, int GridHeight, int GridSize)
@@ -287,72 +287,101 @@ UnlockGrid(Grid *GD)
     }
 }
 
-internal void
-CreateSnake(Grid *GD)
+internal void 
+AddSnakeNode(Snake *s, int x, int y)
 {
+    if (s->head == 0)
+    {
+        SnakeNode part1 = {};
+        part1.x = x;
+        part1.y = y;
+        part1.nextx = 0;
+        part1.nexty = 0;
+        part1.next = 0;
+        part1.previous = 0;
+        
+        s->head = (SnakeNode*)PermanentStorageAssign(&manager, &part1, sizeof(SnakeNode));
+        return;
+    }
     
+    SnakeNode* cursor = s->head;
+    while(cursor->next != 0)
+    {
+        cursor = cursor->next;
+    }
+    SnakeNode partnew = {};
+    partnew.x = x;
+    partnew.y = y;
+    partnew.nextx = cursor->x;
+    partnew.nexty = cursor->y;
+    partnew.next = 0;
+    partnew.previous = cursor;
+    
+    cursor->next = (SnakeNode*)PermanentStorageAssign(&manager, &partnew, sizeof(SnakeNode));
 }
 
 internal void
-RenderSnake(game_offscreen_buffer *Buffer, Grid *GD, int GridX, int GridY, 
+InitializeSnake(Snake *s)
+{
+    AddSnakeNode(s, 4, 2);
+    AddSnakeNode(s, 3, 2);
+    AddSnakeNode(s, 2, 2);
+}
+
+internal void
+RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY, 
             int GridWidth, int GridHeight, int GridSize)
 {
-    for (int i = 0;
-         i < GridWidth;
-         i++)
+    SnakeNode* cursor = s->head;
+    while(cursor != 0)
     {
-        for (int j = 0;
-             j < GridHeight;
-             j++)
-        {
-            int v = GetGridValue(GD, i, j);
-            if (v == SNAKE)
-            {
-                Square newSquare = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
-                RenderSquare(Buffer, &newSquare, FILL, 0xFF000000);
-            }
-        }
+        Square newSquare = {GridX + (cursor->x * GridSize), GridY + (cursor->y * GridSize), GridSize, GridSize};
+        RenderSquare(Buffer, &newSquare, FILL, 0xFF000000);
+        cursor = cursor->next;
     }
 }
 
 internal void
-MoveSnake(Grid *GD, Snake *snake)
+MoveSnake(Snake *snake, int gridwidth, int gridheight)
 {
-    for (int i = 0;
-         i < GD->width;
-         i++)
+    SnakeNode* cursor = snake->head;
+    if (snake->direction == RIGHT)
     {
-        for (int j = 0;
-             j < GD->height;
-             j++)
-        {
-            int v = GetGridValue(GD, i, j);
-            int l = GetGridLocked(GD, i, j);
-            if (v == SNAKE && l == 0)
-            {
-                SetGridValue(GD, i, j, NOSNAKE);
-                if (snake->direction == RIGHT)
-                {
-                    SetGridValue(GD, i + 1, j, SNAKE);
-                    SetGridLocked(GD, i + 1, j, 1);
-                }
-                if (snake->direction == UP)
-                {
-                    SetGridValue(GD, i, j - 1, SNAKE);
-                    SetGridLocked(GD, i, j - 1, 1);
-                }
-                if (snake->direction == LEFT)
-                {
-                    SetGridValue(GD, i - 1, j, SNAKE);
-                    SetGridLocked(GD, i - 1, j, 1);
-                }
-                if (snake->direction == DOWN)
-                {
-                    SetGridValue(GD, i, j + 1, SNAKE);
-                    SetGridLocked(GD, i, j + 1, 1);
-                }
-            }
-        }
+        if (cursor->x + 1 < gridwidth)
+            cursor->x = cursor->x + 1;
+        else
+            return;
+    }
+    else if (snake->direction == UP)
+    {
+        if (cursor->y - 1 > -1)
+            cursor->y = cursor->y - 1;
+        else
+            return;
+    }
+    else if (snake->direction == LEFT)
+    {
+        if (cursor->x - 1 > -1)
+            cursor->x = cursor->x - 1;
+        else
+            return;
+    }
+    else if (snake->direction == DOWN)
+    {
+        if (cursor->y + 1 < gridheight)
+            cursor->y = cursor->y + 1;
+        else
+            return;
+    }
+    cursor = cursor->next;
+    
+    while(cursor != 0)
+    {
+        cursor->x = cursor->nextx;
+        cursor->y = cursor->nexty;
+        cursor->nextx = cursor->previous->x;
+        cursor->nexty = cursor->previous->y;
+        cursor = cursor->next;
     }
 }
 
@@ -407,12 +436,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             // NOTE(casey): Use digital movement tuning
             if(Controller->MoveLeft.EndedDown)
             {
-                GameState->BlueOffset -= 1;
+                if (player.direction != RIGHT)
+                    player.direction = LEFT;
             }
             
             if(Controller->MoveRight.EndedDown)
             {
-                GameState->BlueOffset += 1;
+                if (player.direction != LEFT)
+                    player.direction = RIGHT;
+            }
+            
+            if(Controller->MoveDown.EndedDown)
+            {
+                if (player.direction != UP)
+                    player.direction = DOWN;
+            }
+            
+            if(Controller->MoveUp.EndedDown)
+            {
+                if (player.direction != DOWN)
+                    player.direction = UP;
             }
         }
         
@@ -429,6 +472,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if (GameInitialized == false)
     {
+        /*
         CreateGrid(&GameData, GRIDWIDTH, GRIDHEIGHT);
         SetGridValue(&GameData, 2, 2, SNAKE);
         SetGridValue(&GameData, 3, 2, SNAKE);
@@ -436,30 +480,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         player.direction = RIGHT;
         player.length = 3;
+        */
+        
+        InitializeSnake(&player);
         
         GameInitialized = true;
     }
     
-    MoveSnake(&GameData, &player);
     
-#if 0
+    
+#if 1
     TimeTotal += Input->SecondsElapsed;
     if (TimeTotal > 0.05)
     {
         TimeTotal = 0;
-        SetGridValue(&GameData, z, c, SNAKE);
-        SetGridValue(&GameData, last, c, NOSNAKE);
-        last = z;
-        
-        if (z < GRIDWIDTH)
-            z++;
-        else
-        {
-            z = 0;
-            last = z;
-            SetGridValue(&GameData, z, c, SNAKE);
-            z++;
-        }
+        MoveSnake(&player, GRIDWIDTH, GRIDHEIGHT);
     }
     char FPSBuffer[256];
     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
@@ -468,8 +503,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 #endif
     
     ClearScreen(Buffer);
-    RenderBackgroundGrid(Buffer, 0, 0, GRIDWIDTH, GRIDHEIGHT, 25);
-    RenderSnake(Buffer, &GameData, 0, 0, GRIDWIDTH, GRIDHEIGHT, 25);
+#define GRIDSIZE 50
+    RenderBackgroundGrid(Buffer, 0, 0, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+    RenderSnake(Buffer, &player, 0, 0, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
     //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     UnlockGrid(&GameData);
 }
