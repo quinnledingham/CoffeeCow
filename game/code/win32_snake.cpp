@@ -704,8 +704,8 @@ WinMain(HINSTANCE Instance,
     
     WNDCLASSA WindowClass = {};
     
-#define WindowWidth 1280
-#define WindowHeight 1280
+#define WindowWidth 900
+#define WindowHeight 900
     Win32ResizeDIBSection(&GlobalBackbuffer, WindowWidth, WindowHeight);
     
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
