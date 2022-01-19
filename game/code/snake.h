@@ -165,7 +165,13 @@ struct game_state
     int ToneHz;
     int GreenOffset;
     int BlueOffset;
+    
+    
 };
+
+// Set if the shape should be filled in
+#define NOFILL 0
+#define FILL 1
 
 struct Square
 {
@@ -175,24 +181,9 @@ struct Square
     int height;
 };
 
-struct Node
-{
-    char *Data;
-    int Value;
-    int Locked;
-    Node *NextR;
-    Node *NextC;
-    Node *NextS;
-};
-
-struct Grid
-{
-    int x;
-    int y;
-    int width;
-    int height;
-    Node* head;
-};
+#define GRIDWIDTH 17
+#define GRIDHEIGHT 17
+#define GRIDSIZE 30
 
 struct MemoryManager
 {

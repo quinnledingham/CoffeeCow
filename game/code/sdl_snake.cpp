@@ -25,6 +25,8 @@ typedef double real64;
 
 #include "snake.h"
 #include "snake.cpp"
+//#include "SDL_socketq.h"
+//#include "SDL_socketq.cpp"
 
 #include <SDL.h>
 //#include <stdio.h>
@@ -554,7 +556,7 @@ int main (int argc, char *argv[])
                                                     SDL_RENDERER_PRESENTVSYNC);
         //SDL_RenderSetLogicalSize(Renderer, 1280, 720);
         printf("Refresh rate is %d Hz\n", SDLGetWindowRefreshRate(Window));
-        int GameUpdateHz = 30;
+        int GameUpdateHz = 60;
         real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
         if (Renderer)
         {

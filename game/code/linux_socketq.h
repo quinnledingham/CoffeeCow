@@ -1,5 +1,5 @@
-#ifndef WIN32_SOCKETQ_H
-#define WIN32_SOCKETQ_H
+#ifndef SDL_SOCKETQ_H
+#define SDL_SOCKETQ_H
 
 internal int
 timeout(int sock);
@@ -8,7 +8,7 @@ internal int
 recvPlatform(int sock, char* buffer, int bufferSize, int flags);
 
 internal int
-recvFromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info);
+recvfromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info);
 
 internal int
 sendPlatform(int sock, char* buffer, int bytesToSend, int flags);
@@ -36,4 +36,4 @@ listenq(int sock);
 internal int 
 acceptq(int sock, struct addrinfo server_info);
 
-#endif //WIN32_SOCKETQ_H
+#endif //SDL_SOCKETQ_H

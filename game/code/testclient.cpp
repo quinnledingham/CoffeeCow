@@ -28,13 +28,14 @@ int
 main(int argc, char **argv) 
 {
     Client c;
-    createClient(&c, argv[1], argv[2], 0);
+    createClient(&c, argv[1], argv[2], TCP);
     
     while(1)
     {
         char userIn[50];
         memset(userIn, 0, sizeof(userIn));
-        getUserInput("Enter: ", userIn);
+        char* e = "Enter: ";
+        getUserInput(e, userIn);
         sendq(&c, userIn, 50);
         
         char buffer[500];

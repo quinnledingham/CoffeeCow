@@ -9,6 +9,9 @@
 #include "stdio.h"
 #include "snake.h"
 
+#include "socketq.cpp"
+#include "socketq.h"
+
 internal void
 GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
@@ -56,10 +59,6 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffs
     }
 }
 
-// Set if the shape should be filled in
-#define NOFILL 0
-#define FILL 1
-
 internal void 
 RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color)
 {
@@ -103,8 +102,7 @@ RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color)
         }
     }
 }
-#define GRIDWIDTH 17
-#define GRIDHEIGHT 17
+
 internal void
 RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY, 
                      int GridWidth, int GridHeight, int GridSize)
@@ -145,14 +143,6 @@ ClearScreen(game_offscreen_buffer *Buffer)
     }
 }
 
-global_variable MemoryManager manager;
-global_variable int GameInitialized = false;
-global_variable Grid GameData;
-global_variable Snake player;
-
-#define NOSNAKE 0
-#define SNAKE 1
-
 internal void*
 PermanentStorageAssign(MemoryManager *m, void  *newM, int size)
 {
@@ -171,120 +161,9 @@ PermanentStorageAssign(MemoryManager *m, void  *newM, int size)
     //memcpy(manager->NextStorage, newM, size);
 }
 
-internal void
-CreateGrid(Grid *newGrid, int width, int height)
-{
-    Node head = {};
-    head.Data = "head";
-    head.Value = NOSNAKE;
-    head.NextR = 0;
-    head.NextC = 0;
-    newGrid->head = (Node*)PermanentStorageAssign(&manager, &head, sizeof(Node));
-    newGrid->width = width;
-    newGrid->height = height;
-    
-    Node* cursorR = newGrid->head;
-    for (int i = 0; i < width; i++)
-    {
-        Node* cursorC = cursorR;
-        for (int j = 0; j < height; j++)
-        {
-            Node o = {};
-            o.Data = "column";
-            o.Value = NOSNAKE;
-            head.NextR = 0;
-            head.NextC = 0;
-            cursorC->NextC = (Node*)PermanentStorageAssign(&manager, &o, sizeof(Node));
-            cursorC = cursorC->NextC;
-        }
-        
-        Node n = {};
-        n.Data = "row";
-        n.Value = NOSNAKE;
-        head.NextR = 0;
-        head.NextC = 0;
-        cursorR->NextR = (Node*)PermanentStorageAssign(&manager, &n, sizeof(Node));
-        cursorR = cursorR->NextR;
-    }
-}
-
-internal void
-SetGridValue(Grid *grid, int x, int y, int value)
-{
-    Node* cursor = grid->head;
-    for (int i = 0; i < x; i++)
-    {
-        cursor = cursor->NextR;
-    }
-    for (int j = 0; j < y; j++)
-    {
-        cursor = cursor->NextC;
-    }
-    
-    cursor->Value = value;
-}
-
-internal int
-GetGridValue(Grid *grid, int x, int y)
-{
-    Node* cursor = grid->head;
-    for (int i = 0; i < x; i++)
-    {
-        cursor = cursor->NextR;
-    }
-    for (int j = 0; j < y; j++)
-    {
-        cursor = cursor->NextC;
-    }
-    
-    return cursor->Value;
-}
-
-internal void
-SetGridLocked(Grid *grid, int x, int y, int locked)
-{
-    Node* cursor = grid->head;
-    for (int i = 0; i < x; i++)
-    {
-        cursor = cursor->NextR;
-    }
-    for (int j = 0; j < y; j++)
-    {
-        cursor = cursor->NextC;
-    }
-    cursor->Locked = locked;
-}
-
-internal int
-GetGridLocked(Grid *grid, int x, int y)
-{
-    Node* cursor = grid->head;
-    for (int i = 0; i < x; i++)
-    {
-        cursor = cursor->NextR;
-    }
-    for (int j = 0; j < y; j++)
-    {
-        cursor = cursor->NextC;
-    }
-    return cursor->Locked;
-}
-
-internal void
-UnlockGrid(Grid *GD)
-{
-    for (int i = 0;
-         i < GD->width;
-         i++)
-    {
-        for (int j = 0;
-             j < GD->height;
-             j++)
-        {
-            SetGridLocked(GD, i, j, 0);
-        }
-    }
-}
+global_variable MemoryManager manager;
+global_variable int GameInitialized = false;
+global_variable Snake player;
 
 internal void 
 AddSnakeNode(Snake *s, int x, int y)
@@ -347,9 +226,6 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
     }
 }
 
-#define GRIDSIZE 30
-int skip = 6;
-int framesToSkip = 6;
 
 internal int
 GetSnakeNodeDirection(SnakeNode* current, SnakeNode* next)
@@ -450,6 +326,9 @@ MoveSnake(Snake *snake, int gridwidth, int gridheight)
     return 1;
 }
 
+int skip = 6;
+int framesToSkip = 6;
+
 internal void
 TransitionSnake(Snake* snake)
 {
@@ -476,10 +355,7 @@ TransitionSnake(Snake* snake)
     }
 }
 
-real32 TimeTotal = 0;
-int z = 0;
-int c = 0;
-int last = -1;
+Client client;
 
 internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
@@ -565,7 +441,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         InitializeSnake(&player);
         GameInitialized = true;
+        
+        createClient(&client, "192.168.1.75", "10109", TCP);
     }
+    
+    
+    //Worked to send messages to the test server
+    /*
+    sendq(&client, "yo", 50);
+    
+    char buffer[500];
+    memset(buffer, 0, sizeof(buffer));
+    recvq(&client, buffer, 500);
+    printf("%s\n", buffer);
+    */
     
     if (skip == framesToSkip)
     {
@@ -587,7 +476,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     ClearScreen(Buffer);
     
-    RenderBackgroundGrid(Buffer, 0, 0, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-    RenderSnake(Buffer, &player, 0, 0, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+    // Where the top left corner of the grid should be for it to look
+    // centered in the window
+    int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
+    int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
+    
+    RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+    RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
     //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }

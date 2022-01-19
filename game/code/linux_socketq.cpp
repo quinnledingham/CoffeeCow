@@ -1,64 +1,46 @@
-#define WIN32_LEAN_AND_MEAN
+#include <sys/socket.h> 
+#include <errno.h>
+#include <time.h>
+#include <sys/types.h>
+#include <netdb.h>
 
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "win32_socketq.h"
 
-#include <time.h>
+#include "linux_socketq.h"
 
-// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
+#include "socketq.h"
 
-#define DEFAULT_BUFLEN 512
-#define DEFAULT_PORT "27015"
-
-
-internal int 
+internal int
 timeout(int sock)
 {
     // Waits for a recieve on sock. if none it returns 0.
-    fd_set fds;
-    int n;
     struct timeval tv;
-    
-    FD_ZERO(&fds);
-    FD_SET(sock, &fds);
-    
     tv.tv_sec = 0;
     tv.tv_usec = 100000;
-    
-    n = select(sock, &fds, NULL, NULL, &tv);
-    if (n == 0)
-    {
-        fprintf(stderr, "Timeout.. (UDP)\n");
-        return 0;
+    int t = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv));
+    if (t < 0) {
+        perror("Error\n");
     }
-    else if (n < 0)
-    {
-        fprintf(stderr, "timeout(): select() call failed!\n");
-        return 1;
-    }
-    
-    return 1;
+    fprintf(stderr, "\ntimeout: %d\n", t);
+    return t;
 }
 
 internal int
 recvPlatform(int sock, char* buffer, int bufferSize, int flags)
 {
-    return recv(sock, buffer, bufferSize, flags);
+    int bytes = recv(sock, buffer, bufferSize, 0);
+    return bytes;
 }
 
 internal int
-recvFromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info)
+recvfromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info)
 {
-    return recvfrom(sock, buffer, bufferSize, flags,
-                    info->ai_addr,
-                    reinterpret_cast<int*>(&info->ai_addrlen));
+    int bytes = recvfrom(sock, buffer, bufferSize, 0,
+                         info->ai_addr,
+                         &info->ai_addrlen);
+    return bytes;
 }
 
 internal int
@@ -74,18 +56,11 @@ sendtoPlatform(int sock, char* buffer, int bytesToSend, int flags, struct addrin
                   info->ai_addr, info->ai_addrlen);
 }
 
-internal addrinfo*
-getHost(char *ip, char* port, int type)
+internal addrinfo* 
+getHost(char* ip, char* port, int type)
 {
-    // Initialize Winsock
-    WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-    }
-    
-    addrinfo hints, *server_info;
-    server_info = (addrinfo*)malloc(sizeof(addrinfo));
+    struct addrinfo hints, *server_info;
+    server_info = (struct addrinfo*)malloc(sizeof(struct addrinfo));
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;
     
@@ -102,21 +77,14 @@ getHost(char *ip, char* port, int type)
 internal addrinfo*
 addressInit(char* port, int type)
 {
-    // Initialize Winsock
-    WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-    }
-    
-    addrinfo hints, *server_info;
-    server_info = (addrinfo*)malloc(sizeof(addrinfo));
-    memset(&hints, 0, sizeof(addrinfo));
+    struct addrinfo hints, *server_info;
+    server_info = (struct addrinfo*)malloc(sizeof(struct addrinfo));
+    memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;
     
     if (type == TCP)
         hints.ai_socktype = SOCK_STREAM;
-    else if (type = UDP)
+    else if (type == UDP)
         hints.ai_socktype = SOCK_DGRAM;
     
     hints.ai_flags = AI_PASSIVE;
@@ -172,7 +140,7 @@ acceptq(int sock, struct addrinfo server_info)
 {
     int newsock;
     if ((newsock = accept(sock, server_info.ai_addr,
-                          reinterpret_cast<int*>(&server_info.ai_addrlen))) == 1)
+                          &server_info.ai_addrlen)) == 1)
     {
         fprintf(stderr, "acceptq(): accept() call failed!\n");
         exit(1);
