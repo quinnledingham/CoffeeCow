@@ -221,7 +221,7 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
             GridY + (cursor->y * GridSize) + cursor->transitiony, 
             GridSize, GridSize
         };
-        RenderSquare(Buffer, &newSquare, FILL, 0xFF000000);
+        RenderSquare(Buffer, &newSquare, FILL, 0xFF32a89b);
         cursor = cursor->next;
     }
 }
@@ -442,7 +442,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         InitializeSnake(&player);
         GameInitialized = true;
         
-        createClient(&client, "192.168.1.75", "10109", TCP);
+        //createClient(&client, "192.168.1.75", "10109", TCP);
     }
     
     

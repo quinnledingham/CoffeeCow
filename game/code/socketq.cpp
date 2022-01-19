@@ -146,7 +146,7 @@ internal int
 sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int bufferSize)
 {
     char header[HEADER_BUFFER_SIZE];
-    sprintf(header, "%d", bufferSize);
+    sprintf_s(header, "%d", bufferSize);
     
     char* header_buffer = (char*)malloc(sizeof(char) * (HEADER_BUFFER_SIZE + bufferSize));
     memset(header_buffer, 0, sizeof(char) * (HEADER_BUFFER_SIZE + bufferSize));
@@ -159,7 +159,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
     cursor = header_buffer;
     
     int bytesToSend = HEADER_BUFFER_SIZE + bufferSize;
-    int bytesSent;
+    int bytesSent = 0;
     
     while (bytesToSend > 0)
     {
@@ -177,8 +177,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
         else if (protocol == UDP)
         {
             printf("Sending message (UDP).");
-            bytesSent = sendto(sock, cursor, bytesToSend, 0,
-                               info->ai_addr, info->ai_addrlen);
+            bytesSent = sendtoPlatform(sock, cursor, bytesToSend, 0, info);
             if (bytesSent < 0)
             {
                 fprintf(stderr, "sendBuffer(): sendto() call failed!\n");

@@ -1,10 +1,10 @@
-#define WIN32_LEAN_AND_MEAN
 
-#include <windows.h>
+//#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "win32_socketq.h"
 
 #include <time.h>
@@ -54,7 +54,7 @@ recvPlatform(int sock, char* buffer, int bufferSize, int flags)
 }
 
 internal int
-recvFromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info)
+recvfromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info)
 {
     return recvfrom(sock, buffer, bufferSize, flags,
                     info->ai_addr,
@@ -70,8 +70,8 @@ sendPlatform(int sock, char* buffer, int bytesToSend, int flags)
 internal int
 sendtoPlatform(int sock, char* buffer, int bytesToSend, int flags, struct addrinfo *info)
 {
-    return sendto(sock, buffer, bytesToSend, 0,
-                  info->ai_addr, info->ai_addrlen);
+    return sendto(sock, buffer, bytesToSend, flags,
+                  info->ai_addr, (int)info->ai_addrlen);
 }
 
 internal addrinfo*
@@ -116,7 +116,7 @@ addressInit(char* port, int type)
     
     if (type == TCP)
         hints.ai_socktype = SOCK_STREAM;
-    else if (type = UDP)
+    else if (type == UDP)
         hints.ai_socktype = SOCK_DGRAM;
     
     hints.ai_flags = AI_PASSIVE;
@@ -127,9 +127,9 @@ addressInit(char* port, int type)
 
 internal int socketq(struct addrinfo server_info)
 {
-    int sock = socket(server_info.ai_family, 
-                      server_info.ai_socktype,
-                      server_info.ai_protocol);
+    int sock = (int)socket(server_info.ai_family, 
+                           server_info.ai_socktype,
+                           server_info.ai_protocol);
     if (sock < 0)
     {
         fprintf(stderr, "socketM(): socket() called failed!\n");
@@ -142,7 +142,7 @@ internal int socketq(struct addrinfo server_info)
 internal void
 connectq(int sock, struct addrinfo server_info)
 {
-    if (connect(sock, server_info.ai_addr, server_info.ai_addrlen) == -1)
+    if (connect(sock, server_info.ai_addr, (int)server_info.ai_addrlen) == -1)
     {
         fprintf(stderr, "connectM(): connect() call failed!\n");
     }
@@ -151,7 +151,7 @@ connectq(int sock, struct addrinfo server_info)
 internal void
 bindq(int sock, struct addrinfo server_info)
 {
-    if (bind(sock, server_info.ai_addr, server_info.ai_addrlen) == -1)
+    if (bind(sock, server_info.ai_addr, (int)server_info.ai_addrlen) == -1)
     {
         fprintf(stderr, "bindq(): bind() call failed!\n");
     }
@@ -171,8 +171,8 @@ internal int
 acceptq(int sock, struct addrinfo server_info)
 {
     int newsock;
-    if ((newsock = accept(sock, server_info.ai_addr,
-                          reinterpret_cast<int*>(&server_info.ai_addrlen))) == 1)
+    if ((newsock = (int)accept(sock, server_info.ai_addr,
+                               reinterpret_cast<int*>(&server_info.ai_addrlen))) == 1)
     {
         fprintf(stderr, "acceptq(): accept() call failed!\n");
         exit(1);

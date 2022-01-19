@@ -8,7 +8,7 @@ internal int
 recvPlatform(int sock, char* buffer, int bufferSize, int flags);
 
 internal int
-recvFromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info);
+recvfromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info);
 
 internal int
 sendPlatform(int sock, char* buffer, int bytesToSend, int flags);

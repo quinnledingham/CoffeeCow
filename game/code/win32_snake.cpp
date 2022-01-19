@@ -51,9 +51,12 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
+
+
 #include "snake.h"
 #include "snake.cpp"
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
 #include <malloc.h>
