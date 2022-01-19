@@ -294,6 +294,8 @@ AddSnakeNode(Snake *s, int x, int y)
         SnakeNode part1 = {};
         part1.x = x;
         part1.y = y;
+        part1.nextx = x + 1;
+        part1.nexty = y;
         
         s->head = (SnakeNode*)PermanentStorageAssign(&manager, &part1, sizeof(SnakeNode));
         return;
@@ -318,14 +320,13 @@ internal void
 InitializeSnake(Snake *s)
 {
     s->direction = RIGHT;
-    s->length = 3;
-    
-    s->transitionx = 0;
-    s->transitiony = 0;
+    s->length = 5;
     
     AddSnakeNode(s, 4, 2);
     AddSnakeNode(s, 3, 2);
     AddSnakeNode(s, 2, 2);
+    AddSnakeNode(s, 1, 2);
+    AddSnakeNode(s, 0, 2);
 }
 
 internal void
@@ -337,8 +338,8 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
     {
         Square newSquare =
         {
-            GridX + (cursor->x * GridSize) + s->transitionx, 
-            GridY + (cursor->y * GridSize) + s->transitiony, 
+            GridX + (cursor->x * GridSize) + cursor->transitionx, 
+            GridY + (cursor->y * GridSize) + cursor->transitiony, 
             GridSize, GridSize
         };
         RenderSquare(Buffer, &newSquare, FILL, 0xFF000000);
@@ -346,54 +347,136 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
     }
 }
 
+#define GRIDSIZE 50
+int skip = 5;
+int framesToSkip = 5;
+
+internal int
+GetSnakeNodeDirection(SnakeNode* current, SnakeNode* next)
+{
+    if ((next->x - current->x) == 1)
+    {
+        return RIGHT;
+    }
+    else if ((next->x - current->x) == -1)
+    {
+        return LEFT;
+    }
+    else if ((next->y - current->y) == 1)
+    {
+        return DOWN;
+    }
+    else if ((next->y - current->y) == -1)
+    {
+        return UP;
+    }
+    
+    return 0;
+}
+
 internal int
 MoveSnake(Snake *snake, int gridwidth, int gridheight)
 {
+    // Make sure that all the nodes have been updated to their new spot
+    SnakeNode* start = snake->head;
+    while(start != 0)
+    {
+        start->x = start->nextx;
+        start->y = start->nexty;
+        start = start->next;
+    }
+    
+    // Reset all transition values.
+    SnakeNode* clear = snake->head;
+    while(clear != 0)
+    {
+        clear->transitionx = 0;
+        clear->transitiony = 0;
+        clear = clear->next;
+    }
+    
+    // Figure out where each part of the snake is moving next.
     SnakeNode* cursor = snake->head;
+    // Check if head has room to move.
+    // If it does have room set where it will move to next.
     if (snake->direction == RIGHT)
     {
-        if (cursor->x + 1 < gridwidth)
-            cursor->x = cursor->x + 1;
+        if (cursor->nextx + 1 < gridwidth)
+            cursor->nextx = cursor->nextx + 1;
         else
             return 0;
+        
+        cursor->transitiondirection = RIGHT;
     }
     else if (snake->direction == UP)
     {
-        if (cursor->y - 1 > -1)
-            cursor->y = cursor->y - 1;
+        if (cursor->nexty - 1 > -1)
+            cursor->nexty = cursor->nexty - 1;
         else
             return 0;
+        
+        cursor->transitiondirection = UP;
     }
     else if (snake->direction == LEFT)
     {
-        if (cursor->x - 1 > -1)
-            cursor->x = cursor->x - 1;
+        if (cursor->nextx - 1 > -1)
+            cursor->nextx = cursor->nextx - 1;
         else
             return 0;
+        
+        cursor->transitiondirection = LEFT;
     }
     else if (snake->direction == DOWN)
     {
-        if (cursor->y + 1 < gridheight)
-            cursor->y = cursor->y + 1;
+        if (cursor->nexty + 1 < gridheight)
+            cursor->nexty = cursor->nexty + 1;
         else
             return 0;
+        
+        cursor->transitiondirection = DOWN;
     }
     cursor = cursor->next;
     
+    // Move all the nodes behind the head.
     while(cursor != 0)
     {
-        cursor->x = cursor->nextx;
-        cursor->y = cursor->nexty;
         cursor->nextx = cursor->previous->x;
         cursor->nexty = cursor->previous->y;
+        
+        cursor->transitiondirection = GetSnakeNodeDirection(cursor, cursor->previous);
         cursor = cursor->next;
     }
     
     return 1;
 }
 
+internal void
+TransitionSnake(Snake* snake)
+{
+    SnakeNode* cursor = snake->head;
+    while(cursor != 0)
+    {
+        if (cursor->transitiondirection == RIGHT)
+        {
+            cursor->transitionx += (GRIDSIZE / (framesToSkip));
+        }
+        else if (cursor->transitiondirection == UP)
+        {
+            cursor->transitiony -= (GRIDSIZE / (framesToSkip + 1));
+        }
+        else if (cursor->transitiondirection == LEFT)
+        {
+            cursor->transitionx -= (GRIDSIZE / (framesToSkip + 1));
+        }
+        else if (cursor->transitiondirection == DOWN)
+        {
+            cursor->transitiony += (GRIDSIZE / (framesToSkip + 1));
+        }
+        cursor = cursor->next;
+    }
+}
+
 real32 TimeTotal = 0;
-int skip = 2;
 int z = 0;
 int c = 0;
 int last = -1;
@@ -484,27 +567,21 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         GameInitialized = true;
     }
     
-#define GRIDSIZE 50
-    
-    int framesToSkip = 2;
     if (skip == framesToSkip)
     {
-        
         if (MoveSnake(&player, GRIDWIDTH, GRIDHEIGHT))
         {
-            player.transitionx = -GRIDSIZE;
+            TransitionSnake(&player);
             skip = 0;
         }
         else
         {
-            player.transitionx = 0;
+            
         }
     }
     else
     {
-        if (player.direction == RIGHT)
-            player.transitionx += (GRIDSIZE / (framesToSkip + 1));
-        
+        TransitionSnake(&player);
         skip++;
     }
     
