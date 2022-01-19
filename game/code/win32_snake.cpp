@@ -704,8 +704,8 @@ WinMain(HINSTANCE Instance,
     
     WNDCLASSA WindowClass = {};
     
-#define WindowWidth 900
-#define WindowHeight 900
+#define WindowWidth 700
+#define WindowHeight 700
     Win32ResizeDIBSection(&GlobalBackbuffer, WindowWidth, WindowHeight);
     
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
@@ -722,7 +722,7 @@ WinMain(HINSTANCE Instance,
     
 #define FramesOfAudioLatency 3
 #define MonitorRefreshHz 60
-#define GameUpdateHz 30
+#define GameUpdateHz 60
     real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
     
     if(RegisterClassA(&WindowClass))

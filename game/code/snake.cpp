@@ -347,9 +347,9 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
     }
 }
 
-#define GRIDSIZE 50
-int skip = 5;
-int framesToSkip = 5;
+#define GRIDSIZE 30
+int skip = 6;
+int framesToSkip = 6;
 
 internal int
 GetSnakeNodeDirection(SnakeNode* current, SnakeNode* next)
@@ -458,7 +458,7 @@ TransitionSnake(Snake* snake)
     {
         if (cursor->transitiondirection == RIGHT)
         {
-            cursor->transitionx += (GRIDSIZE / (framesToSkip));
+            cursor->transitionx += (GRIDSIZE / (framesToSkip + 1));
         }
         else if (cursor->transitiondirection == UP)
         {
