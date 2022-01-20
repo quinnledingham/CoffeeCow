@@ -12,6 +12,12 @@
 #include "socketq.cpp"
 #include "socketq.h"
 
+#include "gui.cpp"
+#include "gui.h"
+
+#include "memorymanager.cpp"
+#include "memorymanager.h"
+
 internal void
 GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
@@ -143,27 +149,9 @@ ClearScreen(game_offscreen_buffer *Buffer)
     }
 }
 
-internal void*
-PermanentStorageAssign(MemoryManager *m, void  *newM, int size)
-{
-    char *csrc = (char*)m->NextStorage;
-    char *cdest = (char*)newM;
-    
-    for (int i = 0; i < size; i++)
-    {
-        csrc[i] = cdest[i];
-    }
-    
-    void *returnV = m->NextStorage;
-    m->NextStorage += size;
-    
-    return returnV;
-    //memcpy(manager->NextStorage, newM, size);
-}
-
-global_variable MemoryManager manager;
 global_variable int GameInitialized = false;
 global_variable Snake player;
+global_variable GUI menu = {};
 
 internal void 
 AddSnakeNode(Snake *s, int x, int y)
@@ -176,7 +164,7 @@ AddSnakeNode(Snake *s, int x, int y)
         part1.nextx = x + 1;
         part1.nexty = y;
         
-        s->head = (SnakeNode*)PermanentStorageAssign(&manager, &part1, sizeof(SnakeNode));
+        s->head = (SnakeNode*)PermanentStorageAssign(&part1, sizeof(SnakeNode));
         return;
     }
     
@@ -192,7 +180,7 @@ AddSnakeNode(Snake *s, int x, int y)
     partnew.nexty = cursor->y;
     partnew.previous = cursor;
     
-    cursor->next = (SnakeNode*)PermanentStorageAssign(&manager, &partnew, sizeof(SnakeNode));
+    cursor->next = (SnakeNode*)PermanentStorageAssign(&partnew, sizeof(SnakeNode));
 }
 
 internal void
@@ -355,6 +343,7 @@ TransitionSnake(Snake* snake)
     }
 }
 
+
 Client client;
 
 internal void
@@ -380,12 +369,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         
         GameState->ToneHz = 256;
+        GameState->Menu = 1;
         
         manager.NextStorage = (char*)Memory->PermanentStorage + sizeof(game_state);
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
     }
+    
+    int btnPress = -1;
     
     for(int ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
@@ -424,6 +416,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (player.direction != DOWN)
                     player.direction = UP;
             }
+            if(Input->MouseButtons[0].EndedDown)
+            {
+                btnPress = CheckButtons(&menu, Input->MouseX, Input->MouseY);
+            }
         }
         
         // Input.AButtonEndedDown;
@@ -437,51 +433,82 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     // TODO(casey): Allow sample offsets here for more robust platform options
     GameOutputSound(SoundBuffer, GameState->ToneHz);
     
-    if (GameInitialized == false)
+    if (btnPress == GameStart)
     {
-        InitializeSnake(&player);
-        GameInitialized = true;
-        
-        //createClient(&client, "192.168.1.75", "10109", TCP);
+        GameState->Menu = 0;
+    }
+    else if (btnPress == Quit)
+    {
+        Input->quit = 1;
     }
     
-    
-    //Worked to send messages to the test server
-    /*
-    sendq(&client, "yo", 50);
-    
-    char buffer[500];
-    memset(buffer, 0, sizeof(buffer));
-    recvq(&client, buffer, 500);
-    printf("%s\n", buffer);
-    */
-    
-    if (skip == framesToSkip)
+    if (GameState->Menu == 1)
     {
-        if (MoveSnake(&player, GRIDWIDTH, GRIDHEIGHT))
+        if (menu.initialized == 0)
         {
-            TransitionSnake(&player);
-            skip = 0;
+            addButton(&menu, 10, 10, 100, 100, 0xFF32a89b, "yo", GameStart);
+            addButton(&menu, 10, 200, 100, 100, 0xFF32a89b, "yo", Quit);
+            //addButton(&menu, 120, 120, 100, 100, 0xFF32a89b, "yo" );
+            menu.initialized = 1;
+        }
+        
+        ClearScreen(Buffer);
+        RenderButtons(Buffer, &menu);
+        
+        /*
+        char text[50];
+        sprintf_s(text, "X: %d, Y: %d\n", Input->MouseX, Input->MouseY);
+        OutputDebugStringA(text);
+*/
+    }
+    else if (GameState->Menu == 0)
+    {
+        if (GameInitialized == false)
+        {
+            InitializeSnake(&player);
+            GameInitialized = true;
+            
+            //createClient(&client, "192.168.1.75", "10109", TCP);
+        }
+        
+        
+        //Worked to send messages to the test server
+        /*
+        sendq(&client, "yo", 50);
+        
+        char buffer[500];
+        memset(buffer, 0, sizeof(buffer));
+        recvq(&client, buffer, 500);
+        printf("%s\n", buffer);
+        */
+        
+        if (skip == framesToSkip)
+        {
+            if (MoveSnake(&player, GRIDWIDTH, GRIDHEIGHT))
+            {
+                TransitionSnake(&player);
+                skip = 0;
+            }
+            else
+            {
+                
+            }
         }
         else
         {
-            
+            TransitionSnake(&player);
+            skip++;
         }
+        
+        ClearScreen(Buffer);
+        
+        // Where the top left corner of the grid should be for it to look
+        // centered in the window
+        int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
+        int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
+        
+        RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
-    else
-    {
-        TransitionSnake(&player);
-        skip++;
-    }
-    
-    ClearScreen(Buffer);
-    
-    // Where the top left corner of the grid should be for it to look
-    // centered in the window
-    int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
-    int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
-    
-    RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-    RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-    //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }

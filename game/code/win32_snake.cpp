@@ -31,28 +31,6 @@
 #include <math.h>
 #include <stdint.h>
 
-#define internal static 
-#define local_persist static 
-#define global_variable static
-
-#define Pi32 3.14159265359f
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-typedef int32 bool32;
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef float real32;
-typedef double real64;
-
-
-
 #include "snake.h"
 #include "snake.cpp"
 
@@ -500,7 +478,7 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
 internal void
 Win32ProcessKeyboardMessage(game_button_state *NewState, bool32 IsDown)
 {
-    Assert(NewState->EndedDown != IsDown);
+    //Assert(NewState->EndedDown != IsDown);
     NewState->EndedDown = IsDown;
     ++NewState->HalfTransitionCount;
 }
@@ -836,6 +814,23 @@ WinMain(HINSTANCE Instance,
                     
                     Win32ProcessPendingMessages(NewKeyboardController);
                     
+                    POINT MouseP;
+                    GetCursorPos(&MouseP);
+                    ScreenToClient(Window, &MouseP);
+                    NewInput->MouseX = MouseP.x;
+                    NewInput->MouseY = MouseP.y;
+                    NewInput->MouseZ = 0; // TODO(casey): Support mousewheel?
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0],
+                                                GetKeyState(VK_LBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1],
+                                                GetKeyState(VK_MBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[2],
+                                                GetKeyState(VK_RBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[3],
+                                                GetKeyState(VK_XBUTTON1) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[4],
+                                                GetKeyState(VK_XBUTTON2) & (1 << 15));
+                    
                     // TODO(casey): Need to not poll disconnected controllers to avoid
                     // xinput frame rate hit on older libraries...
                     // TODO(casey): Should we poll this more frequently
@@ -992,6 +987,12 @@ WinMain(HINSTANCE Instance,
                     GameLastCounter = GameCounter;
                     
                     GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
+                    
+                    // Check if game tells the platform to quit the game
+                    if(NewInput->quit == 1)
+                    {
+                        GlobalRunning = false;
+                    }
                     
                     if(SoundIsValid)
                     {

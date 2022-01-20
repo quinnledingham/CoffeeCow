@@ -34,6 +34,26 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 // TODO(casey): swap, min, max ... macros???
 
+#define internal static 
+#define local_persist static 
+#define global_variable static
+
+#define Pi32 3.14159265359f
+
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
+typedef int32 bool32;
+
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+typedef float real32;
+typedef double real64;
+
 inline uint32
 SafeTruncateUInt64(uint64 Value)
 {
@@ -130,9 +150,14 @@ struct game_controller_input
 
 struct game_input
 {
+    game_button_state MouseButtons[5];
+    int32 MouseX, MouseY, MouseZ;
+    
     // TODO(casey): Insert clock values here.    
     game_controller_input Controllers[5];
     real32 SecondsElapsed;
+    
+    int32 quit;
 };
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
@@ -162,11 +187,10 @@ internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_o
 
 struct game_state
 {
+    int Menu;
     int ToneHz;
     int GreenOffset;
     int BlueOffset;
-    
-    
 };
 
 // Set if the shape should be filled in
@@ -179,16 +203,15 @@ struct Square
     int y;
     int width;
     int height;
+    uint32 color;
 };
+
+internal void 
+RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color);
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
 #define GRIDSIZE 30
-
-struct MemoryManager
-{
-    char* NextStorage;
-};
 
 #define RIGHT 0
 #define UP 1
@@ -216,6 +239,8 @@ struct Snake
     int length;
     SnakeNode* head;
 };
+
+
 
 #define SNAKE_H
 #endif
