@@ -22,7 +22,7 @@ enum ButtonPress
 
 struct Button
 {
-    Square square;
+    Rect rect;
     char* text;
     int id;
 };

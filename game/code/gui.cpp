@@ -26,11 +26,11 @@ internal void
 addButton(GUI* g, int x, int y, int width, int height, uint32 color, char* text, int id)
 {
     Button newBtn = {};
-    newBtn.square.x = x;
-    newBtn.square.y = y;
-    newBtn.square.width = width;
-    newBtn.square.height = height;
-    newBtn.square.color = color;
+    newBtn.rect.x = x;
+    newBtn.rect.y = y;
+    newBtn.rect.width = width;
+    newBtn.rect.height = height;
+    newBtn.rect.color = color;
     newBtn.text = text;
     newBtn.id = id;
     
@@ -50,8 +50,8 @@ RenderButtons(game_offscreen_buffer *Buffer, GUI* g)
     GUIComponent* cursor = g->buttons;
     while(cursor != 0)
     {
-        Square* s = (Square*)cursor->component;
-        RenderSquare(Buffer, s, FILL, s->color);
+        Rect* s = (Rect*)cursor->component;
+        RenderRect(Buffer, s, FILL, s->color);
         cursor = cursor->next;
     }
 }
@@ -62,7 +62,7 @@ CheckButtons(GUI* g, int32 MouseX, int32 MouseY)
     GUIComponent* cursor = g->buttons;
     while(cursor != 0)
     {
-        Square* s = (Square*)cursor->component;
+        Rect* s = (Rect*)cursor->component;
         if (s->x < MouseX && MouseX < (s->x + s->width) &&
             s->y < MouseY && MouseY < (s->y + s->height))
         {

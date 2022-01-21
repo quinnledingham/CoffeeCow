@@ -26,3 +26,4 @@ build/win32_snake.exe
 build/win32_snake.exe
 build/.vs/win32_snake/v17/ipch/AutoPCH/e95c8b844384e31c/WIN32_SNAKE.ipch
 *.exe
+build/.vs/win32_snake/v17/ipch/AutoPCH/4c42f973600ccb80/WIN32_SNAKE.ipch

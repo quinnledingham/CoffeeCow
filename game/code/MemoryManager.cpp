@@ -3,6 +3,15 @@
 global_variable MemoryManager manager;
 
 internal void*
+PermanentStorageBlank(int size)
+{
+    void *returnV = manager.NextStorage;
+    manager.NextStorage += size;
+    
+    return returnV;
+}
+
+internal void*
 PermanentStorageAssign(void* newM, int size)
 {
     char *csrc = (char*)manager.NextStorage;

@@ -54,6 +54,10 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
+typedef uint32 u32;
+
+#define BITMAP_BYTES_PER_PIXEL 4
+
 inline uint32
 SafeTruncateUInt64(uint64 Value)
 {
@@ -176,6 +180,8 @@ struct game_memory
     
     uint64 TransientStorageSize;
     void *TransientStorage; // NOTE(casey): REQUIRED to be cleared to zero at startup
+    
+    void *Bitmap;
 };
 
 internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
@@ -197,7 +203,7 @@ struct game_state
 #define NOFILL 0
 #define FILL 1
 
-struct Square
+struct Rect
 {
     int x;
     int y;
@@ -207,7 +213,7 @@ struct Square
 };
 
 internal void 
-RenderSquare(game_offscreen_buffer *Buffer, Square *S, int fill, uint32 color);
+RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
@@ -240,7 +246,13 @@ struct Snake
     SnakeNode* head;
 };
 
-
+struct Image
+{
+    int x;
+    int y;
+    int n;
+    unsigned char* data;
+};
 
 #define SNAKE_H
 #endif

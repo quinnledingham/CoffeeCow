@@ -72,6 +72,7 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
+#if SNAKE_INTERNAL
 internal debug_read_file_result 
 DEBUGPlatformReadEntireFile(char *Filename)
 {
@@ -158,6 +159,7 @@ DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory)
     
     return(Result);
 }
+#endif
 
 internal void
 Win32LoadXInput(void)    
@@ -685,8 +687,8 @@ WinMain(HINSTANCE Instance,
     
     WNDCLASSA WindowClass = {};
     
-#define WindowWidth 700
-#define WindowHeight 700
+#define WindowWidth 1000
+#define WindowHeight 1000
     Win32ResizeDIBSection(&GlobalBackbuffer, WindowWidth, WindowHeight);
     
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
@@ -762,7 +764,7 @@ WinMain(HINSTANCE Instance,
                                                    MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
             
             
-#if HANDMADE_INTERNAL
+#if SNAKE_INTERNAL
             LPVOID BaseAddress = (LPVOID)Terabytes(2);
 #else
             LPVOID BaseAddress = 0;
@@ -795,6 +797,9 @@ WinMain(HINSTANCE Instance,
                 bool32 SoundIsValid = false;
                 
                 uint64 LastCycleCount = __rdtsc();
+                
+                //Win32LoadBitmap(&GameMemory, "grass.bmp", 1000, 1000);
+                
                 while(GlobalRunning)
                 {
                     // TODO(casey): Zeroing macro
@@ -1101,10 +1106,10 @@ WinMain(HINSTANCE Instance,
                     real64 FPS = 0.0f;
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0f * 1000.0f));
                     
-                    //char FPSBuffer[256];
-                    //_snprintf_s(FPSBuffer, sizeof(FPSBuffer),
-                    //"%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
-                    //OutputDebugStringA(FPSBuffer);
+                    char FPSBuffer[256];
+                    _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                                "%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
+                    OutputDebugStringA(FPSBuffer);
                 }
             }
             else
