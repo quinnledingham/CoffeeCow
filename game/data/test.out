@@ -109,9 +109,58 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color)
     }
 }
 
+unsigned long createRGB(int r, int g, int b)
+{   
+    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
+
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb/stb_image_resize.h"
+
+internal void 
+RenderRectImage(game_offscreen_buffer *Buffer, Rect *S, Image *image)
+{
+    Image re = {};
+    re.data = image->data;
+    re.x = S->width;
+    re.y = S->height;
+    re.n = image->n;
+    //RenderImage(Buffer, &re);
+    
+    
+    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
+    
+    for(int X = S->x; X < (S->x + S->width); ++X)
+    {
+        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel +S->y*Buffer->Pitch);
+        uint8 *Color = ((uint8 *)re.data + (X - S->x) * re.n);
+        
+        for(int Y = S->y; Y < (S->y + S->height); ++Y)
+        {
+            // Check if the pixel exists
+            if((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
+            {
+                uint32 c = *Color;
+                
+                int r = *Color++;
+                int g = *Color++;
+                int b = *Color;
+                Color--;
+                Color--;
+                
+                c = createRGB(r, g, b);
+                *(uint32 *)Pixel =c;
+                Color += (re.n * re.x);
+            }
+            Pixel += Buffer->Pitch;
+        }
+    }
+    
+}
+
 internal void
 RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY, 
-                     int GridWidth, int GridHeight, int GridSize)
+                     int GridWidth, int GridHeight, int GridSize, Image *image)
 {
     for (int i = 0;
          i < GridWidth;
@@ -122,7 +171,8 @@ RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY,
              j++)
         {
             Rect newRect = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
-            RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
+            //RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
+            RenderRectImage(Buffer, &newRect, image);
         }
     }
 }
@@ -314,7 +364,7 @@ MoveSnake(Snake *snake, int gridwidth, int gridheight)
     return 1;
 }
 
-int skip = 6;
+int frameSkip = 6;
 int framesToSkip = 6;
 
 internal void
@@ -343,380 +393,18 @@ TransitionSnake(Snake* snake)
     }
 }
 
-/*
-// beginning of bitmap
-
-// handmade_intrinsics.h
-struct bit_scan_result
-{
-    bool32 Found;
-    uint32 Index;
-};
-inline bit_scan_result
-FindLeastSignificantSetBit(uint32 Value)
-{
-    bit_scan_result Result = {};
-    
-#if COMPILER_MSVC
-    Result.Found = _BitScanForward((unsigned long *)&Result.Index, Value);
-#else
-    for(uint32 Test = 0;
-        Test < 32;
-        ++Test)
-    {
-        if(Value & (1 << Test))
-        {
-            Result.Index = Test;
-            Result.Found = true;
-            break;
-        }
-    }
-#endif
-    
-    return(Result);
-}
-
-inline real32
-SquareRoot(real32 Real32)
-{
-    real32 Result = sqrtf(Real32);
-    return(Result);
-}
-
-// handmade_math.h
-union v2
-{
-    struct
-    {
-        real32 x, y;
-    };
-    struct
-    {
-        real32 u, v;
-    };
-    real32 E[2];
-};
-
-union v3
-{
-    struct
-    {
-        real32 x, y, z;
-    };
-    struct
-    {
-        real32 u, v, w;
-    };
-    struct
-    {
-        real32 r, g, b;
-    };
-    struct
-    {
-        v2 xy;
-        real32 Ignored0_;
-    };
-    struct
-    {
-        real32 Ignored1_;
-        v2 yz;
-    };
-    struct
-    {
-        v2 uv;
-        real32 Ignored2_;
-    };
-    struct
-    {
-        real32 Ignored3_;
-        v2 vw;
-    };
-    real32 E[3];
-};
-
-union v4
-{
-    struct
-    {
-        union
-        {
-            v3 xyz;
-            struct
-            {
-                real32 x, y, z;
-            };
-        };
-        
-        real32 w;        
-    };
-    struct
-    {
-        union
-        {
-            v3 rgb;
-            struct
-            {
-                real32 r, g, b;
-            };
-        };
-        
-        real32 a;        
-    };
-    struct
-    {
-        v2 xy;
-        real32 Ignored0_;
-        real32 Ignored1_;
-    };
-    struct
-    {
-        real32 Ignored2_;
-        v2 yz;
-        real32 Ignored3_;
-    };
-    struct
-    {
-        real32 Ignored4_;
-        real32 Ignored5_;
-        v2 zw;
-    };
-    real32 E[4];
-};
-
-
-inline real32
-Square(real32 A)
-{
-    real32 Result = A*A;
-    
-    return(Result);
-}
-
-
-inline v4
-SRGB255ToLinear1(v4 C)
-{
-    v4 Result;
-    
-    real32 Inv255 = 1.0f / 255.0f;
-    
-    Result.r = Square(Inv255*C.r);
-    Result.g = Square(Inv255*C.g);
-    Result.b = Square(Inv255*C.b);
-    Result.a = Inv255*C.a;
-    
-    return(Result);
-}
-
-inline v4
-Linear1ToSRGB255(v4 C)
-{
-    v4 Result;
-    
-    real32 One255 = 255.0f;
-    
-    Result.r = One255*SquareRoot(C.r);
-    Result.g = One255*SquareRoot(C.g);
-    Result.b = One255*SquareRoot(C.b);
-    Result.a = One255*C.a;
-    
-    return(Result);
-}
-
-inline v3
-operator*(real32 A, v3 B)
-{
-    v3 Result;
-    
-    Result.x = A*B.x;
-    Result.y = A*B.y;
-    Result.z = A*B.z;
-    
-    return(Result);
-}
-
-inline v3 &
-operator*=(v3 &B, real32 A)
-{
-    B = A * B;
-    
-    return(B);
-}
-
-// test_asset_builder.cpp
-#pragma pack(push, 1)
-struct bitmap_header
-{
-    uint16 FileType;
-    uint32 FileSize;
-    uint16 Reserved1;
-    uint16 Reserved2;
-    uint32 BitmapOffset;
-    uint32 Size;
-    int32 Width;
-    int32 Height;
-    uint16 Planes;
-    uint16 BitsPerPixel;
-    uint32 Compression;
-    uint32 SizeOfBitmap;
-    int32 HorzResolution;
-    int32 VertResolution;
-    uint32 ColorsUsed;
-    uint32 ColorsImportant;
-    
-    uint32 RedMask;
-    uint32 GreenMask;
-    uint32 BlueMask;
-};
-
-#pragma pack(pop)
-struct loaded_bitmap
-{
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
-    
-    void *Free;
-};
-
-struct entire_file
-{
-    u32 ContentsSize;
-    void *Contents;
-};
-
-
-// test_asset_builder.cpp
-entire_file
-ReadEntireFile(char *FileName)
-{
-    entire_file Result = {};
-    
-    FILE *In = fopen(FileName, "rb");
-    if(In)
-    {
-        fseek(In, 0, SEEK_END);
-        Result.ContentsSize = ftell(In);
-        fseek(In, 0, SEEK_SET);
-        
-        Result.Contents = malloc(Result.ContentsSize);
-        fread(Result.Contents, Result.ContentsSize, 1, In);
-        fclose(In);
-    }
-    else
-    {
-        printf("ERROR: Cannot open file %s.\n", FileName);
-    }
-    
-    return(Result);
-}
-
-internal loaded_bitmap
-LoadBMP(char *FileName)
-{
-    loaded_bitmap Result = {};
-    
-    entire_file ReadResult = ReadEntireFile(FileName);
-    if(ReadResult.ContentsSize != 0)
-    {
-        Result.Free = ReadResult.Contents;
-        
-        bitmap_header *Header = (bitmap_header *)ReadResult.Contents;
-        uint32 *Pixels = (uint32 *)((uint8 *)ReadResult.Contents + Header->BitmapOffset);
-        Result.Memory = Pixels;
-        Result.Width = Header->Width;
-        Result.Height = Header->Height;
-        
-        Assert(Result.Height >= 0);
-        //Assert(Header->Compression == 3);
-        
-        // NOTE(casey): If you are using this generically for some reason,
-        // please remember that BMP files CAN GO IN EITHER DIRECTION and
-        // the height will be negative for top-down.
-        // (Also, there can be compression, etc., etc... DON'T think this
-        // is complete BMP loading code because it isn't!!)
-        
-        // NOTE(casey): Byte order in memory is determined by the Header itself,
-        // so we have to read out the masks and convert the pixels ourselves.
-        uint32 RedMask = Header->RedMask;
-        uint32 GreenMask = Header->GreenMask;
-        uint32 BlueMask = Header->BlueMask;
-        uint32 AlphaMask = ~(RedMask | GreenMask | BlueMask);        
-        
-        bit_scan_result RedScan = FindLeastSignificantSetBit(RedMask);
-        bit_scan_result GreenScan = FindLeastSignificantSetBit(GreenMask);
-        bit_scan_result BlueScan = FindLeastSignificantSetBit(BlueMask);
-        bit_scan_result AlphaScan = FindLeastSignificantSetBit(AlphaMask);
-        
-        Assert(RedScan.Found);
-        Assert(GreenScan.Found);
-        Assert(BlueScan.Found);
-        Assert(AlphaScan.Found);
-        
-        int32 RedShiftDown = (int32)RedScan.Index;
-        int32 GreenShiftDown = (int32)GreenScan.Index;
-        int32 BlueShiftDown = (int32)BlueScan.Index;
-        int32 AlphaShiftDown = (int32)AlphaScan.Index;
-        
-        uint32 *SourceDest = Pixels;
-        for(int32 Y = 0;
-            Y < Header->Height;
-            ++Y)
-        {
-            for(int32 X = 0;
-                X < Header->Width;
-                ++X)
-            {
-                uint32 C = *SourceDest;
-                
-                v4 Texel = {(real32)((C & RedMask) >> RedShiftDown),
-                    (real32)((C & GreenMask) >> GreenShiftDown),
-                    (real32)((C & BlueMask) >> BlueShiftDown),
-                    (real32)((C & AlphaMask) >> AlphaShiftDown)};
-                
-                Texel = SRGB255ToLinear1(Texel);
-#if 1
-                Texel.rgb *= Texel.a;
-#endif
-                Texel = Linear1ToSRGB255(Texel);
-                
-                *SourceDest++ = (((uint32)(Texel.a + 0.5f) << 24) |
-                                 ((uint32)(Texel.r + 0.5f) << 16) |
-                                 ((uint32)(Texel.g + 0.5f) << 8) |
-                                 ((uint32)(Texel.b + 0.5f) << 0));
-            }
-        }
-    }
-    
-    Result.Pitch = Result.Width*BITMAP_BYTES_PER_PIXEL;
-    
-#if 0
-    Result.Memory = (uint8 *)Result.Memory + Result.Pitch*(Result.Height - 1);
-    Result.Pitch = -Result.Pitch;
-#endif
-    
-    return(Result);
-}
-
-// end of bitmap
-*/
 
 #define STB_IMAGE_IMPLEMENTATION
 //#define STBI_ASSERT(x)
 //#define STBI_MALLOC
 //#define STBI_REALLOC
 //x#define STBI_FREE
-#include "stb_image.h"
-
-unsigned long createRGB(int r, int g, int b)
-{   
-    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
-}
+#include "stb/stb_image.h"
 
 internal void
 RenderImage(game_offscreen_buffer *Buffer, Image *image)
 {
+    int xt = 50;
     for(int X = 0; X < image->x; ++X)
     {
         uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel);
@@ -878,11 +566,16 @@ SaveImageToHeaderFile(char* filename, Image* image)
     
 }
 
-#include "image.h"
-#include "image.cpp"
+
+global_variable Image test;
+
+#include "../data/imagesaves/image.h"
+#include "../data/imagesaves/image.cpp"
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
 
 Client client;
-global_variable Image test;
 
 internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
@@ -895,11 +588,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
     
+    int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
+    int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
+    //Rect imageRect = {centeredX, centeredY, (GRIDWIDTH * GRIDSIZE), (GRIDHEIGHT * GRIDSIZE), 0};
+    Rect imageRect = {centeredX, centeredY, (GRIDSIZE), (GRIDSIZE), 0};
     
     if(!Memory->IsInitialized)
     {
-        char *Filename = __FILE__;
+        
 #if SNAKE_INTERNAL
+        char *Filename = __FILE__;
         debug_read_file_result File = DEBUGPlatformReadEntireFile(Filename);
         if(File.Contents)
         {
@@ -914,13 +612,26 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         manager.NextStorage = (char*)Memory->PermanentStorage + sizeof(game_state);
         
 #if SAVE_IMAGES
-        test.data = stbi_load("grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
-        SaveImageToHeaderFile("imagesaves\\image.h", &test);
+        // Set working directory in visual studio to the image save folder
+        test.data = stbi_load("../grass.jpg", &test.x, &test.y, &test.n, 0);
+        SaveImageToHeaderFile("image.h", &test);
 #else
+        
+        // Load images from imagesaves folder
         LoadImageFromimage_h(&test);
         
 #endif
         //loaded_bitmap grass = LoadBMP("grass.png");
+        
+        // Where the top left corner of the grid should be for it to look
+        // centered in the window
+        
+        
+        //Rect imageRect = {0, 0, 200, 200, 0};
+        unsigned char* resized = (unsigned char *)PermanentStorageBlank(imageRect.width * imageRect.height * test.n);
+        stbir_resize_uint8(test.data , test.x, test.y, 0,
+                           resized, imageRect.width, imageRect.height, 0, test.n);
+        test.data = resized;
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
@@ -980,7 +691,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     
     // TODO(casey): Allow sample offsets here for more robust platform options
-    GameOutputSound(SoundBuffer, GameState->ToneHz);
+    //GameOutputSound(SoundBuffer, GameState->ToneHz);
     
     if (btnPress == GameStart)
     {
@@ -989,7 +700,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     else if (btnPress == Quit)
     {
         Input->quit = 1;
+#if SAVE_IMAGES 
         stbi_image_free(test.data);
+#endif
     }
     
     if (GameState->Menu == 1)
@@ -1002,9 +715,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             menu.initialized = 1;
         }
         
-        //ClearScreen(Buffer);
-        //RenderButtons(Buffer, &menu);
-        RenderImage(Buffer, &test);
+        ClearScreen(Buffer);
+        RenderButtons(Buffer, &menu);
         
         /*
         char text[50];
@@ -1033,12 +745,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         printf("%s\n", buffer);
         */
         
-        if (skip == framesToSkip)
+        if (frameSkip == framesToSkip)
         {
             if (MoveSnake(&player, GRIDWIDTH, GRIDHEIGHT))
             {
                 TransitionSnake(&player);
-                skip = 0;
+                frameSkip = 0;
             }
             else
             {
@@ -1048,17 +760,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         else
         {
             TransitionSnake(&player);
-            skip++;
+            frameSkip++;
         }
         
         ClearScreen(Buffer);
         
-        // Where the top left corner of the grid should be for it to look
-        // centered in the window
-        int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
-        int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
         
-        RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        //RenderRectImage(Buffer, &imageRect, &test);
+        //RenderImage(Buffer, &test);
+        RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }

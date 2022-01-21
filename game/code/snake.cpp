@@ -171,7 +171,8 @@ RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY,
              j++)
         {
             Rect newRect = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
-            RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
+            //RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
+            RenderRectImage(Buffer, &newRect, image);
         }
     }
 }
@@ -238,6 +239,12 @@ InitializeSnake(Snake *s)
     s->direction = RIGHT;
     s->length = 5;
     
+    AddSnakeNode(s, 10, 2);
+    AddSnakeNode(s, 9, 2);
+    AddSnakeNode(s, 8, 2);
+    AddSnakeNode(s, 7, 2);
+    AddSnakeNode(s, 6, 2);
+    AddSnakeNode(s, 5, 2);
     AddSnakeNode(s, 4, 2);
     AddSnakeNode(s, 3, 2);
     AddSnakeNode(s, 2, 2);
@@ -258,7 +265,7 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
             GridY + (cursor->y * GridSize) + cursor->transitiony, 
             GridSize, GridSize
         };
-        RenderRect(Buffer, &newSquare, FILL, 0xFF32a89b);
+        RenderRect(Buffer, &newSquare, FILL, 0xFFFFEBC4);
         cursor = cursor->next;
     }
 }
@@ -573,7 +580,126 @@ global_variable Image test;
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
+#include "stdio.h"
 
+struct entire_file
+{
+    u32 ContentsSize;
+    void *Contents;
+};
+entire_file
+ReadEntireFile(char *FileName)
+{
+    entire_file Result = {};
+    
+    FILE *In = fopen(FileName, "rb");
+    if(In)
+    {
+        fseek(In, 0, SEEK_END);
+        Result.ContentsSize = ftell(In);
+        fseek(In, 0, SEEK_SET);
+        
+        Result.Contents = malloc(Result.ContentsSize);
+        fread(Result.Contents, Result.ContentsSize, 1, In);
+        fclose(In);
+    }
+    else
+    {
+        printf("ERROR: Cannot open file %s.\n", FileName);
+    }
+    
+    return(Result);
+}
+
+internal loaded_bitmap
+LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint)
+{
+    loaded_bitmap Result = {};
+    entire_file TTFFile = ReadEntireFile(FileName);
+    if(TTFFile.ContentsSize != 0)
+    {
+        stbtt_fontinfo Font;
+        stbtt_InitFont(&Font, (u8 *)TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)TTFFile.Contents, 0));
+        
+        int Width, Height, XOffset, YOffset;
+        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, 256.0f),
+                                                  Codepoint, &Width, &Height, &XOffset, &YOffset);
+        
+        /*int x0, y0, x1, y1;
+        stbtt_GetCodepointBitmapBox(&Font, Codepoint, stbtt_ScaleForPixelHeight(&Font, 128.0f), stbtt_ScaleForPixelHeight(&Font, 128.0f), &x0, &y0, &x1, &y1); 
+        */
+        
+        Result.Width = Width;
+        Result.Height = Height;
+        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
+        Result.Memory = malloc(Height*Result.Pitch);
+        Result.Free = Result.Memory;
+        
+        u8 *Source = MonoBitmap;
+        u8 *DestRow = (u8 *)Result.Memory;
+        for(s32 Y = 0;
+            Y < Height;
+            ++Y)
+        {
+            u32 *Dest = (u32 *)DestRow;
+            for(s32 X = 0;
+                X < Width;
+                ++X)
+            {
+                u8 Gray = *Source++;
+                //u8 Alpha = 0xFF;
+                *Dest++ = ((Gray << 24) |
+                           (Gray << 16) |
+                           (Gray <<  8) |
+                           (Gray <<  0));
+            }
+            
+            DestRow += Result.Pitch;
+        }
+        
+        stbtt_FreeBitmap(MonoBitmap, 0);
+        free(TTFFile.Contents);
+    }
+    
+    return (Result);
+}
+
+internal void
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP)
+{
+    int xt = 50;
+    
+    
+    for(int X = 0; X < BMP->Width; ++X)
+    {
+        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * BITMAP_BYTES_PER_PIXEL);
+        uint8 *Color = ((uint8 *)BMP->Memory + X * BITMAP_BYTES_PER_PIXEL);
+        
+        for(int Y = 0; Y < BMP->Height; ++Y)
+        {
+            uint32 c = *Color;
+            
+            int r = *Color++;
+            int g = *Color++;
+            int b = *Color++;
+            int a = *Color;
+            Color--;
+            Color--;
+            Color--;
+            
+            if (a == 0xFF)
+            {
+                c = createRGB(r, g, b);
+                *(uint32 *)Pixel =c;
+            }
+            
+            Pixel += Buffer->Pitch;
+            Color += BMP->Pitch;
+        }
+    }
+}
+
+loaded_bitmap yo = {};
 Client client;
 
 internal void
@@ -589,7 +715,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
     int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
-    Rect imageRect = {centeredX, centeredY, (GRIDWIDTH * GRIDSIZE), (GRIDHEIGHT * GRIDSIZE), 0};
+    //Rect imageRect = {centeredX, centeredY, (GRIDWIDTH * GRIDSIZE), (GRIDHEIGHT * GRIDSIZE), 0};
+    Rect imageRect = {centeredX, centeredY, (GRIDSIZE), (GRIDSIZE), 0};
     
     if(!Memory->IsInitialized)
     {
@@ -611,7 +738,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if SAVE_IMAGES
         // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("../grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
+        test.data = stbi_load("../grass.jpg", &test.x, &test.y, &test.n, 0);
         SaveImageToHeaderFile("image.h", &test);
 #else
         
@@ -630,6 +757,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         stbir_resize_uint8(test.data , test.x, test.y, 0,
                            resized, imageRect.width, imageRect.height, 0, test.n);
         test.data = resized;
+        
+        yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71);
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
@@ -761,13 +890,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             frameSkip++;
         }
         
-        ClearScreen(Buffer);
+        //ClearScreen(Buffer);
         
         
-        RenderRectImage(Buffer, &imageRect, &test);
+        //RenderRectImage(Buffer, &imageRect, &test);
         //RenderImage(Buffer, &test);
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        RenderBitmap(Buffer, &yo);
         //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
 }

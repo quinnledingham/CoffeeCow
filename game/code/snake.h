@@ -54,7 +54,21 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
+typedef int8 s8;
+typedef int8 s08;
+typedef int16 s16;
+typedef int32 s32;
+typedef int64 s64;
+typedef bool32 b32;
+
+typedef uint8 u8;
+typedef uint8 u08;
+typedef uint16 u16;
 typedef uint32 u32;
+typedef uint64 u64;
+
+typedef real32 r32;
+typedef real64 r64;
 
 #define BITMAP_BYTES_PER_PIXEL 4
 
@@ -252,6 +266,16 @@ struct Image
     int y;
     int n;
     unsigned char* data;
+};
+
+struct loaded_bitmap
+{
+    int32 Width;
+    int32 Height;
+    int32 Pitch;
+    void *Memory;
+    
+    void *Free;
 };
 
 #define SNAKE_H
