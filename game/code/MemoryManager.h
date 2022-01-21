@@ -1,5 +1,5 @@
-#ifndef _MEMORY_MANAGER_H
-#define _MEMORY_MANAGER_H
+#ifndef MEMORYMANAGER_H
+#define MEMORYMANAGER_H
 
 struct MemoryManager
 {
