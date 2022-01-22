@@ -278,5 +278,11 @@ struct loaded_bitmap
     void *Free;
 };
 
+internal void
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R);
+
+internal void
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R, uint32 Color);
+
 #define SNAKE_H
 #endif

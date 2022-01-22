@@ -109,6 +109,11 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color)
     }
 }
 
+unsigned long createRGBA(int r, int g, int b, int a)
+{   
+    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
+}
+
 unsigned long createRGB(int r, int g, int b)
 {   
     return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
@@ -612,7 +617,7 @@ ReadEntireFile(char *FileName)
 }
 
 internal loaded_bitmap
-LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint)
+LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float scale)
 {
     loaded_bitmap Result = {};
     entire_file TTFFile = ReadEntireFile(FileName);
@@ -622,7 +627,7 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint)
         stbtt_InitFont(&Font, (u8 *)TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)TTFFile.Contents, 0));
         
         int Width, Height, XOffset, YOffset;
-        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, 256.0f),
+        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, scale),
                                                   Codepoint, &Width, &Height, &XOffset, &YOffset);
         
         /*int x0, y0, x1, y1;
@@ -665,19 +670,27 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint)
 }
 
 internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP)
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R)
+{
+    RenderBitmap(Buffer, BMP, R, 0);
+}
+
+internal void
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R, uint32 ColorIn)
 {
     int xt = 50;
     
+    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
     
-    for(int X = 0; X < BMP->Width; ++X)
+    for(int X = R->x; X < (R->x + R->width); ++X)
     {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * BITMAP_BYTES_PER_PIXEL);
-        uint8 *Color = ((uint8 *)BMP->Memory + X * BITMAP_BYTES_PER_PIXEL);
+        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * BITMAP_BYTES_PER_PIXEL + R->y * Buffer->Pitch );
+        uint8 *Color = ((uint8 *)BMP->Memory + (X - R->x) * BITMAP_BYTES_PER_PIXEL);
         
-        for(int Y = 0; Y < BMP->Height; ++Y)
+        for(int Y = R->y; Y < (R->y + R->height); ++Y)
         {
             uint32 c = *Color;
+            
             
             int r = *Color++;
             int g = *Color++;
@@ -687,19 +700,111 @@ RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP)
             Color--;
             Color--;
             
-            if (a == 0xFF)
+            if (a == 0xFF || 1)
             {
-                c = createRGB(r, g, b);
-                *(uint32 *)Pixel =c;
+                if (ColorIn == (uint32)0 || 1)
+                {
+                    c = createRGB(r, g, b);
+                    *(uint32 *)Pixel = c;
+                }
+                else
+                {
+                    *(uint32 *)Pixel = ColorIn;
+                }
             }
             
-            Pixel += Buffer->Pitch;
+            
+            
             Color += BMP->Pitch;
+            Pixel += Buffer->Pitch;
         }
     }
 }
 
-loaded_bitmap yo = {};
+internal void
+ChangeBitmapColor(loaded_bitmap* BMP, uint32 Color)
+{
+    for (int i = 0; i < BMP->Width; i++)
+    {
+        uint8 *Pixel = ((uint8 *)BMP->Memory + i * BITMAP_BYTES_PER_PIXEL );
+        
+        for (int j = 0; j < BMP->Height; j++)
+        {
+            int r = *Pixel++;
+            int g = *Pixel++;
+            int b = *Pixel++;
+            int a = *Pixel;
+            Pixel--;
+            Pixel--;
+            Pixel--;
+            
+            if (a == 0xFF)
+            {
+                uint32 c = createRGBA(0, 255, 0, 255);
+                *(uint32*)Pixel = c;
+                
+            }
+            Pixel += BMP->Pitch;
+        }
+    }
+}
+
+internal void
+PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color)
+{
+    entire_file File = ReadEntireFile("../Faune-TextRegular.otf");
+    
+    stbtt_fontinfo info;
+    stbtt_InitFont(&info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
+    //stbtt_InitFont(&Font, (u8 *)TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)TTFFile.Contents, 0));
+    
+    float scale = stbtt_ScaleForPixelHeight(&info, scalein);
+    
+    int x = xin;
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
+    
+    ascent = (int)roundf(ascent * scale);
+    descent = (int)roundf(descent * scale);
+    
+    int i;
+    for (i = 0; i < strlen(text); ++i)
+    {
+        // how wide is this character
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
+        
+        // get bounding box for character (may be offset to account for chars that dip above or below the line
+        int c_x1, c_y1, c_x2, c_y2;
+        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
+        
+        // compute y (different characters have different heights)
+        int y = ascent + c_y1;
+        
+        // render character
+        //int byteOffset = x + roundf(lsb * scale) + (y * b_w);
+        loaded_bitmap c = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", text[i], scalein);
+        Rect PrintLocation = {};
+        PrintLocation.x = x;
+        PrintLocation.y = y;
+        PrintLocation.width = c.Width;
+        PrintLocation.height = c.Height;
+        //ChangeBitmapColor(&c, color);
+        RenderBitmap(Buffer, &c, &PrintLocation, color);
+        //RenderBitmap(Buffer, &chartoprin, &
+        
+        // advance x 
+        x += (int)roundf(ax * scale);
+        
+        // add kerning
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
+        x += (int)roundf(kern * scale);
+    }
+}
+
+loaded_bitmap yo;
 Client client;
 
 internal void
@@ -738,7 +843,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if SAVE_IMAGES
         // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("../grass.jpg", &test.x, &test.y, &test.n, 0);
+        test.data = stbi_load("../grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
         SaveImageToHeaderFile("image.h", &test);
 #else
         
@@ -756,9 +861,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         unsigned char* resized = (unsigned char *)PermanentStorageBlank(imageRect.width * imageRect.height * test.n);
         stbir_resize_uint8(test.data , test.x, test.y, 0,
                            resized, imageRect.width, imageRect.height, 0, test.n);
+        unsigned char* toBeFreed = test.data;
         test.data = resized;
         
-        yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71);
+#if SAVE_IMAGES
+        stbi_image_free(toBeFreed);
+#endif
+        yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71, 256);
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
@@ -828,7 +937,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         Input->quit = 1;
 #if SAVE_IMAGES 
-        stbi_image_free(test.data);
+        
 #endif
     }
     
@@ -897,7 +1006,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //RenderImage(Buffer, &test);
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        RenderBitmap(Buffer, &yo);
+        Rect yorect = {0, 0, yo.Width, yo.Height, 0};
+        //RenderBitmap(Buffer, &yo, &yorect);
+        if (frameSkip == 0)
+            PrintOnScreen(Buffer, "subscribe to mizkif", 100, 100, 256, 0xFF00FFFF);
         //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
 }

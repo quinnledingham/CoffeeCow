@@ -705,7 +705,7 @@ WinMain(HINSTANCE Instance,
     
 #define FramesOfAudioLatency 3
 #define MonitorRefreshHz 60
-#define GameUpdateHz 60
+#define GameUpdateHz 144
     real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
     
     if(RegisterClassA(&WindowClass))
