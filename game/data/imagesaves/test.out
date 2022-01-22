@@ -700,9 +700,9 @@ RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R, uint32 
             Color--;
             Color--;
             
-            if (a == 0xFF || 1)
+            if (a > 100)
             {
-                if (ColorIn == (uint32)0 || 1)
+                if (ColorIn == (uint32)0)
                 {
                     c = createRGB(r, g, b);
                     *(uint32 *)Pixel = c;
@@ -749,8 +749,21 @@ ChangeBitmapColor(loaded_bitmap* BMP, uint32 Color)
     }
 }
 
+internal LinkedListNode
+CreateLinkedListNode(void* D)
+{
+    LinkedListNode Result = {};
+    
+    Result.Data = D;
+    
+    return(Result);
+}
+
+#define MAXSTRINGSIZE 1000
+
 internal void
-PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color)
+PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, 
+              uint32 color, Rect* alignRect)
 {
     entire_file File = ReadEntireFile("../Faune-TextRegular.otf");
     
@@ -767,8 +780,15 @@ PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float
     ascent = (int)roundf(ascent * scale);
     descent = (int)roundf(descent * scale);
     
-    int i;
-    for (i = 0; i < strlen(text); ++i)
+    int stringSize = (int)strlen(text);
+    int stringWidth = 0;
+    int stringHeight = 0;
+    //LinkedList string = {maxstringsize};
+    //string.Head = CreateLinkedListNode();
+    
+    loaded_bitmap string[MAXSTRINGSIZE];
+    
+    for (int i = 0; i < stringSize; ++i)
     {
         // how wide is this character
         int ax;
@@ -780,19 +800,42 @@ PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float
         stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
         
         // compute y (different characters have different heights)
-        int y = ascent + c_y1;
+        int y = ascent + c_y1 + yin;
         
         // render character
         //int byteOffset = x + roundf(lsb * scale) + (y * b_w);
-        loaded_bitmap c = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", text[i], scalein);
+        string[i] = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", text[i], scalein);
+        
+        // advance x 
+        x += (int)roundf(ax * scale);
+        
+        // add kerning
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
+        x += (int)roundf(kern * scale);
+        
+        //stringWidth += x;
+    }
+    
+    stringWidth = (x - xin);
+    x = xin;
+    for (int i = 0; i < stringSize; i++)
+    {
+        // how wide is this character
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
+        
+        int c_x1, c_y1, c_x2, c_y2;
+        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
+        int y = ascent + c_y1 + yin - ((alignRect->height - ascent)/2);
+        
         Rect PrintLocation = {};
-        PrintLocation.x = x;
+        PrintLocation.x =  x + ((alignRect->width - stringWidth)/2);
         PrintLocation.y = y;
-        PrintLocation.width = c.Width;
-        PrintLocation.height = c.Height;
-        //ChangeBitmapColor(&c, color);
-        RenderBitmap(Buffer, &c, &PrintLocation, color);
-        //RenderBitmap(Buffer, &chartoprin, &
+        PrintLocation.width = string[i].Width;
+        PrintLocation.height = string[i].Height;
+        RenderBitmap(Buffer, &string[i], &PrintLocation, color);
         
         // advance x 
         x += (int)roundf(ax * scale);
@@ -802,6 +845,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float
         kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
         x += (int)roundf(kern * scale);
     }
+    
 }
 
 loaded_bitmap yo;
@@ -936,20 +980,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     else if (btnPress == Quit)
     {
         Input->quit = 1;
-#if SAVE_IMAGES 
-        
-#endif
     }
     
     if (GameState->Menu == 1)
     {
         if (menu.initialized == 0)
         {
-            addButton(&menu, 10, 10, 100, 100, 0xFF32a89b, "yo", GameStart);
-            addButton(&menu, 10, 200, 100, 100, 0xFF32a89b, "yo", Quit);
+            addButton(&menu, 300, 10, 200, 100, 0xFF32a89b, 0xFFeba434, "Start", 0xFFFFFFFF, GameStart);
+            addButton(&menu, 300, 120, 200, 100, 0xFF32a89b, 0xFFeba434, "Quit", 0xFFFFFFFF, Quit);
+            addButton(&menu, 300, 500, 500, 200, 0xFF7d32a8, 0xFFeba434, "Menu", 0xFFFFFFFF, Join);
             //addButton(&menu, 120, 120, 100, 100, 0xFF32a89b, "yo" );
             menu.initialized = 1;
         }
+        
+        CheckButtonsHover(&menu, Input->MouseX, Input->MouseY);
         
         ClearScreen(Buffer);
         RenderButtons(Buffer, &menu);
@@ -999,7 +1043,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             frameSkip++;
         }
         
-        //ClearScreen(Buffer);
+        ClearScreen(Buffer);
         
         
         //RenderRectImage(Buffer, &imageRect, &test);
@@ -1008,8 +1052,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         Rect yorect = {0, 0, yo.Width, yo.Height, 0};
         //RenderBitmap(Buffer, &yo, &yorect);
-        if (frameSkip == 0)
-            PrintOnScreen(Buffer, "subscribe to mizkif", 100, 100, 256, 0xFF00FFFF);
+        //if (frameSkip == 0 || 1)
+        //PrintOnScreen(Buffer, "subscribe to mizkif", 100, 100, 128, 0xFF00aa00);
         //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
 }

@@ -17,14 +17,19 @@ struct GUI
 enum ButtonPress
 {
     GameStart,
-    Quit
+    Quit,
+    Join
 };
 
 struct Button
 {
-    Rect rect;
-    char* text;
-    int id;
+    Rect Shape;
+    uint32 RegularColor;
+    uint32 HoverColor;
+    
+    char* Text;
+    uint32 TextColor;
+    int ID;
 };
 
 #endif //GUI_H
