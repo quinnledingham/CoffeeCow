@@ -918,6 +918,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     
     int btnPress = -1;
+    int tbPress = -1;
     
     for(int ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
@@ -959,6 +960,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             if(Input->MouseButtons[0].EndedDown)
             {
                 btnPress = CheckButtons(&menu, Input->MouseX, Input->MouseY);
+                
+                tbPress = CheckTextBoxes(&menu, Input->MouseX, Input->MouseY);
+                
             }
         }
         
@@ -986,23 +990,31 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         if (menu.initialized == 0)
         {
+            Button startbtn = {};
+            startbtn.Shape.x = 300;
+            startbtn.Shape.y = 10;
+            startbtn.Shape.width = 200;
+            startbtn.Shape.height = 100;
+            startbtn.RegularColor = 0xFF32a89b;
+            startbtn.HoverColor = 0xFFeba434;
+            startbtn.Text = "Start";
+            startbtn.TextColor = 0xFFFFFFFF;
+            startbtn.ID = GameStart;
+            
             addButton(&menu, 300, 10, 200, 100, 0xFF32a89b, 0xFFeba434, "Start", 0xFFFFFFFF, GameStart);
             addButton(&menu, 300, 120, 200, 100, 0xFF32a89b, 0xFFeba434, "Quit", 0xFFFFFFFF, Quit);
             addButton(&menu, 300, 500, 500, 200, 0xFF7d32a8, 0xFFeba434, "Menu", 0xFFFFFFFF, Join);
             //addButton(&menu, 120, 120, 100, 100, 0xFF32a89b, "yo" );
+            
+            addTextBox(&menu, 300, 300, 200, 100, 0xFFFFFF00, "ip", 0xFF00FFFF, IP);
+            
             menu.initialized = 1;
         }
         
         CheckButtonsHover(&menu, Input->MouseX, Input->MouseY);
         
         ClearScreen(Buffer);
-        RenderButtons(Buffer, &menu);
-        
-        /*
-        char text[50];
-        sprintf_s(text, "X: %d, Y: %d\n", Input->MouseX, Input->MouseY);
-        OutputDebugStringA(text);
-*/
+        RenderGUI(Buffer, &menu);
     }
     else if (GameState->Menu == 0)
     {
@@ -1046,14 +1058,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         ClearScreen(Buffer);
         
         
-        //RenderRectImage(Buffer, &imageRect, &test);
-        //RenderImage(Buffer, &test);
+        
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        Rect yorect = {0, 0, yo.Width, yo.Height, 0};
-        //RenderBitmap(Buffer, &yo, &yorect);
-        //if (frameSkip == 0 || 1)
-        //PrintOnScreen(Buffer, "subscribe to mizkif", 100, 100, 128, 0xFF00aa00);
-        //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
 }

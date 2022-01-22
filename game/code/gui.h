@@ -12,6 +12,7 @@ struct GUI
     int initialized;
     GUIComponent* buttons;
     GUIComponent* text;
+    GUIComponent* TextBoxes;
 };
 
 enum ButtonPress
@@ -29,6 +30,21 @@ struct Button
     
     char* Text;
     uint32 TextColor;
+    int ID;
+};
+
+
+enum TextBoxID
+{
+    IP
+};
+struct TextBox
+{
+    Rect Shape;
+    
+    char* Text;
+    uint32 TextColor;
+    int ShowCursor;
     int ID;
 };
 
