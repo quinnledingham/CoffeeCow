@@ -289,13 +289,8 @@ struct LinkedList
     LinkedListNode* Head;
 };
 
-
-
 internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R);
-
-internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R, uint32 Color);
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
 
 internal void
 PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color, Rect* alignRect);

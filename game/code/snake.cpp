@@ -641,7 +641,7 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float scale)
         Result.Free = Result.Memory;
         
         u8 *Source = MonoBitmap;
-        u8 *DestRow = (u8 *)Result.Memory;
+        u8 *DestRow = (u8 *)Result.Memory + (Height -1)*Result.Pitch;
         for(s32 Y = 0;
             Y < Height;
             ++Y)
@@ -659,7 +659,7 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float scale)
                            (Gray <<  0));
             }
             
-            DestRow += Result.Pitch;
+            DestRow -= Result.Pitch;
         }
         
         stbtt_FreeBitmap(MonoBitmap, 0);
@@ -669,55 +669,77 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float scale)
     return (Result);
 }
 
-internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R)
+inline int32
+RoundReal32ToInt32(real32 Real32)
 {
-    RenderBitmap(Buffer, BMP, R, 0);
+    int32 Result = (int32)roundf(Real32);
+    return(Result);
 }
 
+
 internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *BMP, Rect *R, uint32 ColorIn)
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
 {
-    int xt = 50;
+    int32 MinX = RoundReal32ToInt32(RealX);
+    int32 MinY = RoundReal32ToInt32(RealY);
+    int32 MaxX = RoundReal32ToInt32(RealX + (real32)Bitmap->Width);
+    int32 MaxY = RoundReal32ToInt32(RealY + (real32)Bitmap->Height);
     
-    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
-    
-    for(int X = R->x; X < (R->x + R->width); ++X)
+    if(MinX < 0)
     {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * BITMAP_BYTES_PER_PIXEL + R->y * Buffer->Pitch );
-        uint8 *Color = ((uint8 *)BMP->Memory + (X - R->x) * BITMAP_BYTES_PER_PIXEL);
+        MinX = 0;
+    }
+    
+    if(MinY < 0)
+    {
+        MinY = 0;
+    }
+    
+    if(MaxX > Buffer->Width)
+    {
+        MaxX = Buffer->Width;
+    }
+    
+    if(MaxY > Buffer->Height)
+    {
+        MaxY = Buffer->Height;
+    }
+    
+    uint32 *SourceRow = (uint32*)Bitmap->Memory + Bitmap->Width * (Bitmap->Height - 1);
+    uint8 *DestRow = ((uint8*)Buffer->Memory +
+                      MinX*Buffer->BytesPerPixel +
+                      MinY*Buffer->Pitch);
+    
+    for(int Y = MinY; Y < MaxY; ++Y)
+    {
+        uint32 *Dest = (uint32*)DestRow;
+        uint32 *Source = SourceRow;
         
-        for(int Y = R->y; Y < (R->y + R->height); ++Y)
+        for(int X = MinX; X < MaxX; ++X)
         {
-            uint32 c = *Color;
+            real32 A = (real32)((*Source >> 24) & 0xFF) / 255.0f;
+            real32 SR = (real32)((*Source >> 16) & 0xFF);
+            real32 SG = (real32)((*Source >> 8) & 0xFF);
+            real32 SB = (real32)((*Source >> 0) & 0xFF);
             
+            real32 DR = (real32)((*Dest >> 16) & 0xFF);
+            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DB = (real32)((*Dest >> 0) & 0xFF);
             
-            int r = *Color++;
-            int g = *Color++;
-            int b = *Color++;
-            int a = *Color;
-            Color--;
-            Color--;
-            Color--;
+            real32 R = (1.0f-A)*DR + A*SR;
+            real32 G = (1.0f-A)*DG + A*SG;
+            real32 B = (1.0f-A)*DB + A*SB;
             
-            if (a > 100)
-            {
-                if (ColorIn == (uint32)0)
-                {
-                    c = createRGB(r, g, b);
-                    *(uint32 *)Pixel = c;
-                }
-                else
-                {
-                    *(uint32 *)Pixel = ColorIn;
-                }
-            }
+            *Dest = (((uint32)(R + 0.5f) << 16) |
+                     ((uint32)(G + 0.5f) << 8) |
+                     ((uint32)(B + 0.5f) << 0));
             
-            
-            
-            Color += BMP->Pitch;
-            Pixel += Buffer->Pitch;
+            ++Dest;
+            ++Source;
         }
+        
+        DestRow += Buffer->Pitch;
+        SourceRow -= Bitmap->Width;
     }
 }
 
@@ -747,16 +769,6 @@ ChangeBitmapColor(loaded_bitmap* BMP, uint32 Color)
             Pixel += BMP->Pitch;
         }
     }
-}
-
-internal LinkedListNode
-CreateLinkedListNode(void* D)
-{
-    LinkedListNode Result = {};
-    
-    Result.Data = D;
-    
-    return(Result);
 }
 
 #define MAXSTRINGSIZE 1000
@@ -813,8 +825,6 @@ PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float
         int kern;
         kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
         x += (int)roundf(kern * scale);
-        
-        //stringWidth += x;
     }
     
     stringWidth = (x - xin);
@@ -830,12 +840,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float
         stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
         int y = ascent + c_y1 + yin - ((alignRect->height - ascent)/2);
         
-        Rect PrintLocation = {};
-        PrintLocation.x =  x + ((alignRect->width - stringWidth)/2);
-        PrintLocation.y = y;
-        PrintLocation.width = string[i].Width;
-        PrintLocation.height = string[i].Height;
-        RenderBitmap(Buffer, &string[i], &PrintLocation, color);
+        RenderBitmap(Buffer, &string[i], (real32)x + ((alignRect->width - stringWidth)/2), (real32)y);
         
         // advance x 
         x += (int)roundf(ax * scale);
