@@ -12,8 +12,25 @@
 #include "socketq.cpp"
 #include "socketq.h"
 
-#include "gui.cpp"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+#include "stdio.h"
+
+#include "text.h"
 #include "gui.h"
+
+#include "text.cpp"
+
+
+inline int32
+RoundReal32ToInt32(real32 Real32)
+{
+    int32 Result = (int32)roundf(Real32);
+    return(Result);
+}
+
+#include "gui.cpp"
+
 
 #include "memorymanager.cpp"
 #include "memorymanager.h"
@@ -107,6 +124,11 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color)
             Pixel += Buffer->Pitch;
         }
     }
+}
+
+unsigned long createRGBA(int r, int g, int b, int a)
+{   
+    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
 }
 
 unsigned long createRGB(int r, int g, int b)
@@ -239,6 +261,12 @@ InitializeSnake(Snake *s)
     s->direction = RIGHT;
     s->length = 5;
     
+    AddSnakeNode(s, 10, 2);
+    AddSnakeNode(s, 9, 2);
+    AddSnakeNode(s, 8, 2);
+    AddSnakeNode(s, 7, 2);
+    AddSnakeNode(s, 6, 2);
+    AddSnakeNode(s, 5, 2);
     AddSnakeNode(s, 4, 2);
     AddSnakeNode(s, 3, 2);
     AddSnakeNode(s, 2, 2);
@@ -259,7 +287,7 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
             GridY + (cursor->y * GridSize) + cursor->transitiony, 
             GridSize, GridSize
         };
-        RenderRect(Buffer, &newSquare, FILL, 0xFF32a89b);
+        RenderRect(Buffer, &newSquare, FILL, 0xFFFFEBC4);
         cursor = cursor->next;
     }
 }
@@ -428,56 +456,15 @@ RenderImage(game_offscreen_buffer *Buffer, Image *image)
     }
 }
 
-internal void
-FilenameSearchModify(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            result[j] = *cursor;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
 
-internal void
-FilenameCapitialize(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '_' || *cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            char c = *cursor;
-            result[j] = c - 32;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
 
 internal void
 SaveImageToHeaderFile(char* filename, Image* image)
 {
+    char* fullDir = StringConcat("imagesaves/", filename);
+    
     // Header file
-    FILE *newfile = fopen(filename, "w");
+    FILE *newfile = fopen(fullDir, "w");
     
     char f[sizeof(filename)];
     FilenameSearchModify(filename, f);
@@ -519,11 +506,11 @@ SaveImageToHeaderFile(char* filename, Image* image)
     fclose(newfile);
     
     // C++ file
-    char filenamecpp[sizeof(filename) + 2];
+    char* filenamecpp = (char*)PermanentStorageAssign(fullDir, StringLength(fullDir) + 2);
     
     int j = 0;
     int extension = 0;
-    char* cursor = filename;
+    char* cursor = fullDir;
     while (!extension)
     {
         if (*cursor == '.')
@@ -569,13 +556,116 @@ SaveImageToHeaderFile(char* filename, Image* image)
 
 global_variable Image test;
 
-#include "../data/imagesaves/image.h"
-#include "../data/imagesaves/image.cpp"
+//#include "../data/imagesaves/image.h"
+//#include "../data/imagesaves/image.cpp"
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
 
+
+
+entire_file
+ReadEntireFile(char *FileName)
+{
+    entire_file Result = {};
+    
+    FILE *In = fopen(FileName, "rb");
+    if(In)
+    {
+        fseek(In, 0, SEEK_END);
+        Result.ContentsSize = ftell(In);
+        fseek(In, 0, SEEK_SET);
+        
+        Result.Contents = malloc(Result.ContentsSize);
+        fread(Result.Contents, Result.ContentsSize, 1, In);
+        fclose(In);
+    }
+    else
+    {
+        printf("ERROR: Cannot open file %s.\n", FileName);
+    }
+    
+    return(Result);
+}
+
+
+
+
+internal void
+RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
+{
+    int32 MinX = RoundReal32ToInt32(RealX);
+    int32 MinY = RoundReal32ToInt32(RealY);
+    int32 MaxX = MinX + Bitmap->Width;
+    int32 MaxY = MinY + Bitmap->Height;
+    
+    if(MinX < 0)
+    {
+        MinX = 0;
+    }
+    
+    if(MinY < 0)
+    {
+        MinY = 0;
+    }
+    
+    if(MaxX > Buffer->Width)
+    {
+        MaxX = Buffer->Width;
+    }
+    
+    if(MaxY > Buffer->Height)
+    {
+        MaxY = Buffer->Height;
+    }
+    
+    uint32 *SourceRow = (uint32*)Bitmap->Memory + Bitmap->Width * (Bitmap->Height - 1);
+    uint8 *DestRow = ((uint8*)Buffer->Memory +
+                      MinX*Buffer->BytesPerPixel +
+                      MinY*Buffer->Pitch);
+    
+    for(int Y = MinY; Y < MaxY; ++Y)
+    {
+        uint32 *Dest = (uint32*)DestRow;
+        uint32 *Source = SourceRow;
+        
+        for(int X = MinX; X < MaxX; ++X)
+        {
+            real32 A = (real32)((*Source >> 24) & 0xFF) / 255.0f;
+            real32 SR = (real32)((*Source >> 16) & 0xFF);
+            real32 SG = (real32)((*Source >> 8) & 0xFF);
+            real32 SB = (real32)((*Source >> 0) & 0xFF);
+            
+            real32 DR = (real32)((*Dest >> 16) & 0xFF);
+            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DB = (real32)((*Dest >> 0) & 0xFF);
+            
+            real32 R = (1.0f-A)*DR + A*SR;
+            real32 G = (1.0f-A)*DG + A*SG;
+            real32 B = (1.0f-A)*DB + A*SB;
+            
+            *Dest = (((uint32)(R + 0.5f) << 16) |
+                     ((uint32)(G + 0.5f) << 8) |
+                     ((uint32)(B + 0.5f) << 0));
+            
+            ++Dest;
+            ++Source;
+        }
+        
+        DestRow += Buffer->Pitch;
+        SourceRow -= Bitmap->Width;
+    }
+}
+
+
+loaded_bitmap yo;
 Client client;
+
+real32 BackspaceTime = 0;
+int Backspace = 0;
+
+Font Faune50 = {};
+Font Faune100 = {};
+
+#include "../data/imagesaves/fauneonehundred.h"
 
 internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
@@ -584,7 +674,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) ==
            (ArrayCount(Input->Controllers[0].Buttons)));
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
-    
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
     
@@ -613,7 +702,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if SAVE_IMAGES
         // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("../grass.jpg", &test.x, &test.y, &test.n, 0);
+        test.data = stbi_load("grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
         SaveImageToHeaderFile("image.h", &test);
 #else
         
@@ -622,7 +711,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #endif
         //loaded_bitmap grass = LoadBMP("grass.png");
-        
         // Where the top left corner of the grid should be for it to look
         // centered in the window
         
@@ -631,13 +719,35 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         unsigned char* resized = (unsigned char *)PermanentStorageBlank(imageRect.width * imageRect.height * test.n);
         stbir_resize_uint8(test.data , test.x, test.y, 0,
                            resized, imageRect.width, imageRect.height, 0, test.n);
+        unsigned char* toBeFreed = test.data;
         test.data = resized;
+        
+#if SAVE_IMAGES
+        stbi_image_free(toBeFreed);
+#endif
+        //yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71, 256);
+        
+        Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
+        Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
+        
+        SaveFontToHeaderFile("fauneonehundred.h", &Faune100);
+        
+        void* supMem = PermanentStorageAssign(fauneonehundred_hInfo, 160);
+        stbtt_fontinfo* sup = (stbtt_fontinfo*)supMem;
+        
+        //Faune100.Info = *sup;
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
     }
     
+    int intFPS = (int)(1/Input->SecondsElapsed);
+    char FPS[10]; 
+    sprintf(FPS, "%d", intFPS);
+    Rect FPSRect = {10, 10, 100, 50, 0};
+    
     int btnPress = -1;
+    int tbPress = -1;
     
     for(int ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
@@ -678,15 +788,64 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
             if(Input->MouseButtons[0].EndedDown)
             {
-                btnPress = CheckButtons(&menu, Input->MouseX, Input->MouseY);
+                btnPress = CheckButtonsClick(&menu, Input->MouseX, Input->MouseY);
+                
+                tbPress = CheckTextBoxes(&menu, Input->MouseX, Input->MouseY);
+                
             }
-        }
-        
-        // Input.AButtonEndedDown;
-        // Input.AButtonHalfTransitionCount;
-        if(Controller->ActionDown.EndedDown)
-        {
-            GameState->GreenOffset += 1;
+            
+            if(Controller->Zero.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "0");
+            }
+            if(Controller->One.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "1");
+            }
+            if(Controller->Two.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "2");
+            }
+            if(Controller->Three.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "3");
+            }
+            if(Controller->Four.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "4");
+            }
+            if(Controller->Five.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "5");
+            }
+            if(Controller->Six.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "6");
+            }
+            if(Controller->Seven.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "7");
+            }
+            if(Controller->Eight.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "8");
+            }
+            if(Controller->Nine.EndedDown)
+            {
+                AddCharTextBoxText(&menu, "9");
+            }
+            if(Controller->Period.EndedDown)
+            {
+                AddCharTextBoxText(&menu, ".");
+            }
+            if(Controller->Back.EndedDown)
+            {
+                if (Controller->Back.HalfTransitionCount == 1)
+                {
+                    RemoveCharTextBoxText(&menu);
+                }
+            }
+            
         }
     }
     
@@ -700,29 +859,103 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     else if (btnPress == Quit)
     {
         Input->quit = 1;
-#if SAVE_IMAGES 
-        stbi_image_free(test.data);
-#endif
+    }
+    
+    if (tbPress == IP)
+    {
+        ChangeTextBoxShowCursor(&menu, IP);
     }
     
     if (GameState->Menu == 1)
     {
+        
         if (menu.initialized == 0)
         {
-            addButton(&menu, 10, 10, 100, 100, 0xFF32a89b, "yo", GameStart);
-            addButton(&menu, 10, 200, 100, 100, 0xFF32a89b, "yo", Quit);
-            //addButton(&menu, 120, 120, 100, 100, 0xFF32a89b, "yo" );
+            
+            
+            Button startbtn = 
+            {
+                300,        // X
+                10,         // Y
+                200,        // Width
+                100,        // Height
+                "Start",    // Text
+                &Faune100,     // Font
+                GameStart,  // ID
+                0,          // Color (CurrentColor)
+                0xFF32a89b, // RegularColor
+                0xFFeba434, // HoverColor
+                0xFFFFFFFF, // TextColor
+                
+            };
+            addButton(&menu, &startbtn);
+            
+            Button quitbtn = 
+            {
+                300,        // X
+                120,        // Y
+                200,        // Width
+                100,        // Height
+                "Quit",     // Text
+                &Faune100,  // Font
+                Quit,       // ID
+                0,          // Color (CurrentColor)
+                0xFF32a89b, // RegularColor
+                0xFFeba434, // HoverColor
+                0xFFFFFFFF, // TextColor
+            };
+            addButton(&menu, &quitbtn);
+            
+            Button joinbtn = 
+            {
+                300,        // X
+                500,        // Y
+                500,        // Width
+                200,        // Height
+                "Join",     // Text
+                &Faune100,     // Font
+                Join,       // ID
+                0,          // Color (CurrentColor)
+                0xFF7d32a8, // RegularColor
+                0xFFeba434, // HoverColor
+                0xFFFFFFFF, // TextColor
+            };
+            addButton(&menu, &joinbtn);
+            
+            TextBox ipTB =
+            {
+                300, // X
+                300, // Y
+                500, // Width
+                100, // Height
+                "", // Text
+                &Faune100,     // Font
+                IP, // ID
+                0, // ShowCursor
+                0xFFd4d4d4, // Color
+                0xFF000000, // TextColor
+            };
+            AddTextBox(&menu, &ipTB);
+            
+            Text ipT =
+            {
+                100, // X
+                300, // Y
+                300, // Width
+                100, // Height
+                "IP:", // Text
+                &Faune100,     // Font
+                0xFF000000 // TextColor
+            };
+            AddText(&menu, &ipT);
+            
             menu.initialized = 1;
         }
         
-        ClearScreen(Buffer);
-        RenderButtons(Buffer, &menu);
+        CheckButtonsHover(&menu, Input->MouseX, Input->MouseY);
         
-        /*
-        char text[50];
-        sprintf_s(text, "X: %d, Y: %d\n", Input->MouseX, Input->MouseY);
-        OutputDebugStringA(text);
-*/
+        ClearScreen(Buffer);
+        RenderGUI(Buffer, &menu);
     }
     else if (GameState->Menu == 0)
     {
@@ -766,10 +999,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         ClearScreen(Buffer);
         
         
-        //RenderRectImage(Buffer, &imageRect, &test);
-        //RenderImage(Buffer, &test);
+        
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        //RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     }
+    
+    //PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
 }

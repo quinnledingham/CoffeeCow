@@ -28,8 +28,8 @@ struct Button
     int Width;
     int Height;
     char* Text;
+    Font* FontType;
     int ID;
-    
     uint32 Color;
     uint32 RegularColor;
     uint32 HoverColor;
@@ -48,6 +48,7 @@ struct TextBox
     int Width;
     int Height;
     char* Text;
+    Font* FontType;
     int ID;
     int ShowCursor;
     
@@ -63,8 +64,14 @@ struct Text
     int Width;
     int Height;
     char* Text;
+    Font* FontType;
     uint32 TextColor;
 };
 
+internal int
+StringLength(char* String);
+
+internal char*
+StringConcat(char* Source, char* Add);
 
 #endif //GUI_H

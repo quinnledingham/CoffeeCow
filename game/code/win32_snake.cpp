@@ -744,6 +744,7 @@ WinMain(HINSTANCE Instance,
     WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
+    WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     //    WindowClass.hIcon;
     WindowClass.lpszClassName = "SnakeWindowClass";
     
@@ -1161,12 +1162,12 @@ WinMain(HINSTANCE Instance,
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0f * 1000.0f));
                     
                     
-                    /*
+                    
                     char FPSBuffer[256];
                     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
                                 "%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
                     OutputDebugStringA(FPSBuffer);
-*/
+                    
                     
                 }
             }

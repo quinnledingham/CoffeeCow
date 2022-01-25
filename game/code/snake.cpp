@@ -12,6 +12,16 @@
 #include "socketq.cpp"
 #include "socketq.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+#include "stdio.h"
+
+#include "text.h"
+#include "gui.h"
+
+#include "text.cpp"
+
+
 inline int32
 RoundReal32ToInt32(real32 Real32)
 {
@@ -20,7 +30,7 @@ RoundReal32ToInt32(real32 Real32)
 }
 
 #include "gui.cpp"
-#include "gui.h"
+
 
 #include "memorymanager.cpp"
 #include "memorymanager.h"
@@ -446,56 +456,15 @@ RenderImage(game_offscreen_buffer *Buffer, Image *image)
     }
 }
 
-internal void
-FilenameSearchModify(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            result[j] = *cursor;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
 
-internal void
-FilenameCapitialize(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '_' || *cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            char c = *cursor;
-            result[j] = c - 32;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
 
 internal void
 SaveImageToHeaderFile(char* filename, Image* image)
 {
+    char* fullDir = StringConcat("imagesaves/", filename);
+    
     // Header file
-    FILE *newfile = fopen(filename, "w");
+    FILE *newfile = fopen(fullDir, "w");
     
     char f[sizeof(filename)];
     FilenameSearchModify(filename, f);
@@ -537,11 +506,11 @@ SaveImageToHeaderFile(char* filename, Image* image)
     fclose(newfile);
     
     // C++ file
-    char filenamecpp[sizeof(filename) + 2];
+    char* filenamecpp = (char*)PermanentStorageAssign(fullDir, StringLength(fullDir) + 2);
     
     int j = 0;
     int extension = 0;
-    char* cursor = filename;
+    char* cursor = fullDir;
     while (!extension)
     {
         if (*cursor == '.')
@@ -587,18 +556,12 @@ SaveImageToHeaderFile(char* filename, Image* image)
 
 global_variable Image test;
 
-#include "../data/imagesaves/image.h"
-#include "../data/imagesaves/image.cpp"
+//#include "../data/imagesaves/image.h"
+//#include "../data/imagesaves/image.cpp"
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
-#include "stdio.h"
 
-struct entire_file
-{
-    u32 ContentsSize;
-    void *Contents;
-};
+
+
 entire_file
 ReadEntireFile(char *FileName)
 {
@@ -621,62 +584,6 @@ ReadEntireFile(char *FileName)
     }
     
     return(Result);
-}
-
-internal loaded_bitmap
-LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float Scale, uint32 Color)
-{
-    loaded_bitmap Result = {};
-    entire_file TTFFile = ReadEntireFile(FileName);
-    if(TTFFile.ContentsSize != 0)
-    {
-        stbtt_fontinfo Font;
-        stbtt_InitFont(&Font, (u8 *)TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)TTFFile.Contents, 0));
-        
-        int Width, Height, XOffset, YOffset;
-        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, Scale),
-                                                  Codepoint, &Width, &Height, &XOffset, &YOffset);
-        
-        /*int x0, y0, x1, y1;
-        stbtt_GetCodepointBitmapBox(&Font, Codepoint, stbtt_ScaleForPixelHeight(&Font, 128.0f), stbtt_ScaleForPixelHeight(&Font, 128.0f), &x0, &y0, &x1, &y1); 
-        */
-        
-        Result.Width = Width;
-        Result.Height = Height;
-        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
-        Result.Memory = malloc(Height*Result.Pitch);
-        Result.Free = Result.Memory;
-        
-        u8 *Source = MonoBitmap;
-        u8 *DestRow = (u8 *)Result.Memory + (Height -1)*Result.Pitch;
-        for(s32 Y = 0;
-            Y < Height;
-            ++Y)
-        {
-            u32 *Dest = (u32 *)DestRow;
-            for(s32 X = 0;
-                X < Width;
-                ++X)
-            {
-                u8 Gray = *Source++;
-                u32 Alpha = ((Gray << 24) |
-                             (Gray << 16) |
-                             (Gray <<  8) |
-                             (Gray << 0));
-                Color &= 0x00FFFFFF;
-                Alpha &= 0xFF000000;
-                Color += Alpha;
-                *Dest++ = Color;
-            }
-            
-            DestRow -= Result.Pitch;
-        }
-        
-        stbtt_FreeBitmap(MonoBitmap, 0);
-        free(TTFFile.Contents);
-    }
-    
-    return (Result);
 }
 
 
@@ -748,129 +655,17 @@ RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX,
     }
 }
 
-internal void
-ChangeBitmapColor(loaded_bitmap* BMP, uint32 Color)
-{
-    for (int i = 0; i < BMP->Width; i++)
-    {
-        uint8 *Pixel = ((uint8 *)BMP->Memory + i * BITMAP_BYTES_PER_PIXEL );
-        
-        for (int j = 0; j < BMP->Height; j++)
-        {
-            int r = *Pixel++;
-            int g = *Pixel++;
-            int b = *Pixel++;
-            int a = *Pixel;
-            Pixel--;
-            Pixel--;
-            Pixel--;
-            
-            if (a == 0xFF)
-            {
-                uint32 c = createRGBA(0, 255, 0, 255);
-                *(uint32*)Pixel = c;
-                
-            }
-            Pixel += BMP->Pitch;
-        }
-    }
-}
-
-#define MAXSTRINGSIZE 1000
-
-internal Cursor
-PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, 
-              uint32 color, Rect* alignRect)
-{
-    entire_file File = ReadEntireFile("../Faune-TextRegular.otf");
-    
-    stbtt_fontinfo info;
-    stbtt_InitFont(&info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));;
-    
-    float scale = stbtt_ScaleForPixelHeight(&info, scalein);
-    
-    int x = xin;
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
-    
-    ascent = (int)roundf(ascent * scale);
-    descent = (int)roundf(descent * scale);
-    
-    int stringSize = (int)strlen(text);
-    int stringWidth = 0;
-    int stringHeight = 0;
-    //LinkedList string = {maxstringsize};
-    //string.Head = CreateLinkedListNode();
-    
-    loaded_bitmap string[MAXSTRINGSIZE];
-    
-    for (int i = 0; i < stringSize; ++i)
-    {
-        // how wide is this character
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
-        
-        // get bounding box for character (may be offset to account for chars that dip above or below the line
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-        
-        // compute y (different characters have different heights)
-        int y = ascent + c_y1 + yin;
-        
-        // render character
-        //int byteOffset = x + roundf(lsb * scale) + (y * b_w);
-        string[i] = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", text[i], scalein, color);
-        
-        // advance x 
-        x += (int)roundf(ax * scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
-        x += (int)roundf(kern * scale);
-    }
-    
-    Cursor EndOfText = {};
-    stringWidth = (x - xin);
-    x = xin;
-    for (int i = 0; i < stringSize; i++)
-    {
-        // how wide is this character
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
-        
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-        int y = ascent + c_y1 + yin - ((alignRect->height - ascent)/2);
-        
-        RenderBitmap(Buffer, &string[i], (real32)x + ((alignRect->width - stringWidth)/2), (real32)y);
-        
-        free(string[i].Memory);
-        
-        EndOfText.Top.x = (real32)x + ((alignRect->width - stringWidth)/2) + (c_x2 - c_x1);
-        EndOfText.Top.y = (real32)y;
-        EndOfText.Height = (c_y2 - c_y1);
-        
-        // advance x 
-        x += (int)roundf(ax * scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
-        x += (int)roundf(kern * scale);
-    }
-    
-    free(File.Contents);
-    return EndOfText;
-}
 
 loaded_bitmap yo;
 Client client;
 
 real32 BackspaceTime = 0;
 int Backspace = 0;
+
+Font Faune50 = {};
+Font Faune100 = {};
+
+#include "../data/imagesaves/fauneonehundred.h"
 
 internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
@@ -907,7 +702,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if SAVE_IMAGES
         // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("../grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
+        test.data = stbi_load("grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
         SaveImageToHeaderFile("image.h", &test);
 #else
         
@@ -916,7 +711,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #endif
         //loaded_bitmap grass = LoadBMP("grass.png");
-        
         // Where the top left corner of the grid should be for it to look
         // centered in the window
         
@@ -932,6 +726,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         stbi_image_free(toBeFreed);
 #endif
         //yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71, 256);
+        
+        Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
+        Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
+        
+        SaveFontToHeaderFile("fauneonehundred.h", &Faune100);
+        
+        void* supMem = PermanentStorageAssign(fauneonehundred_hInfo, 160);
+        stbtt_fontinfo* sup = (stbtt_fontinfo*)supMem;
+        
+        //Faune100.Info = *sup;
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
@@ -1043,13 +847,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             }
             
         }
-        
-        // Input.AButtonEndedDown;
-        // Input.AButtonHalfTransitionCount;
-        if(Controller->ActionDown.EndedDown)
-        {
-            GameState->GreenOffset += 1;
-        }
     }
     
     // TODO(casey): Allow sample offsets here for more robust platform options
@@ -1083,6 +880,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 200,        // Width
                 100,        // Height
                 "Start",    // Text
+                &Faune100,     // Font
                 GameStart,  // ID
                 0,          // Color (CurrentColor)
                 0xFF32a89b, // RegularColor
@@ -1099,6 +897,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 200,        // Width
                 100,        // Height
                 "Quit",     // Text
+                &Faune100,  // Font
                 Quit,       // ID
                 0,          // Color (CurrentColor)
                 0xFF32a89b, // RegularColor
@@ -1114,6 +913,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 500,        // Width
                 200,        // Height
                 "Join",     // Text
+                &Faune100,     // Font
                 Join,       // ID
                 0,          // Color (CurrentColor)
                 0xFF7d32a8, // RegularColor
@@ -1129,6 +929,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 500, // Width
                 100, // Height
                 "", // Text
+                &Faune100,     // Font
                 IP, // ID
                 0, // ShowCursor
                 0xFFd4d4d4, // Color
@@ -1143,6 +944,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 300, // Width
                 100, // Height
                 "IP:", // Text
+                &Faune100,     // Font
                 0xFF000000 // TextColor
             };
             AddText(&menu, &ipT);
@@ -1202,5 +1004,5 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
     }
     
-    PrintOnScreen(Buffer, FPS, FPSRect.x, FPSRect.y, (float)FPSRect.height, 0xFF000000, &FPSRect);
+    //PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
 }

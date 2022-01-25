@@ -1,6 +1,6 @@
 @echo off
 
-set CommonCompilerFlags=-MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4456 -wd4505 -wd4996 -wd4312 -DSNAKE_INTERNAL=1 -DSNAKE_SLOW=1 -DSNAKE_WIN32=1 -DSAVE_IMAGES=0 -FC -Z7
+set CommonCompilerFlags=-MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -wd4456 -wd4505 -wd4996 -wd4312 -DSNAKE_INTERNAL=1 -DSNAKE_SLOW=1 -DSNAKE_WIN32=1 -DSAVE_IMAGES=1 -FC -Z7
 set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 
 REM TODO - can we just build both with one exe?

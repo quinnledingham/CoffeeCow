@@ -328,11 +328,19 @@ struct Cursor
     int Height;
 };
 
+struct entire_file
+{
+    u32 ContentsSize;
+    void *Contents;
+};
+
+entire_file
+ReadEntireFile(char *FileName);
+
 internal void
 RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
 
-internal Cursor
-PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color, Rect* alignRect);
+
 
 #define SNAKE_H
 #endif
