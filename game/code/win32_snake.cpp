@@ -534,6 +534,7 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
                 bool32 IsDown = ((Message.lParam & (1 << 31)) == 0);
                 if(WasDown != IsDown)
                 {
+                    // Game Buttons
                     if(VKCode == 'W')
                     {
                         Win32ProcessKeyboardMessage(&KeyboardController->MoveUp, IsDown);
@@ -579,6 +580,55 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
                         Win32ProcessKeyboardMessage(&KeyboardController->Start, IsDown);
                     }
                     else if(VKCode == VK_SPACE)
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Back, IsDown);
+                    }
+                    // Numbers
+                    else if (VKCode == '0')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Zero, IsDown);
+                    }
+                    else if (VKCode == '1')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->One, IsDown);
+                    }
+                    else if (VKCode == '2')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Two, IsDown);
+                    }
+                    else if (VKCode == '3')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Three, IsDown);
+                    }
+                    else if (VKCode == '4')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Four, IsDown);
+                    }
+                    else if (VKCode == '5')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Five, IsDown);
+                    }
+                    else if (VKCode == '6')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Six, IsDown);
+                    }
+                    else if (VKCode == '7')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Seven, IsDown);
+                    }
+                    else if (VKCode == '8')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Eight, IsDown);
+                    }
+                    else if (VKCode == '9')
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Nine, IsDown);
+                    }
+                    else if (VKCode == VK_OEM_PERIOD)
+                    {
+                        Win32ProcessKeyboardMessage(&KeyboardController->Period, IsDown);
+                    }
+                    else if (VKCode == VK_BACK)
                     {
                         Win32ProcessKeyboardMessage(&KeyboardController->Back, IsDown);
                     }
@@ -986,10 +1036,12 @@ WinMain(HINSTANCE Instance,
                     Buffer.Pitch = GlobalBackbuffer.Pitch;
                     Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
                     
+                    /*
                     LARGE_INTEGER GameCounter = Win32GetWallClock();
                     real32 GameSecondsElapsed = Win32GetSecondsElapsed(GameLastCounter, GameCounter);
                     NewInput->SecondsElapsed = GameSecondsElapsed;
                     GameLastCounter = GameCounter;
+                    */
                     
                     GameUpdateAndRender(&GameMemory, NewInput, &Buffer, &SoundBuffer);
                     
@@ -1056,6 +1108,8 @@ WinMain(HINSTANCE Instance,
                     real32 MSPerFrame = 1000.0f*Win32GetSecondsElapsed(LastCounter, EndCounter);                    
                     LastCounter = EndCounter;
                     
+                    NewInput->SecondsElapsed = SecondsElapsedForFrame;
+                    
                     win32_window_dimension Dimension = Win32GetWindowDimension(Window);
 #if SNAKE_INTERNAL0
                     Win32DebugSyncDisplay(&GlobalBackbuffer, ArrayCount(DebugTimeMarkers), DebugTimeMarkers,
@@ -1106,10 +1160,14 @@ WinMain(HINSTANCE Instance,
                     real64 FPS = 0.0f;
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0f * 1000.0f));
                     
+                    
+                    /*
                     char FPSBuffer[256];
                     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
                                 "%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
                     OutputDebugStringA(FPSBuffer);
+*/
+                    
                 }
             }
             else

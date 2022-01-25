@@ -11,26 +11,29 @@ struct GUI
 {
     int initialized;
     GUIComponent* buttons;
-    GUIComponent* text;
+    GUIComponent* Texts;
     GUIComponent* TextBoxes;
 };
 
-enum ButtonPress
+enum MenuButtons
 {
     GameStart,
     Quit,
     Join
 };
-
 struct Button
 {
-    Rect Shape;
+    int X;
+    int Y;
+    int Width;
+    int Height;
+    char* Text;
+    int ID;
+    
+    uint32 Color;
     uint32 RegularColor;
     uint32 HoverColor;
-    
-    char* Text;
     uint32 TextColor;
-    int ID;
 };
 
 
@@ -40,12 +43,28 @@ enum TextBoxID
 };
 struct TextBox
 {
-    Rect Shape;
+    int X;
+    int Y;
+    int Width;
+    int Height;
+    char* Text;
+    int ID;
+    int ShowCursor;
     
+    uint32 Color;
+    uint32 TextColor;
+};
+
+
+struct Text
+{
+    int X;
+    int Y;
+    int Width;
+    int Height;
     char* Text;
     uint32 TextColor;
-    int ShowCursor;
-    int ID;
 };
+
 
 #endif //GUI_H

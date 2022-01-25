@@ -164,6 +164,26 @@ struct game_controller_input
             game_button_state Terminator;
         };
     };
+    
+    union
+    {
+        game_button_state Numbers[12];
+        struct
+        {
+            game_button_state Zero;
+            game_button_state One;
+            game_button_state Two;
+            game_button_state Three;
+            game_button_state Four;
+            game_button_state Five;
+            game_button_state Six;
+            game_button_state Seven;
+            game_button_state Eight;
+            game_button_state Nine;
+            game_button_state Period;
+            game_button_state Back;
+        };
+    };
 };
 
 struct game_input
@@ -289,10 +309,29 @@ struct LinkedList
     LinkedListNode* Head;
 };
 
+union v2
+{
+    struct
+    {
+        real32 x, y;
+    };
+    struct
+    {
+        real32 u, v;
+    };
+    real32 E[2];
+};
+
+struct Cursor
+{
+    v2 Top;
+    int Height;
+};
+
 internal void
 RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
 
-internal void
+internal Cursor
 PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color, Rect* alignRect);
 
 #define SNAKE_H
