@@ -195,7 +195,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
     for (int i = 0; i < StrLength; i++)
     {
         char SrcChar = SrcText[i];
-        int Y = SrcFont->Ascent + SrcFont->Memory[SrcChar].C_Y1 + 
+        int Y = SrcFont->Ascent + SrcFont->Memory[SrcChar].C_Y1 +
             InputY - ((AlignRect->height - SrcFont->Ascent)/2);
         loaded_bitmap SrcBitmap = {};
         SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
@@ -342,6 +342,32 @@ SaveMemoryToHeaderFile(FILE* File, char* MemoryName, void* Memory, int MemorySiz
 }
 
 internal void
+SaveInsideFontMemoryToHeaderFile(FILE* File, char* FontName,  Font* SaveFont, int InsideSize)
+{
+    fprintf(File,
+            "const unsigned char %s[%d] = {",
+            StringConcat(FontName, "FontChar"),
+            (int)(sizeof(FontChar) * SaveFont->Size)
+            );
+    for (int i = 0; i < SaveFont->Size; i++)
+    {
+        //MemorySize += ((SaveFont->Memory[i].Width * SaveFont->Memory[i].Height) * BITMAP_BYTES_PER_PIXEL);
+        unsigned char* MemoryCursor = (unsigned char*)&SaveFont->Memory[i];
+        for(int j = 0; j < InsideSize; j++)
+        {
+            fprintf(File,
+                    "%d ,",
+                    *MemoryCursor);
+            *MemoryCursor++;
+        }
+    }
+    fprintf(File,
+            "};\n"
+            "\n"
+            );
+}
+
+internal void
 SaveIntToHeaderFile(FILE *File, char* IntName, int Value)
 {
     fprintf(File, "int %s = %d;\n",
@@ -379,7 +405,7 @@ StartHeaderFile(FILE *File, char* FCapital)
 }
 
 internal void
-SaveFontToHeaderFile(char* FileName, char* FullFilePath, Font* SaveFont)
+SaveFontToHeaderFile(char* FontName, char* FileName, char* FullFilePath, Font* SaveFont)
 {
     // Header file
     FILE *File = fopen(FullFilePath, "w");
@@ -391,23 +417,26 @@ SaveFontToHeaderFile(char* FileName, char* FullFilePath, Font* SaveFont)
     
     StartHeaderFile(File, FCapital);
     
-    SaveMemoryToHeaderFile(File, "FAUNEstbtt", (void*)&SaveFont->Info, sizeof(stbtt_fontinfo));
-    SaveMemoryToHeaderFile(File, "FAUNEstbttuserdata", (void*)&SaveFont->Info.userdata, 100);
-    SaveMemoryToHeaderFile(File, "FAUNEstbttdata", (void*)SaveFont->Info.data, 100);
-    SaveIntToHeaderFile(File, "FAUNESize", SaveFont->Size);
-    SaveIntToHeaderFile(File, "FAUNEAscent", SaveFont->Ascent);
-    SaveFloatToHeaderFile(File, "FAUNEScale", SaveFont->Scale);
+    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbtt"),
+                           (void*)&SaveFont->Info, sizeof(stbtt_fontinfo));
+    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbttuserdata"), 
+                           (void*)&SaveFont->Info.userdata, 100);
+    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbttdata"), (void*)SaveFont->Info.data, 100);
+    SaveIntToHeaderFile(File, StringConcat(FontName, "Size"), SaveFont->Size);
+    SaveIntToHeaderFile(File, StringConcat(FontName, "Ascent"), SaveFont->Ascent);
+    SaveFloatToHeaderFile(File, StringConcat(FontName, "Scale"), SaveFont->Scale);
     
     int MemorySize = 0;
     
+    
     fprintf(File,
             "const unsigned char %s[%d] = {",
-            "FAUNEFontChar",
+            StringConcat(FontName, "FontChar"),
             (int)(sizeof(FontChar) * SaveFont->Size)
             );
     for (int i = 0; i < SaveFont->Size; i++)
     {
-        MemorySize += (SaveFont->Memory[i].Width * SaveFont->Memory[i].Height);
+        MemorySize += ((SaveFont->Memory[i].Width * SaveFont->Memory[i].Height) * BITMAP_BYTES_PER_PIXEL);
         unsigned char* MemoryCursor = (unsigned char*)&SaveFont->Memory[i];
         for(int j = 0; j < sizeof(FontChar); j++)
         {
@@ -422,15 +451,18 @@ SaveFontToHeaderFile(char* FileName, char* FullFilePath, Font* SaveFont)
             "\n"
             );
     
+    //SaveInsideFontMemoryToHeaderFile(File, FontName, SaveFont, sizeof(FontChar));
+    //SaveInsideFontMemoryToHeaderFile(File, FontName, SaveFont, ((SaveFont->Memory[i].Width * SaveFont->Memory[i].Height) * BITMAP_BYTES_PER_PIXEL));
+    
     fprintf(File,
             "const unsigned char %s[%d] = {",
-            "FAUNEFontCharMemory",
+            StringConcat(FontName, "FontCharMemory"),
             MemorySize
             );
     for (int i = 0; i < SaveFont->Size; i++)
     {
         unsigned char* MemoryCursor = (unsigned char*)SaveFont->Memory[i].Memory;
-        for(int j = 0; j < (SaveFont->Memory[i].Width * SaveFont->Memory[i].Height); j++)
+        for(int j = 0; j < ((SaveFont->Memory[i].Width * SaveFont->Memory[i].Height) * BITMAP_BYTES_PER_PIXEL); j++)
         {
             fprintf(File,
                     "%d ,",
@@ -448,4 +480,44 @@ SaveFontToHeaderFile(char* FileName, char* FullFilePath, Font* SaveFont)
             );
     
     fclose(File);
+}
+
+internal void
+LoadFontFromHeaderFile(Font* LoadFont, 
+                       const unsigned char* stbtt,
+                       const unsigned char* stbttuserdata,
+                       const unsigned char* stbttdata,
+                       int Size,
+                       int Ascent,
+                       float Scale,
+                       const unsigned char* FontCharC,
+                       const unsigned char* FontCharMemory)
+{
+    void* Mem = PermanentStorageAssign((void*)stbtt, 160);
+    void* Memud = PermanentStorageAssign((void*)stbttuserdata, 100);
+    void* Memd = PermanentStorageAssign((void*)stbttdata, 100);
+    
+    stbtt_fontinfo* LoadInfo = (stbtt_fontinfo*)Mem;
+    LoadInfo->userdata = Memud;
+    LoadInfo->data = (unsigned char*)Memd;
+    
+    LoadFont->Info = *LoadInfo;
+    LoadFont->Size = Size;
+    LoadFont->Ascent = Ascent;
+    LoadFont->Scale = Scale;
+    
+    const unsigned char* CharCursor = FontCharC;
+    const unsigned char* CharMemoryCursor = FontCharMemory;
+    for (int i = 0; i < Size; i++)
+    {
+        MemoryCopy((void*)&LoadFont->Memory[i], (void*)CharCursor, sizeof(FontChar));
+        CharCursor += sizeof(FontChar);
+        
+        if (i == 83)
+            i = 83;
+        
+        int NextSpot = ((LoadFont->Memory[i].Width * LoadFont->Memory[i].Height) * BITMAP_BYTES_PER_PIXEL);
+        LoadFont->Memory[i].Memory = PermanentStorageAssign((void*)CharMemoryCursor, NextSpot);
+        CharMemoryCursor += NextSpot;
+    }
 }

@@ -204,7 +204,9 @@ RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY,
 internal void
 ClearScreen(game_offscreen_buffer *Buffer)
 {
-    uint8 *Column = (uint8 *)Buffer->Memory;    
+    memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
+    /*
+        uint8 *Column = (uint8 *)Buffer->Memory;    
     for(int X = 0;
         X< Buffer->Width;
         ++X)
@@ -219,6 +221,7 @@ ClearScreen(game_offscreen_buffer *Buffer)
             Pixel += Buffer->Pitch;
         }
     }
+*/
 }
 
 global_variable int GameInitialized = false;
@@ -665,6 +668,9 @@ int Backspace = 0;
 Font Faune50 = {};
 Font Faune100 = {};
 
+Button *strtbtn = {};
+
+#include "../data/imagesaves/faunefifty.h"
 #include "../data/imagesaves/fauneonehundred.h"
 
 internal void
@@ -727,45 +733,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 #endif
         //yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71, 256);
         
-        Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
-        Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
+        
         
 #if SAVE_IMAGES
         
+        Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
+        Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
+        SaveFontToHeaderFile("FAUNE50", "faunefifty.h", "imagesaves/faunefifty.h" ,&Faune50);
+        SaveFontToHeaderFile("FAUNE100", "fauneonehundred.h", "imagesaves/fauneonehundred.h" ,&Faune100);
         
-        SaveFontToHeaderFile("fauneonehundred.h", "imagesaves/fauneonehundred.h" ,&Faune100);
 #else
-        void* supMem = PermanentStorageAssign(FAUNEstbtt, 160);
-        void* supMemud = PermanentStorageAssign(FAUNEstbttuserdata, 100);
-        void* supMemd = PermanentStorageAssign(FAUNEstbttdata, 100);
-        
-        stbtt_fontinfo* sup = (stbtt_fontinfo*)supMem;
-        sup->userdata = supMemud;
-        sup->data = (unsigned char*)supMemd;
-        stbtt_fontinfo* anothersup = &Faune100.Info;
-        
-        
-        Faune100.Info = *sup;
-        Faune100.Size = FAUNESize;
-        Faune100.Ascent = FAUNEAscent;
-        Faune100.Scale = FAUNEScale;
-        
-        const unsigned char* CharCursor = FAUNEFontChar;
-        const unsigned char* CharMemoryCursor = FAUNEFontCharMemory;
-        for (int i = 0; i < Faune100.Size; i++)
-        {
-            void* savepoint= Faune100.Memory[i].Memory;
-            MemoryCopy((void*)&Faune100.Memory[i], (void*)CharCursor, sizeof(FontChar));
-            Faune100.Memory[i].Memory = savepoint;
-            CharCursor += sizeof(FontChar);
-            
-            if (i == 83)
-                i = 83;
-            
-            int NextSpot = (Faune100.Memory[i].Width * Faune100.Memory[i].Height);
-            Faune100.Memory[i].Memory = PermanentStorageAssign((void*)CharMemoryCursor, NextSpot);
-            CharMemoryCursor += NextSpot;
-        }
+        LoadFontFromHeaderFile(&Faune50, FAUNE50stbtt, FAUNE50stbttuserdata, FAUNE50stbttdata, FAUNE50Size,
+                               FAUNE50Ascent, FAUNE50Scale, FAUNE50FontChar, FAUNE50FontCharMemory);
+        LoadFontFromHeaderFile(&Faune100, FAUNE100stbtt, FAUNE100stbttuserdata, FAUNE100stbttdata, FAUNE100Size,
+                               FAUNE100Ascent, FAUNE100Scale, FAUNE100FontChar, FAUNE100FontCharMemory);
         
 #endif
         
@@ -921,7 +902,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFFFFFFF, // TextColor
                 
             };
-            addButton(&menu, &startbtn);
+            strtbtn = addButton(&menu, &startbtn);
             
             Button quitbtn = 
             {
@@ -943,7 +924,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 300,        // X
                 500,        // Y
-                500,        // Width
+                200,        // Width
                 200,        // Height
                 "Join",     // Text
                 &Faune100,     // Font
@@ -985,6 +966,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             menu.initialized = 1;
         }
         
+        strtbtn->X = (Buffer->Width / 2) - (strtbtn->Width / 2);
         CheckButtonsHover(&menu, Input->MouseX, Input->MouseY);
         
         ClearScreen(Buffer);

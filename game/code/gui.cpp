@@ -99,6 +99,8 @@ RemoveCharTextBoxText(GUI* G)
     }
 }
 
+
+
 internal void
 ChangeTextBoxShowCursor(GUI* G, int ID)
 {
@@ -152,7 +154,7 @@ CheckTextBoxes(GUI* G, int32 MouseX, int32 MouseY)
     return -1;
 }
 
-internal void
+internal Button*
 addButton(GUI* g, Button* Source)
 {
     GUIComponent newComponent = {};
@@ -163,6 +165,8 @@ addButton(GUI* g, Button* Source)
     {
         g->buttons = memnewComponent;
     }
+    
+    return (Button*)memnewComponent->component;
 }
 
 internal void

@@ -329,20 +329,43 @@ internal void
 Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                            HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
-    Buffer->Width = WindowWidth;
-    Buffer->Height = WindowHeight;
-    // TODO(casey): Aspect ratio correction
-    // TODO(casey): Play with stretch modes
-    StretchDIBits(DeviceContext,
-                  /*
-                  X, Y, Width, Height,
-                  X, Y, Width, Height,
-                  */
-                  0, 0, WindowWidth, WindowHeight,
-                  0, 0, Buffer->Width, Buffer->Height,
-                  Buffer->Memory,
-                  &Buffer->Info,
-                  DIB_RGB_COLORS, SRCCOPY);
+    // TODO(casey): Centering / black bars?
+    
+    if((WindowWidth >= Buffer->Width*2) &&
+       (WindowHeight >= Buffer->Height*2))
+    {
+        StretchDIBits(DeviceContext,
+                      0, 0, 2*Buffer->Width, 2*Buffer->Height,
+                      0, 0, Buffer->Width, Buffer->Height,
+                      Buffer->Memory,
+                      &Buffer->Info,
+                      DIB_RGB_COLORS, SRCCOPY);
+    }
+    else
+    {
+#if 0
+        int OffsetX = 10;
+        int OffsetY = 10;
+        
+        PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+        PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+        PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+        PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
+#else
+        int OffsetX = 0;
+        int OffsetY = 0;
+#endif
+        
+        // NOTE(casey): For prototyping purposes, we're going to always blit
+        // 1-to-1 pixels to make sure we don't introduce artifacts with
+        // stretching while we are learning to code the renderer!
+        StretchDIBits(DeviceContext,
+                      OffsetX, OffsetY, Buffer->Width, Buffer->Height,
+                      0, 0, Buffer->Width, Buffer->Height,
+                      Buffer->Memory,
+                      &Buffer->Info,
+                      DIB_RGB_COLORS, SRCCOPY);
+    }
 }
 
 internal LRESULT CALLBACK
@@ -1112,13 +1135,14 @@ WinMain(HINSTANCE Instance,
                     NewInput->SecondsElapsed = SecondsElapsedForFrame;
                     
                     win32_window_dimension Dimension = Win32GetWindowDimension(Window);
+                    Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
+                                               Dimension.Width, Dimension.Height);
+                    Win32ResizeDIBSection(&GlobalBackbuffer, Dimension.Width, Dimension.Height);
+                    
 #if SNAKE_INTERNAL0
                     Win32DebugSyncDisplay(&GlobalBackbuffer, ArrayCount(DebugTimeMarkers), DebugTimeMarkers,
                                           &SoundOutput, TargetSecondsPerFrame);
 #endif
-                    Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
-                                               Dimension.Width, Dimension.Height);
-                    
                     
                     DWORD PlayCursor;
                     DWORD WriteCursor;
