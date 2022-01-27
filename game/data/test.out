@@ -469,7 +469,7 @@ SaveImageToHeaderFile(char* filename, Image* image)
     char f[sizeof(filename)];
     FilenameSearchModify(filename, f);
     char fcapital[sizeof(filename)];
-    FilenameCapitialize(filename, fcapital);
+    FilenameCapitalize(filename, fcapital);
     
     fprintf(newfile,
             "#ifndef %s\n"
@@ -556,8 +556,8 @@ SaveImageToHeaderFile(char* filename, Image* image)
 
 global_variable Image test;
 
-//#include "../data/imagesaves/image.h"
-//#include "../data/imagesaves/image.cpp"
+#include "../data/imagesaves/image.h"
+#include "../data/imagesaves/image.cpp"
 
 
 
@@ -730,12 +730,45 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
         Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
         
-        SaveFontToHeaderFile("fauneonehundred.h", &Faune100);
+#if SAVE_IMAGES
         
-        void* supMem = PermanentStorageAssign(fauneonehundred_hInfo, 160);
+        
+        SaveFontToHeaderFile("fauneonehundred.h", "imagesaves/fauneonehundred.h" ,&Faune100);
+#else
+        void* supMem = PermanentStorageAssign(FAUNEstbtt, 160);
+        void* supMemud = PermanentStorageAssign(FAUNEstbttuserdata, 100);
+        void* supMemd = PermanentStorageAssign(FAUNEstbttdata, 100);
+        
         stbtt_fontinfo* sup = (stbtt_fontinfo*)supMem;
+        sup->userdata = supMemud;
+        sup->data = (unsigned char*)supMemd;
+        stbtt_fontinfo* anothersup = &Faune100.Info;
         
-        //Faune100.Info = *sup;
+        
+        Faune100.Info = *sup;
+        Faune100.Size = FAUNESize;
+        Faune100.Ascent = FAUNEAscent;
+        Faune100.Scale = FAUNEScale;
+        
+        const unsigned char* CharCursor = FAUNEFontChar;
+        const unsigned char* CharMemoryCursor = FAUNEFontCharMemory;
+        for (int i = 0; i < Faune100.Size; i++)
+        {
+            void* savepoint= Faune100.Memory[i].Memory;
+            MemoryCopy((void*)&Faune100.Memory[i], (void*)CharCursor, sizeof(FontChar));
+            Faune100.Memory[i].Memory = savepoint;
+            CharCursor += sizeof(FontChar);
+            
+            if (i == 83)
+                i = 83;
+            
+            int NextSpot = (Faune100.Memory[i].Width * Faune100.Memory[i].Height);
+            Faune100.Memory[i].Memory = PermanentStorageAssign((void*)CharMemoryCursor, NextSpot);
+            CharMemoryCursor += NextSpot;
+        }
+        
+#endif
+        
         
         // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;

@@ -295,7 +295,7 @@ FilenameSearchModify(char* filename, char* result)
 }
 
 internal void
-FilenameCapitialize(char* filename, char* result)
+FilenameCapitalize(char* filename, char* result)
 {
     int j = 0;
     
@@ -318,94 +318,134 @@ FilenameCapitialize(char* filename, char* result)
 }
 
 internal void
-SaveFontToHeaderFile(char* filename, Font* SaveFont)
+SaveMemoryToHeaderFile(FILE* File, char* MemoryName, void* Memory, int MemorySize)
 {
-    
-    char* fullDir = StringConcat("imagesaves/", filename);
-    
-    // Header file
-    FILE *newfile = fopen(fullDir, "w");
-    
-    char f[20];
-    FilenameSearchModify(filename, f);
-    char fcapital[20];
-    FilenameCapitialize(filename, fcapital);
-    
-    
-    fprintf(newfile,
-            "#ifndef %s\n"
-            "#define %s\n"
-            "const unsigned char %sInfo[%d] = \n"
-            "{\n"
-            ,fcapital
-            ,fcapital
-            ,f
-            ,(int)sizeof(stbtt_fontinfo)
+    fprintf(File,
+            "const unsigned char %s[%d] = {",
+            MemoryName,
+            MemorySize
             );
     
-    
-    unsigned char*  imgtosave = (unsigned char*)&SaveFont->Info;
-    for(int i = 0; i < sizeof(stbtt_fontinfo); i++)
+    unsigned char* MemoryCursor = (unsigned char*)Memory;
+    for(int i = 0; i < MemorySize; i++)
     {
-        fprintf(newfile,
+        fprintf(File,
                 "%d ,",
-                *imgtosave);
-        *imgtosave++;
+                *MemoryCursor);
+        *MemoryCursor++;
     }
     
-    fprintf(newfile, 
+    fprintf(File,
             "};\n"
             "\n"
-            "#endif");
-    
-    fclose(newfile);
-    
-    /*
-    // C++ file
-    char* filenamecpp = (char*)PermanentStorageAssign(fullDir, StringLength(fullDir) + 2);
-    
-    int j = 0;
-    int extension = 0;
-    char* cursor = fullDir;
-    while (!extension)
-    {
-        if (*cursor == '.')
-        {
-            filenamecpp[j] = *cursor;
-            extension = 1;
-        }
-        else
-        {
-            filenamecpp[j] = *cursor;
-        }
-        
-        cursor++;
-        j++;
-    }
-    filenamecpp[j] = 'c';
-    filenamecpp[j + 1] = 'p';
-    filenamecpp[j + 2] = 'p';
-    filenamecpp[j + 3] = 0;
-    
-    FILE *newcppfile = fopen(filenamecpp, "w");
-    fprintf(newcppfile, 
-            "internal void\n"
-            "LoadImageFrom%s(Image* image)\n"
-            "{\n"
-            "image->data = (unsigned char *)PermanentStorageAssign((void*)&%s, sizeof(%s));\n"
-            "image->x = %sx;\n"
-            "image->y = %sy;\n"
-            "image->n = %sn;\n"
-            "}\n"
-            ,f
-            ,f
-            ,f
-            ,f
-            ,f
-            ,f
             );
-    *
+}
 
-    fclose(newcppfile);
-    */
+internal void
+SaveIntToHeaderFile(FILE *File, char* IntName, int Value)
+{
+    fprintf(File, "int %s = %d;\n",
+            IntName,
+            Value
+            );
+}
+
+internal void
+SaveInt32ToHeaderFile(FILE *File, char* IntName, int32 Value)
+{
+    fprintf(File, "int %s = %d;\n",
+            IntName,
+            Value
+            );
+}
+
+internal void
+SaveFloatToHeaderFile(FILE *File, char* FloatName, float Value)
+{
+    fprintf(File, "float %s = (float)%f;\n",
+            FloatName,
+            Value
+            );
+}
+
+internal void
+StartHeaderFile(FILE *File, char* FCapital)
+{
+    fprintf(File,
+            "#ifndef %s\n"
+            "#define %s\n",
+            FCapital,
+            FCapital);
+}
+
+internal void
+SaveFontToHeaderFile(char* FileName, char* FullFilePath, Font* SaveFont)
+{
+    // Header file
+    FILE *File = fopen(FullFilePath, "w");
+    
+    char f[20];
+    FilenameSearchModify(FileName, f);
+    char FCapital[20];
+    FilenameCapitalize(FileName, FCapital);
+    
+    StartHeaderFile(File, FCapital);
+    
+    SaveMemoryToHeaderFile(File, "FAUNEstbtt", (void*)&SaveFont->Info, sizeof(stbtt_fontinfo));
+    SaveMemoryToHeaderFile(File, "FAUNEstbttuserdata", (void*)&SaveFont->Info.userdata, 100);
+    SaveMemoryToHeaderFile(File, "FAUNEstbttdata", (void*)SaveFont->Info.data, 100);
+    SaveIntToHeaderFile(File, "FAUNESize", SaveFont->Size);
+    SaveIntToHeaderFile(File, "FAUNEAscent", SaveFont->Ascent);
+    SaveFloatToHeaderFile(File, "FAUNEScale", SaveFont->Scale);
+    
+    int MemorySize = 0;
+    
+    fprintf(File,
+            "const unsigned char %s[%d] = {",
+            "FAUNEFontChar",
+            (int)(sizeof(FontChar) * SaveFont->Size)
+            );
+    for (int i = 0; i < SaveFont->Size; i++)
+    {
+        MemorySize += (SaveFont->Memory[i].Width * SaveFont->Memory[i].Height);
+        unsigned char* MemoryCursor = (unsigned char*)&SaveFont->Memory[i];
+        for(int j = 0; j < sizeof(FontChar); j++)
+        {
+            fprintf(File,
+                    "%d ,",
+                    *MemoryCursor);
+            *MemoryCursor++;
+        }
+    }
+    fprintf(File,
+            "};\n"
+            "\n"
+            );
+    
+    fprintf(File,
+            "const unsigned char %s[%d] = {",
+            "FAUNEFontCharMemory",
+            MemorySize
+            );
+    for (int i = 0; i < SaveFont->Size; i++)
+    {
+        unsigned char* MemoryCursor = (unsigned char*)SaveFont->Memory[i].Memory;
+        for(int j = 0; j < (SaveFont->Memory[i].Width * SaveFont->Memory[i].Height); j++)
+        {
+            fprintf(File,
+                    "%d ,",
+                    *MemoryCursor);
+            *MemoryCursor++;
+        }
+    }
+    fprintf(File,
+            "};\n"
+            "\n"
+            );
+    
+    fprintf(File, 
+            "#endif"
+            );
+    
+    fclose(File);
 }
