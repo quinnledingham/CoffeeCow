@@ -246,6 +246,15 @@ struct Rect
     uint32 color;
 };
 
+struct NewRect
+{
+    float x;
+    float y;
+    int width;
+    int height;
+    uint32 color;
+};
+
 internal void 
 RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
 
@@ -279,7 +288,27 @@ struct Snake
     int NextDirection = -1;
     int LastDirection = -1;
     int length;
+    float Speed;
     SnakeNode* head;
+};
+
+struct NewSnakeNode
+{
+    float X;
+    float Y;
+    int Direction;
+    
+    NewSnakeNode* Next;
+    NewSnakeNode* Previous;
+};
+
+struct NewSnake
+{
+    int Direction;
+    int Length;
+    float Speed;
+    float DistanceTravelled;
+    NewSnakeNode* Head;
 };
 
 struct Apple

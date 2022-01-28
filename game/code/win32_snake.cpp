@@ -1190,12 +1190,12 @@ WinMain(HINSTANCE Instance,
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0f * 1000.0f));
                     
                     
-                    
+                    /*
                     char FPSBuffer[256];
                     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
                                 "%.02fms/f,  %.02ff/s,  %.02fmc/f\n", MSPerFrame, FPS, MCPF);
                     OutputDebugStringA(FPSBuffer);
-                    
+                    */
                     
                 }
             }

@@ -227,6 +227,7 @@ ClearScreen(game_offscreen_buffer *Buffer)
 
 global_variable int GameInitialized = false;
 global_variable Snake player;
+global_variable NewSnake NewPlayer;
 global_variable GUI menu = {};
 global_variable NewGUI MainMenu = {};
 global_variable NewGUI LoseMenu = {};
@@ -262,6 +263,32 @@ AddSnakeNode(Snake *s, int x, int y, int transitiondirection)
     cursor->next = (SnakeNode*)PermanentStorageAssign(&partnew, sizeof(SnakeNode));
 }
 
+internal void 
+NewAddSnakeNode(NewSnake *S, float X, float Y)
+{
+    if (S->Head == 0)
+    {
+        NewSnakeNode part1 = {};
+        part1.X = X;
+        part1.Y = Y;
+        
+        S->Head = (NewSnakeNode*)PermanentStorageAssign(&part1, sizeof(NewSnakeNode));
+        return;
+    }
+    
+    NewSnakeNode* cursor = S->Head;
+    while(cursor->Next != 0)
+    {
+        cursor = cursor->Next;
+    }
+    NewSnakeNode partnew = {};
+    partnew.X = X;
+    partnew.Y = Y;
+    partnew.Previous = cursor;
+    
+    cursor->Next = (NewSnakeNode*)PermanentStorageAssign(&partnew, sizeof(NewSnakeNode));
+}
+
 internal void
 InitializeSnake(Snake *s)
 {
@@ -272,6 +299,17 @@ InitializeSnake(Snake *s)
     AddSnakeNode(s, 2, 2, 0);
     AddSnakeNode(s, 1, 2, 0);
     AddSnakeNode(s, 0, 2, 0);
+}
+
+internal void
+NewInitializeSnake(NewSnake *S)
+{
+    S->Direction = RIGHT;
+    S->Length = 3;
+    
+    NewAddSnakeNode(S, 2, 2);
+    NewAddSnakeNode(S, 1, 2);
+    NewAddSnakeNode(S, 0, 2);
 }
 
 internal void
@@ -289,6 +327,27 @@ RenderSnake(game_offscreen_buffer *Buffer, Snake* s, int GridX, int GridY,
         };
         RenderRect(Buffer, &newSquare, FILL, 0xFFFFEBC4);
         cursor = cursor->next;
+    }
+}
+
+internal void
+NewRenderSnake(game_offscreen_buffer *Buffer, NewSnake* s, int  GridX, int  GridY, 
+               int GridWidth, int GridHeight, int GridSize)
+{
+    
+    NewSnakeNode* cursor = s->Head;
+    while(cursor != 0)
+    {
+        int CursorX = (int)(cursor->X * GridSize);
+        int CursorY = (int)(cursor->Y * GridSize);
+        Rect newSquare =
+        {
+            GridX + CursorX, 
+            GridY + CursorY, 
+            GridSize, GridSize
+        };
+        RenderRect(Buffer, &newSquare, FILL, 0xFFFFEBC4);
+        cursor = cursor->Next;
     }
 }
 
@@ -435,6 +494,51 @@ TransitionSnake(Snake* snake)
     }
 }
 
+internal void
+NewTransitionSnake(NewSnake* snake, float SecondsElapsed)
+{
+    float Dm = (snake->Speed * SecondsElapsed);
+    float Dp = 50 * Dm;
+    
+    snake->DistanceTravelled += Dp;
+    
+    NewSnakeNode* cursor = snake->Head;
+    while(cursor != 0)
+    {
+        if (cursor->Direction == RIGHT)
+        {
+            cursor->X += Dp;
+        }
+        else if (cursor->Direction == UP)
+        {
+            cursor->Y -= Dp;
+        }
+        else if (cursor->Direction == LEFT)
+        {
+            cursor->X -= Dp;
+        }
+        else if (cursor->Direction == DOWN)
+        {
+            cursor->Y += Dp;
+        }
+        cursor = cursor->Next;
+    }
+}
+
+internal void
+NewMoveSnake(NewSnake* snake)
+{
+    NewSnakeNode* cursor = snake->Head;
+    
+    cursor->Direction = snake->Direction;
+    cursor = cursor->Next;
+    
+    while(cursor != 0)
+    {
+        cursor->Direction = cursor->Previous->Direction;
+        cursor = cursor->Next;
+    }
+}
 
 internal void
 CheckGetApple(Snake* S, Apple* A)
@@ -853,27 +957,35 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             {
                 if (player.LastDirection != RIGHT)
                     player.direction = LEFT;
+                
+                NewPlayer.Direction = LEFT;
             }
             
             if(Controller->MoveRight.EndedDown)
             {
                 if (player.LastDirection != LEFT)
                     player.direction= RIGHT;
+                
+                NewPlayer.Direction = RIGHT;
             }
             
             if(Controller->MoveDown.EndedDown)
             {
                 if (player.LastDirection != UP)
                     player.direction= DOWN;
+                
+                NewPlayer.Direction = DOWN;
             }
             
             if(Controller->MoveUp.EndedDown)
             {
                 if (player.LastDirection != DOWN)
                     player.direction= UP;
+                
+                NewPlayer.Direction = UP;
             }
-            sprintf(FPS, "%d", player.direction);
-            //PrintOnScreen(Buffer, &Faune50, FSP, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
+            sprintf(FPS, "%d", NewPlayer.Direction);
+            PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
             
             if(Input->MouseButtons[0].EndedDown)
             {
@@ -1108,11 +1220,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         if (GameInitialized == false)
         {
-            InitializeSnake(&player);
+            //InitializeSnake(&player);
+            NewInitializeSnake(&NewPlayer);
             GameInitialized = true;
             
             A.X = rand() % 17;
             A.Y = rand() % 17;
+            
+            NewPlayer.Speed = 0.05f; // m/s
             //createClient(&client, "192.168.1.75", "10109", TCP);
         }
         
@@ -1126,8 +1241,27 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         recvq(&client, buffer, 500);
         printf("%s\n", buffer);
         */
-        SnakeTimeCounter += Input->SecondsElapsed;
+        //SnakeTimeCounter += Input->SecondsElapsed;
         
+        NewTransitionSnake(&NewPlayer, Input->SecondsElapsed);
+        ClearScreen(Buffer);
+        
+        
+        
+        if (NewPlayer.DistanceTravelled >= 1)
+        {
+            char FPSBuffer[256];
+            _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                        "%.02f\n", NewPlayer.DistanceTravelled);
+            OutputDebugStringA(FPSBuffer);
+            
+            NewPlayer.DistanceTravelled = 0;
+            //NewMoveSnake(&NewPlayer);
+            //PrintOnScreen(Buffer, &Faune50, "yo", FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
+            
+        }
+        
+        /*
         if (SnakeTimeCounter > 0.008)
         {
             if(framesToSkip == frameSkip)
@@ -1161,17 +1295,18 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 frameSkip++;
             }
         }
+        */
         
-        ClearScreen(Buffer);
         
         //Rect newRect = {centeredX, centeredY, GRIDSIZE * GRIDWIDTH, GRIDSIZE * GRIDHEIGHT};
         //RenderRectImage(Buffer, &newRect, &test);
         
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderApple(Buffer, &A, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        //RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        NewRenderSnake(Buffer, &NewPlayer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         
-        sprintf(FPS, "%d", A.Score);
-        PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
+        //sprintf(FPS, "%d", A.Score);
+        //PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
     }
 }
