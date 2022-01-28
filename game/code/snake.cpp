@@ -756,7 +756,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
     int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
     //Rect imageRect = {centeredX, centeredY, (GRIDWIDTH * GRIDSIZE), (GRIDHEIGHT * GRIDSIZE), 0};
-    Rect imageRect = {centeredX, centeredY, (GRIDSIZE), (GRIDSIZE), 0};
+    Rect imageRect = {centeredX, centeredY, (GRIDSIZE * GRIDWIDTH), (GRIDSIZE * GRIDHEIGHT), 0};
     
     if(!Memory->IsInitialized)
     {
@@ -1163,6 +1163,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         ClearScreen(Buffer);
+        
+        //Rect newRect = {centeredX, centeredY, GRIDSIZE * GRIDWIDTH, GRIDSIZE * GRIDHEIGHT};
+        //RenderRectImage(Buffer, &newRect, &test);
+        
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
         RenderApple(Buffer, &A, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         RenderSnake(Buffer, &player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
