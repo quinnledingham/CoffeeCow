@@ -1137,7 +1137,11 @@ WinMain(HINSTANCE Instance,
                     win32_window_dimension Dimension = Win32GetWindowDimension(Window);
                     Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
                                                Dimension.Width, Dimension.Height);
-                    Win32ResizeDIBSection(&GlobalBackbuffer, Dimension.Width, Dimension.Height);
+                    
+                    if((GlobalBackbuffer.Width != Dimension.Width) || (GlobalBackbuffer.Height != Dimension.Height))
+                    {
+                        Win32ResizeDIBSection(&GlobalBackbuffer, Dimension.Width, Dimension.Height);
+                    }
                     
 #if SNAKE_INTERNAL0
                     Win32DebugSyncDisplay(&GlobalBackbuffer, ArrayCount(DebugTimeMarkers), DebugTimeMarkers,

@@ -77,105 +77,63 @@ ChangeBitmapColor(loaded_bitmap Bitmap, uint32 Color)
     }
 }
 
-#define MAXSTRINGSIZE 1000
-
-internal Cursor
-PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, 
-              uint32 color, Rect* alignRect)
+internal v2
+GetStringDimensions(Font* SrcFont, char* SrcText)
 {
-    entire_file File = ReadEntireFile("../Faune-TextRegular.otf");
-    
-    stbtt_fontinfo info;
-    stbtt_InitFont(&info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
-    
-    float scale = stbtt_ScaleForPixelHeight(&info, scalein);
-    
-    int x = xin;
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
-    
-    ascent = (int)roundf(ascent * scale);
-    descent = (int)roundf(descent * scale);
-    
-    int stringSize = (int)strlen(text);
-    int stringWidth = 0;
-    int stringHeight = 0;
-    
-    
-    loaded_bitmap string[MAXSTRINGSIZE];
-    
-    for (int i = 0; i < stringSize; ++i)
-    {
-        // how wide is this character
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
-        
-        // get bounding box for character (may be offset to account for chars that dip above or below the line
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-        
-        // compute y (different characters have different heights)
-        int y = ascent + c_y1 + yin;
-        
-        // render character
-        //int byteOffset = x + roundf(lsb * scale) + (y * b_w);
-        string[i] = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", text[i], scalein, color);
-        
-        // advance x 
-        x += (int)roundf(ax * scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
-        x += (int)roundf(kern * scale);
-    }
-    
-    Cursor EndOfText = {};
-    stringWidth = (x - xin);
-    x = xin;
-    for (int i = 0; i < stringSize; i++)
-    {
-        // how wide is this character
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&info, text[i], &ax, &lsb);
-        
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&info, text[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-        int y = ascent + c_y1 + yin - ((alignRect->height - ascent)/2);
-        
-        RenderBitmap(Buffer, &string[i], (real32)x + ((alignRect->width - stringWidth)/2), (real32)y);
-        
-        free(string[i].Memory);
-        
-        EndOfText.Top.x = (real32)x + ((alignRect->width - stringWidth)/2) + (c_x2 - c_x1);
-        EndOfText.Top.y = (real32)y;
-        EndOfText.Height = (c_y2 - c_y1);
-        
-        // advance x 
-        x += (int)roundf(ax * scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&info, text[i], text[i + 1]);
-        x += (int)roundf(kern * scale);
-    }
-    
-    free(File.Contents);
-    return EndOfText;
-}
-
-internal Cursor
-PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color, Rect* AlignRect)
-{
-    int X = InputX;
+    int X = 0;
     int StrLength = StringLength(SrcText);
+    int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++)
     {
         char SrcChar = SrcText[i];
         SrcFont->Memory[SrcChar].Advance = 0;
+        
+        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
+        if(BiggestY < Y)
+        {
+            BiggestY = Y;
+        }
+        
+        // advance x 
+        SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
+        
+        // add kerning
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        SrcFont->Memory[SrcChar].Advance += (int)roundf(kern * SrcFont->Scale);
+        
+        X += SrcFont->Memory[SrcChar].Advance;
+    }
+    
+    int StringWidth = X;
+    
+    v2 Dimension = {};
+    Dimension.x = (real32)StringWidth;
+    Dimension.y = (real32)BiggestY;
+    
+    return(Dimension);
+}
+
+#define MAXSTRINGSIZE 1000
+
+internal PrintOnScreenReturn
+PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color, Rect* AlignRect)
+{
+    int X = InputX;
+    int StrLength = StringLength(SrcText);
+    int BiggestY = 0;
+    
+    for (int i = 0; i < StrLength; i++)
+    {
+        char SrcChar = SrcText[i];
+        SrcFont->Memory[SrcChar].Advance = 0;
+        
+        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
+        if(BiggestY < Y)
+        {
+            BiggestY = Y;
+        }
         
         // advance x 
         SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
@@ -190,13 +148,17 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
     
     int StringWidth = (X - InputX);
     X = InputX;
-    Cursor EndOfText = {};
+    
+    PrintOnScreenReturn R = {};
+    R.Height = BiggestY;
+    R.Width = StringWidth;;
     
     for (int i = 0; i < StrLength; i++)
     {
         char SrcChar = SrcText[i];
-        int Y = SrcFont->Ascent + SrcFont->Memory[SrcChar].C_Y1 +
-            InputY - ((AlignRect->height - SrcFont->Ascent)/2);
+        
+        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + (AlignRect->height / 2) + (BiggestY / 2);
+        
         loaded_bitmap SrcBitmap = {};
         SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
         SrcBitmap.Height = SrcFont->Memory[SrcChar].Height;
@@ -210,7 +172,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
         
     }
     
-    return EndOfText;
+    return R;
 }
 
 internal Font

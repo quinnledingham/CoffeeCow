@@ -251,7 +251,7 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 30
+#define GRIDSIZE 50
 
 #define RIGHT 0
 #define UP 1
@@ -276,8 +276,17 @@ struct SnakeNode
 struct Snake
 {
     int direction;
+    int NextDirection = -1;
+    int LastDirection = -1;
     int length;
     SnakeNode* head;
+};
+
+struct Apple
+{
+    int X;
+    int Y;
+    int Score;
 };
 
 struct Image
@@ -322,9 +331,11 @@ union v2
     real32 E[2];
 };
 
-struct Cursor
+struct PrintOnScreenReturn
 {
     v2 Top;
+    
+    int Width;
     int Height;
 };
 

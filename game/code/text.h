@@ -27,7 +27,7 @@ struct Font
 };
 
 
-internal Cursor
+internal PrintOnScreenReturn
 PrintOnScreen(game_offscreen_buffer *Buffer, char* text, int xin, int yin, float scalein, uint32 color, Rect* alignRect);
 
 
