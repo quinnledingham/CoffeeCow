@@ -32,3 +32,4 @@ build/win32_snake.exe
 build/.vs/win32_snake/v17/ipch/AutoPCH/cb4dd5ba9aef8ed4/WIN32_SNAKE.ipch
 build/.vs/win32_snake/v17/ipch/AutoPCH/cb4dd5ba9aef8ed4/WIN32_SNAKE.ipch
 build/.vs/win32_snake/v17/ipch/AutoPCH/51ce46bdd560b5cd/WIN32_SNAKE.ipch
+build/*/
