@@ -294,9 +294,10 @@ struct Snake
 
 struct NewSnakeNode
 {
-    float X;
-    float Y;
+    real32 X;
+    real32 Y;
     int Direction;
+    int NextDirection;
     
     NewSnakeNode* Next;
     NewSnakeNode* Previous;
@@ -306,8 +307,8 @@ struct NewSnake
 {
     int Direction;
     int Length;
-    float Speed;
-    float DistanceTravelled;
+    real32 Speed;
+    real32 DistanceTravelled;
     NewSnakeNode* Head;
 };
 

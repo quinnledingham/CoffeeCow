@@ -498,7 +498,7 @@ internal void
 NewTransitionSnake(NewSnake* snake, float SecondsElapsed)
 {
     float Dm = (snake->Speed * SecondsElapsed);
-    float Dp = 50 * Dm;
+    float Dp = Dm;
     
     snake->DistanceTravelled += Dp;
     
@@ -531,11 +531,22 @@ NewMoveSnake(NewSnake* snake)
     NewSnakeNode* cursor = snake->Head;
     
     cursor->Direction = snake->Direction;
+    cursor->X = (real32)(RoundReal32ToInt32(cursor->X));
+    cursor->Y = (real32)(RoundReal32ToInt32(cursor->Y));
     cursor = cursor->Next;
     
     while(cursor != 0)
     {
-        cursor->Direction = cursor->Previous->Direction;
+        cursor->X = (real32)(RoundReal32ToInt32(cursor->X));
+        cursor->Y = (real32)(RoundReal32ToInt32(cursor->Y));
+        /*
+        char FPSBuffer[256];
+        _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                    "X:%.02f Y:%.02f\n", cursor->X, cursor->Y);
+        OutputDebugStringA(FPSBuffer);
+        */
+        cursor->Direction = cursor->NextDirection;
+        cursor->NextDirection = cursor->Previous->Direction;
         cursor = cursor->Next;
     }
 }
@@ -958,7 +969,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (player.LastDirection != RIGHT)
                     player.direction = LEFT;
                 
-                NewPlayer.Direction = LEFT;
+                if (NewPlayer.Direction != RIGHT)
+                    NewPlayer.Direction = LEFT;
             }
             
             if(Controller->MoveRight.EndedDown)
@@ -966,7 +978,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (player.LastDirection != LEFT)
                     player.direction= RIGHT;
                 
-                NewPlayer.Direction = RIGHT;
+                if (NewPlayer.Direction != LEFT)
+                    NewPlayer.Direction = RIGHT;
             }
             
             if(Controller->MoveDown.EndedDown)
@@ -974,7 +987,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (player.LastDirection != UP)
                     player.direction= DOWN;
                 
-                NewPlayer.Direction = DOWN;
+                if (NewPlayer.Direction != UP)
+                    NewPlayer.Direction = DOWN;
             }
             
             if(Controller->MoveUp.EndedDown)
@@ -982,7 +996,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 if (player.LastDirection != DOWN)
                     player.direction= UP;
                 
-                NewPlayer.Direction = UP;
+                if (NewPlayer.Direction != DOWN)
+                    NewPlayer.Direction = UP;
             }
             sprintf(FPS, "%d", NewPlayer.Direction);
             PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
@@ -1227,7 +1242,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             A.X = rand() % 17;
             A.Y = rand() % 17;
             
-            NewPlayer.Speed = 0.05f; // m/s
+            NewPlayer.Speed = 10.0f; // m/s
             //createClient(&client, "192.168.1.75", "10109", TCP);
         }
         
@@ -1243,20 +1258,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         */
         //SnakeTimeCounter += Input->SecondsElapsed;
         
-        NewTransitionSnake(&NewPlayer, Input->SecondsElapsed);
+        
         ClearScreen(Buffer);
         
         
-        
+        NewTransitionSnake(&NewPlayer, Input->SecondsElapsed);
         if (NewPlayer.DistanceTravelled >= 1)
         {
-            char FPSBuffer[256];
-            _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
-                        "%.02f\n", NewPlayer.DistanceTravelled);
-            OutputDebugStringA(FPSBuffer);
-            
             NewPlayer.DistanceTravelled = 0;
-            //NewMoveSnake(&NewPlayer);
+            NewMoveSnake(&NewPlayer);
             //PrintOnScreen(Buffer, &Faune50, "yo", FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
             
         }
