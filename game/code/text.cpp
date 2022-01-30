@@ -118,7 +118,7 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
 #define MAXSTRINGSIZE 1000
 
 internal PrintOnScreenReturn
-PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color, Rect* AlignRect)
+PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
 {
     int X = InputX;
     int StrLength = StringLength(SrcText);
@@ -157,7 +157,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
     {
         char SrcChar = SrcText[i];
         
-        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + (AlignRect->height / 2) + (BiggestY / 2);
+        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + BiggestY;
         
         loaded_bitmap SrcBitmap = {};
         SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
@@ -166,7 +166,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
         SrcBitmap.Memory = SrcFont->Memory[SrcChar].Memory;
         
         ChangeBitmapColor(SrcBitmap, Color);
-        RenderBitmap(Buffer, &SrcBitmap, (real32)X + ((AlignRect->width - StringWidth)/2), (real32)Y);
+        RenderBitmap(Buffer, &SrcBitmap, (real32)X, (real32)Y);
         
         X += SrcFont->Memory[SrcChar].Advance;
         

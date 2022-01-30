@@ -168,6 +168,19 @@ CheckTextBoxes(NewGUI* G, int32 MouseX, int32 MouseY)
     return -1;
 }
 
+internal char*
+IntToString(int Value)
+{
+    // TODO(quinn): Implement my own int to string? 
+    // https://guide.handmadehero.org/code/day328/ casey does do it
+    
+    char Temp[10];
+    sprintf(Temp, "%d", Value);
+    char* Result = (char*)PermanentStorageAssign(Temp, 10);
+    
+    return Result;
+}
+
 internal bool
 CompareStrings(char *c1, char* c2)
 {
@@ -253,6 +266,8 @@ AddNewButton(NewGUI* G, int GridX, int GridY, int Width, int Height, NewButton* 
     NewComponent->HeightP = Height + (G->Padding * 2);
     NewComponent->Data = PermanentStorageAssign((void*)B, sizeof(NewButton));
     
+    *B = {}; // Resets struct used to pass this function information
+    
     // Start linked list
     if(G->Buttons == 0)
     {
@@ -290,6 +305,7 @@ AddNewText(NewGUI* G, int GridX, int GridY,  NewText* T)
     NewComponent->HeightP = (int)StringDimension.y + (G->Padding * 2);
     NewComponent->Data = PermanentStorageAssign((void*)T, sizeof(NewText));
     
+    *T = {}; // Resets struct used to pass this function information
     
     // Start linked list
     if(G->Texts == 0)
@@ -327,6 +343,7 @@ AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox
     NewComponent->HeightP = Height + (G->Padding * 2);
     NewComponent->Data = PermanentStorageAssign((void*)TB, sizeof(NewTextBox));
     
+    *TB = {}; // Resets struct used to pass this function information
     
     // Start linked list
     if(G->TextBoxes == 0)
@@ -412,6 +429,12 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     {
         NewButton* b = (NewButton*)Cursor->Data;
         
+        v2 SDim = GetStringDimensions(b->FontType, b->Text);
+        b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
+        b->TextY = Cursor->Y + (int)((Cursor->Height - SDim.y)/2);
+        //(int)(Cursor->Height / 2) + (int)(SDim.y / 2)
+        ;
+        
         Rect R = {};
         R.x = Cursor->X;
         R.y = Cursor->Y;
@@ -419,7 +442,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
         R.height = Cursor->Height;
         
         RenderRect(Buffer, &R, FILL, b->Color);
-        PrintOnScreen(Buffer, b->FontType,  b->Text, Cursor->X, Cursor->Y, b->TextColor, &R);
+        PrintOnScreen(Buffer, b->FontType,  b->Text, b->TextX, b->TextY, b->TextColor);
         Cursor = Cursor->Next;
     }
     
@@ -431,6 +454,10 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     {
         NewTextBox* b = (NewTextBox*)Cursor->Data;
         
+        v2 SDim = GetStringDimensions(b->FontType, b->Text);
+        b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
+        b->TextY = Cursor->Y + (int)(Cursor->Height / 2) + (int)(SDim.y / 2);
+        
         Rect R = {};
         R.x = Cursor->X;
         R.y = Cursor->Y;
@@ -438,7 +465,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
         R.height = Cursor->Height;
         
         RenderRect(Buffer, &R, FILL, b->Color);
-        PrintOnScreenReturn EndOfText = PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor, &R);
+        PrintOnScreenReturn EndOfText = PrintOnScreen(Buffer, b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
         if (b->ShowCursor == 1)
         {
             v2 p1 = {EndOfText.Top.x, EndOfText.Top.y};
@@ -455,16 +482,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     {
         NewText* b = (NewText*)Cursor->Data;
         
-        Rect R = {};
-        R.x = Cursor->X;
-        R.y = Cursor->Y;
-        R.width = Cursor->Width;
-        R.height = Cursor->Height;
-        
-        //RenderRect(Buffer, &R, FILL, b->Color);
-        PrintOnScreenReturn Re = PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor, &R);
-        //b->Height = Re.Height;
-        
+        PrintOnScreenReturn Re = PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
         Cursor = Cursor->Next;
     }
     Cursor = 0;

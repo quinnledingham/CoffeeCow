@@ -269,47 +269,25 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
 
 struct SnakeNode
 {
-    int x;
-    int y;
-    int nextx;
-    int nexty;
-    
-    int transitiondirection;
-    int transitionx;
-    int transitiony;
-    
-    SnakeNode* next;
-    SnakeNode* previous;
-};
-
-struct Snake
-{
-    int direction;
-    int NextDirection = -1;
-    int LastDirection = -1;
-    int length;
-    float Speed;
-    SnakeNode* head;
-};
-
-struct NewSnakeNode
-{
     real32 X;
     real32 Y;
     int Direction;
     int NextDirection;
     
-    NewSnakeNode* Next;
-    NewSnakeNode* Previous;
+    SnakeNode* Next;
+    SnakeNode* Previous;
 };
 
-struct NewSnake
+struct Snake
 {
     int Direction;
+    int NextDirection = -1;
+    int LastMoveDirection; // Direction when MoveSnake was called last
     int Length;
     real32 Speed;
+    real32 MaxSpeed;
     real32 DistanceTravelled;
-    NewSnakeNode* Head;
+    SnakeNode* Head;
 };
 
 struct Apple

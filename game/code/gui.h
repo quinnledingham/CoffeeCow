@@ -88,6 +88,8 @@ enum NewComponentIDs
 
 struct NewButton
 {
+    int TextX;
+    int TextY;
     char* Text;
     Font* FontType;
     int ID;
@@ -107,6 +109,8 @@ struct NewText
 
 struct NewTextBox
 {
+    int TextX;
+    int TextY;
     char* Text;
     Font* FontType;
     int ID;
