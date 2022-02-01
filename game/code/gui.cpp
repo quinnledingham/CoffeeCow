@@ -482,7 +482,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     {
         NewText* b = (NewText*)Cursor->Data;
         
-        PrintOnScreenReturn Re = PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
+        PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
         Cursor = Cursor->Next;
     }
     Cursor = 0;

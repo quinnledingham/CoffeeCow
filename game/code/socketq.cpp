@@ -146,7 +146,7 @@ internal int
 sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int bufferSize)
 {
     char header[HEADER_BUFFER_SIZE];
-    sprintf_s(header, "%d", bufferSize);
+    sprintf(header, "%d", bufferSize);
     
     char* header_buffer = (char*)malloc(sizeof(char) * (HEADER_BUFFER_SIZE + bufferSize));
     memset(header_buffer, 0, sizeof(char) * (HEADER_BUFFER_SIZE + bufferSize));

@@ -181,7 +181,7 @@ struct game_controller_input
             game_button_state Eight;
             game_button_state Nine;
             game_button_state Period;
-            game_button_state Back;
+            game_button_state Backspace;
         };
     };
 };

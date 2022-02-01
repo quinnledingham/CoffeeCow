@@ -86,7 +86,7 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
     
     for (int i = 0; i < StrLength; i++)
     {
-        char SrcChar = SrcText[i];
+        int SrcChar = SrcText[i];
         SrcFont->Memory[SrcChar].Advance = 0;
         
         int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
@@ -126,7 +126,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
     
     for (int i = 0; i < StrLength; i++)
     {
-        char SrcChar = SrcText[i];
+        int SrcChar = SrcText[i];
         SrcFont->Memory[SrcChar].Advance = 0;
         
         int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
@@ -155,7 +155,7 @@ PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int 
     
     for (int i = 0; i < StrLength; i++)
     {
-        char SrcChar = SrcText[i];
+        int SrcChar = SrcText[i];
         
         int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + BiggestY;
         

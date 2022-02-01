@@ -1,7 +1,7 @@
 #!/bin/bash
 mkdir -p ../../build
 pushd ../../build
-CommonFlags="-Wall -Werror -Wno-write-strings -Wno-unused-variable -Wno-unused-function -Wno-sign-compare -std=gnu++11 -fno-rtti -fno-exceptions -DSNAKE_INTERNAL=1 -DSNAKE_SLOW=1 -DSNAKE_SDL=1"
+CommonFlags="-Wall -Werror -Wno-write-strings -Wno-unused-variable -Wno-unused-function -Wno-sign-compare -Wno-unused-value -std=gnu++11 -fno-rtti -fno-exceptions -DSNAKE_INTERNAL=1 -DSNAKE_SLOW=1 -DSNAKE_SDL=1"
 
 # Build a 64-bit version
 c++ $CommonFlags ../game/code/sdl_snake.cpp -o snake.x86_64 -g `../game/code/sdl2-64/bin/sdl2-config --cflags --libs` -Wl,-rpath,'$ORIGIN/x86_64'
