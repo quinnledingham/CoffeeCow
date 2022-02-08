@@ -456,7 +456,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
         
         v2 SDim = GetStringDimensions(b->FontType, b->Text);
         b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
-        b->TextY = Cursor->Y + (int)(Cursor->Height / 2) + (int)(SDim.y / 2);
+        b->TextY = Cursor->Y + (int)((Cursor->Height - SDim.y)/2);
         
         Rect R = {};
         R.x = Cursor->X;

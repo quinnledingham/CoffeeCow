@@ -1,5 +1,6 @@
 #include "text.h"
 #include "memorymanager.h"
+#include <malloc.h>
 
 internal loaded_bitmap
 LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float Scale, uint32 Color)

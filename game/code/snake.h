@@ -70,6 +70,9 @@ typedef uint64 u64;
 typedef real32 r32;
 typedef real64 r64;
 
+typedef uintptr_t umm;
+typedef intptr_t smm;
+
 #define BITMAP_BYTES_PER_PIXEL 4
 
 inline uint32

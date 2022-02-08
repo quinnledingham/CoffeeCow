@@ -88,7 +88,6 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
     {
         if (protocol == TCP)
         {
-            int yo = sizeof(*buffer);
             printf("Waiting for message (TCP).\n");
             bytesRecd = recvPlatform(sock, cursor, bufferSize, 0);
             

@@ -6,21 +6,15 @@
    $Notice: (C) Copyright 2014 by Molly Rocket, Inc. All Rights Reserved. $
    ======================================================================== */
 
-#include "stdio.h"
 #include "snake.h"
-
-#include "socketq.cpp"
-#include "socketq.h"
-
-#define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
+
 #include "stdio.h"
 
 #include "text.h"
 #include "gui.h"
 
 #include "text.cpp"
-
 
 inline int32
 RoundReal32ToInt32(real32 Real32)
@@ -31,6 +25,12 @@ RoundReal32ToInt32(real32 Real32)
 
 #include "gui.cpp"
 
+#include "socketq.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+
+#include "socketq.cpp"
+#include "socketq.h"
 
 #include "memorymanager.cpp"
 #include "memorymanager.h"
@@ -194,7 +194,7 @@ RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY,
         {
             Rect newRect = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
             RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
-            //RenderRectImage(Buffer, &newRect, image);
+            RenderRectImage(Buffer, &newRect, image);
         }
     }
 }
@@ -706,7 +706,7 @@ Font Faune100 = {};
 
 real32 SnakeTimeCounter = 0;
 
-Apple A = {};
+Apple App = {};
 
 #include "../data/imagesaves/faunefifty.h"
 #include "../data/imagesaves/fauneonehundred.h"
@@ -724,7 +724,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     int centeredX = (Buffer->Width - (GRIDWIDTH * GRIDSIZE)) / 2;
     int centeredY = (Buffer->Height - (GRIDHEIGHT * GRIDSIZE)) / 2;
     //Rect imageRect = {centeredX, centeredY, (GRIDWIDTH * GRIDSIZE), (GRIDHEIGHT * GRIDSIZE), 0};
-    Rect imageRect = {centeredX, centeredY, (GRIDSIZE * GRIDWIDTH), (GRIDSIZE * GRIDHEIGHT), 0};
+    Rect imageRect = {centeredX, centeredY, (GRIDSIZE), (GRIDSIZE), 0};
     
     if(!Memory->IsInitialized)
     {
@@ -746,7 +746,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if SAVE_IMAGES
         // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("grass_11zon.jpg", &test.x, &test.y, &test.n, 0);
+        test.data = stbi_load("grass.jpg", &test.x, &test.y, &test.n, 0);
         SaveImageToHeaderFile("image.h", &test);
 #else
         
@@ -1122,6 +1122,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         ClearScreen(Buffer);
         RenderNewGUI(Buffer, &MainMenu);
+        //Clear();
+        //RenderTriangle();
     }
     else if (GameState->Menu == 0)
     {
@@ -1130,10 +1132,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             NewInitializeSnake(&Player);
             GameInitialized = true;
             
-            A.X = rand() % 17;
-            A.Y = rand() % 17;
+            App.X = rand() % 17;
+            App.Y = rand() % 17;
             
-            Player.MaxSpeed = 7.0f; // m/s
+            Player.MaxSpeed = 9.0f; // m/s
             Player.Speed = Player.MaxSpeed;
             //createClient(&client, "192.168.1.75", "10109", TCP);
         }
@@ -1159,14 +1161,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         {
             Player.DistanceTravelled = 0;
             NewMoveSnake(&Player);
-            CheckGetApple(&Player, &A);
+            CheckGetApple(&Player, &App);
         }
         
         CheckBounds(&Player, GRIDWIDTH, GRIDHEIGHT);
         
         RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
-        RenderApple(Buffer, &A, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        RenderApple(Buffer, &App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         NewRenderSnake(Buffer, &Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        PrintOnScreen(Buffer, &Faune50, IntToString(A.Score), 5, 5, 0xFF000000);
+        PrintOnScreen(Buffer, &Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
     }
 }
