@@ -263,7 +263,7 @@ RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 50
+#define GRIDSIZE 30
 
 #define RIGHT 0
 #define UP 1

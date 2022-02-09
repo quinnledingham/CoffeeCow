@@ -231,7 +231,7 @@ global_variable wgl_swap_interval_ext *wglSwapIntervalEXT;
 #include "opengl.h"
 
 global_variable open_gl OpenGL;
-#include "opengl.cpp"
+//#include "opengl.cpp"
 
 #include "snake.cpp"
 
@@ -807,7 +807,7 @@ OpenGLLoadFunctionPointers(opengl_info Info, b32 ModernContext)
     glVertexAttribPointer = (gl_vertex_attrib_pointer *)wglGetProcAddress("glVertexAttribPointer");
     wglSwapIntervalEXT = (wgl_swap_interval_ext *)wglGetProcAddress("wglSwapIntervalEXT");
 }
-
+/*
 internal void
 Win32InitOpenGL(HWND Window)
 {
@@ -848,7 +848,7 @@ Win32InitOpenGL(HWND Window)
     }
     ReleaseDC(Window, WindowDC);
 }
-
+*/
 internal void
 Win32DebugDrawVertical(win32_offscreen_buffer *Backbuffer,
                        int X, int Top, int Bottom, uint32 Color)
@@ -975,7 +975,7 @@ WinMain(HINSTANCE Instance,
             Win32ClearBuffer(&SoundOutput);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
             
-            Win32InitOpenGL(Window);
+            //Win32InitOpenGL(Window);
             
             GlobalRunning = true;
             
