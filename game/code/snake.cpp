@@ -7,15 +7,53 @@
    ======================================================================== */
 
 #include "snake.h"
-#include "stb/stb_truetype.h"
 
-#include "stdio.h"
+internal void
+FilenameSearchModify(char* filename, char* result)
+{
+    int j = 0;
+    
+    char* cursor = filename;
+    while (*cursor != 0)
+    {
+        if (*cursor == '.')
+        {
+            result[j] = '_';
+        }
+        else
+        {
+            result[j] = *cursor;
+        }
+        cursor++;
+        j++;
+    }
+    result[j] = 0;
+}
 
-#include "text.h"
-#include "gui.h"
+internal void
+FilenameCapitalize(char* filename, char* result)
+{
+    int j = 0;
+    
+    char* cursor = filename;
+    while (*cursor != 0)
+    {
+        if (*cursor == '_' || *cursor == '.')
+        {
+            result[j] = '_';
+        }
+        else
+        {
+            char c = *cursor;
+            result[j] = c - 32;
+        }
+        cursor++;
+        j++;
+    }
+    result[j] = 0;
+}
 
-#include "text.cpp"
-
+#include <math.h>
 inline int32
 RoundReal32ToInt32(real32 Real32)
 {
@@ -23,17 +61,41 @@ RoundReal32ToInt32(real32 Real32)
     return(Result);
 }
 
-#include "gui.cpp"
+unsigned long createRGBA(int r, int g, int b, int a)
+{   
+    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
+}
 
-#include "socketq.h"
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
+unsigned long createRGB(int r, int g, int b)
+{   
+    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
 
-#include "socketq.cpp"
-#include "socketq.h"
+#include "stdio.h"
 
+#if !defined(RAYLIB_H)
+#include "text.h"
+#endif
+
+#include "gui.h"
 #include "memorymanager.cpp" 
 #include "memorymanager.h"
+
+#if !defined(RAYLIB_H)
+#include "text.cpp"
+#include "renderer.cpp"
+#include "image.cpp"
+#endif
+
+
+#include "gui.cpp"
+
+//#include "socketq.h"
+
+//#include "socketq.cpp"
+//#include "socketq.h"
+
+
 
 internal void
 GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
@@ -55,174 +117,6 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
         
         tSine += 2.0f*Pi32*1.0f/(real32)WavePeriod;
     }
-}
-
-internal void
-RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
-{
-    // TODO(casey): Let's see what the optimizer does
-    
-    uint8 *Row = (uint8 *)Buffer->Memory;    
-    for(int Y = 0;
-        Y < Buffer->Height;
-        ++Y)
-    {
-        uint32 *Pixel = (uint32 *)Row;
-        for(int X = 0;
-            X < Buffer->Width;
-            ++X)
-        {
-            uint8 Blue = (uint8)(X + BlueOffset);
-            uint8 Green = (uint8)(Y + GreenOffset);
-            
-            *Pixel++ = ((Green << 8) | Blue);
-        }
-        
-        Row += Buffer->Pitch;
-    }
-}
-
-internal void 
-RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color)
-{
-    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
-    uint32 Color = color;
-    
-    for(int X = S->x;
-        X < (S->x + S->width);
-        ++X)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory +
-                        X*Buffer->BytesPerPixel +
-                        S->y*Buffer->Pitch);
-        
-        for(int Y = S->y;
-            Y < (S->y + S->height);
-            ++Y)
-        {
-            // Check if the pixel exists
-            if((Pixel >= Buffer->Memory) &&
-               ((Pixel + 4) <= EndOfBuffer))
-            {
-                if (fill == FILL)
-                {
-                    *(uint32 *)Pixel = Color;
-                }
-                else if (fill == NOFILL)
-                {
-                    // Only draw border
-                    if ((X == S->x) ||
-                        (Y == S->y) ||
-                        (X == (S->x + S->width) - 1) ||
-                        (Y == (S->y + S->height) - 1))
-                    {
-                        *(uint32 *)Pixel = Color;
-                    }
-                }
-            }
-            
-            Pixel += Buffer->Pitch;
-        }
-    }
-}
-
-unsigned long createRGBA(int r, int g, int b, int a)
-{   
-    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
-}
-
-unsigned long createRGB(int r, int g, int b)
-{   
-    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
-}
-
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb/stb_image_resize.h"
-
-internal void 
-RenderRectImage(game_offscreen_buffer *Buffer, Rect *S, Image *image)
-{
-    Image re = {};
-    re.data = image->data;
-    re.x = S->width;
-    re.y = S->height;
-    re.n = image->n;
-    //RenderImage(Buffer, &re);
-    
-    
-    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
-    
-    for(int X = S->x; X < (S->x + S->width); ++X)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel +S->y*Buffer->Pitch);
-        uint8 *Color = ((uint8 *)re.data + (X - S->x) * re.n);
-        
-        for(int Y = S->y; Y < (S->y + S->height); ++Y)
-        {
-            // Check if the pixel exists
-            if((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
-            {
-                uint32 c = *Color;
-                
-                int r = *Color++;
-                int g = *Color++;
-                int b = *Color;
-                Color--;
-                Color--;
-                
-                c = createRGB(r, g, b);
-                *(uint32 *)Pixel =c;
-                Color += (re.n * re.x);
-            }
-            Pixel += Buffer->Pitch;
-        }
-    }
-    
-}
-
-internal void
-RenderBackgroundGrid(game_offscreen_buffer *Buffer, int GridX, int GridY, 
-                     int GridWidth, int GridHeight, int GridSize, Image *image)
-{
-    for (int i = 0;
-         i < GridWidth;
-         i++)
-    {
-        for (int j = 0;
-             j < GridHeight;
-             j++)
-        {
-            Rect newRect = {GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize};
-            RenderRect(Buffer, &newRect, NOFILL, 0xFF000000);
-            RenderRectImage(Buffer, &newRect, image);
-        }
-    }
-}
-
-
-
-// Paints the screen white
-internal void
-ClearScreen(game_offscreen_buffer *Buffer)
-{
-    memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
-    /*
-        uint8 *Column = (uint8 *)Buffer->Memory;    
-    for(int X = 0;
-        X< Buffer->Width;
-        ++X)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory +
-                        X*Buffer->BytesPerPixel);
-        for(int Y = 0;
-            Y < Buffer->Height;
-            ++Y)
-        {
-            *(uint32 *)Pixel = 0xFFFFFFFF;
-            Pixel += Buffer->Pitch;
-        }
-    }
-*/
 }
 
 global_variable int GameInitialized = false;
@@ -271,29 +165,160 @@ NewInitializeSnake(Snake *S)
     NewAddSnakeNode(S, 0, 2);
 }
 
+global_variable Image test;
+global_variable Image right;
+global_variable Image up;
+global_variable Image left;
+global_variable Image down;
+
 internal void
-NewRenderSnake(game_offscreen_buffer *Buffer, Snake* s, int  GridX, int  GridY, 
+NewRenderSnake(Snake* s, int  GridX, int  GridY, 
                int GridWidth, int GridHeight, int GridSize)
 {
-    
     SnakeNode* cursor = s->Head;
     while(cursor != 0)
     {
-        int CursorX = (int)(cursor->X * GridSize);
-        int CursorY = (int)(cursor->Y * GridSize);
-        Rect newSquare =
+        
+        if (cursor == s->Head || cursor->Next == 0)
         {
-            GridX + CursorX, 
-            GridY + CursorY, 
-            GridSize, GridSize
-        };
-        RenderRect(Buffer, &newSquare, FILL, 0xFFFFEBC4);
+            
+            int CursorX = (int)(cursor->X * GridSize);
+            int CursorY = (int)(cursor->Y * GridSize);
+            /*
+            Circle NewHalfCircle =
+            {
+                GridX + CursorX,
+                GridY + CursorY,
+                GridSize / 2,
+                0
+            };
+            RenderCircle(&NewHalfCircle, FILL, 0xFFFF5E5E);
+            Circle Eye1 = {};
+            int X = 0;
+            int Y = 0;
+            int Width = 0;
+            int Height = 0;
+            if (cursor->Direction == RIGHT || cursor->Direction == LEFT)
+            {
+                Width = GridSize / 2;
+                Height = GridSize;
+            }
+            else if (cursor->Direction == UP || cursor->Direction == DOWN)
+            {
+                Width = GridSize;
+                Height = GridSize / 2;
+            }
+            
+            if (cursor == s->Head)
+            {
+                if (s->Head->Direction == RIGHT)
+                {
+                    X = 0;
+                    Y = 0;
+                }
+                else if (s->Head->Direction == LEFT)
+                {
+                    X = 1;
+                    Y = 0;
+                }
+                else if (s->Head->Direction == UP)
+                {
+                    X = 0;
+                    Y = 1;
+                }
+                else if (s->Head->Direction == DOWN)
+                {
+                    X = 0;
+                    Y = 0;
+                }
+                
+                Eye1  =
+                {
+                    GridX + CursorX + (X * GridSize),
+                    GridY + CursorY + (Y * GridSize),
+                    GridSize / 5,
+                    0
+                };
+            }
+            else
+            {
+                if (cursor->Direction == RIGHT)
+                {
+                    X = 1;
+                    Y = 0;
+                }
+                else if (cursor->Direction == LEFT)
+                {
+                    X = 0;
+                    Y = 0;
+                }
+                else if (cursor->Direction == UP)
+                {
+                    X = 0;
+                    Y = 0;
+                }
+                else if (cursor->Direction == DOWN)
+                {
+                    X = 0;
+                    Y = 1;
+                }
+            }
+            */
+            Rect newSquare =
+            {
+                GridX + CursorX + (0 * (GRIDSIZE / 2)), 
+                GridY + CursorY + (0 * (GRIDSIZE / 2)), 
+                GRIDSIZE, GRIDSIZE
+            };
+            //RenderRect(&newSquare, FILL, 0xFFFF5E5E);
+            if (cursor == s->Head)
+            {
+                loaded_bitmap BMP = {};
+                BMP.Width = GridSize;
+                BMP.Height = GridSize;
+                BMP.Pitch = BITMAP_BYTES_PER_PIXEL * BMP.Width;
+                
+                if (cursor->Direction == RIGHT)
+                {
+                    BMP.Memory = right.data;
+                }
+                else if (cursor->Direction == LEFT)
+                {
+                    BMP.Memory = left.data;
+                }
+                else if (cursor->Direction == UP)
+                {
+                    BMP.Memory = down.data;
+                }
+                else if (cursor->Direction == DOWN)
+                {
+                    BMP.Memory = up.data;
+                }
+                RenderBitmap(&BMP, (real32)(GridX + CursorX), (real32)(GridY + CursorY));
+                
+            }
+            
+            //RenderCircle(&Eye1, FILL, 0xFFFFFFFF);
+        }
+        else
+        {
+            int CursorX = (int)(cursor->X * GridSize);
+            int CursorY = (int)(cursor->Y * GridSize);
+            Rect newSquare =
+            {
+                GridX + CursorX, 
+                GridY + CursorY, 
+                GridSize, GridSize
+            };
+            
+            RenderRect(&newSquare, FILL, 0xFFFF5E5E);
+        }
         cursor = cursor->Next;
     }
 }
 
 internal void
-RenderApple(game_offscreen_buffer *Buffer, Apple* A, int GridX, int GridY, 
+RenderApple(Apple* A, int GridX, int GridY, 
             int GridWidth, int GridHeight, int GridSize)
 {
     Rect newSquare =
@@ -302,7 +327,7 @@ RenderApple(game_offscreen_buffer *Buffer, Apple* A, int GridX, int GridY,
         GridY + (A->Y * GridSize), 
         GridSize, GridSize
     };
-    RenderRect(Buffer, &newSquare, FILL, 0xFFff4040);
+    RenderRect(&newSquare, FILL, 0xFFff4040);
 }
 
 internal void
@@ -417,25 +442,6 @@ CheckGetApple(Snake* S, Apple* A)
     }
 }
 
-/*
-internal int
-CheckCollision(Snake* S)
-{
-    SnakeNode* Cursor = S->head;
-    Cursor = Cursor->next;
-    while(Cursor->next != 0)
-    {
-        if(Cursor->x == S->head->x && Cursor->y == S->head->y)
-        {
-            return 0;
-        }
-        Cursor = Cursor->next;
-    }
-    
-    return 1;
-}
-*/
-
 internal int
 CheckBounds(Snake* snake, int GridWidth, int GridHeight)
 {
@@ -464,142 +470,6 @@ CheckBounds(Snake* snake, int GridWidth, int GridHeight)
     return 0;
 }
 
-#define STB_IMAGE_IMPLEMENTATION
-//#define STBI_ASSERT(x)
-//#define STBI_MALLOC
-//#define STBI_REALLOC
-//x#define STBI_FREE
-#include "stb/stb_image.h"
-
-internal void
-RenderImage(game_offscreen_buffer *Buffer, Image *image)
-{
-    int xt = 50;
-    for(int X = 0; X < image->x; ++X)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel);
-        uint8 *Color = ((uint8 *)image->data + X * image->n);
-        
-        for(int Y = 0; Y < image->y; ++Y)
-        {
-            uint32 c = *Color;
-            
-            int r = *Color++;
-            int g = *Color++;
-            int b = *Color;
-            Color--;
-            Color--;
-            
-            c = createRGB(r, g, b);
-            *(uint32 *)Pixel =c;
-            Pixel += Buffer->Pitch;
-            Color += (image->n * image->x);
-        }
-    }
-}
-
-
-
-internal void
-SaveImageToHeaderFile(char* filename, Image* image)
-{
-    char* fullDir = StringConcat("imagesaves/", filename);
-    
-    // Header file
-    FILE *newfile = fopen(fullDir, "w");
-    
-    char f[sizeof(filename)];
-    FilenameSearchModify(filename, f);
-    char fcapital[sizeof(filename)];
-    FilenameCapitalize(filename, fcapital);
-    
-    fprintf(newfile,
-            "#ifndef %s\n"
-            "#define %s\n"
-            "int %sx = %d;\n"
-            "int %sy = %d;\n"
-            "int %sn = %d;\n"
-            "const unsigned char %s[%d] = \n"
-            "{\n"
-            ,fcapital
-            ,fcapital
-            ,f
-            ,image->x
-            ,f
-            ,image->y
-            ,f
-            ,image->n
-            ,f
-            ,(image->x * image->y * image->n));
-    
-    
-    unsigned char* imgtosave = image->data;
-    for(int i = 0; i < (image->x * image->y * image->n); i++)
-    {
-        fprintf(newfile,
-                "%d ,",
-                *imgtosave);
-        *imgtosave++;
-    }
-    fprintf(newfile, 
-            "};\n"
-            "\n"
-            "#endif");
-    fclose(newfile);
-    
-    // C++ file
-    char* filenamecpp = (char*)PermanentStorageAssign(fullDir, StringLength(fullDir) + 2);
-    
-    int j = 0;
-    int extension = 0;
-    char* cursor = fullDir;
-    while (!extension)
-    {
-        if (*cursor == '.')
-        {
-            filenamecpp[j] = *cursor;
-            extension = 1;
-        }
-        else
-        {
-            filenamecpp[j] = *cursor;
-        }
-        
-        cursor++;
-        j++;
-    }
-    filenamecpp[j] = 'c';
-    filenamecpp[j + 1] = 'p';
-    filenamecpp[j + 2] = 'p';
-    filenamecpp[j + 3] = 0;
-    
-    FILE *newcppfile = fopen(filenamecpp, "w");
-    fprintf(newcppfile, 
-            "internal void\n"
-            "LoadImageFrom%s(Image* image)\n"
-            "{\n"
-            "image->data = (unsigned char *)PermanentStorageAssign((void*)&%s, sizeof(%s));\n"
-            "image->x = %sx;\n"
-            "image->y = %sy;\n"
-            "image->n = %sn;\n"
-            "}\n"
-            ,f
-            ,f
-            ,f
-            ,f
-            ,f
-            ,f
-            );
-    
-    fclose(newcppfile);
-    
-}
-
-
-global_variable Image test;
-
-#include "../data/imagesaves/image.h"
-#include "../data/imagesaves/image.cpp"
 
 entire_file
 ReadEntireFile(char *FileName)
@@ -626,77 +496,8 @@ ReadEntireFile(char *FileName)
 }
 
 
-
-
-internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
-{
-    int32 MinX = RoundReal32ToInt32(RealX);
-    int32 MinY = RoundReal32ToInt32(RealY);
-    int32 MaxX = MinX + Bitmap->Width;
-    int32 MaxY = MinY + Bitmap->Height;
-    
-    if(MinX < 0)
-    {
-        MinX = 0;
-    }
-    
-    if(MinY < 0)
-    {
-        MinY = 0;
-    }
-    
-    if(MaxX > Buffer->Width)
-    {
-        MaxX = Buffer->Width;
-    }
-    
-    if(MaxY > Buffer->Height)
-    {
-        MaxY = Buffer->Height;
-    }
-    
-    uint32 *SourceRow = (uint32*)Bitmap->Memory + Bitmap->Width * (Bitmap->Height - 1);
-    uint8 *DestRow = ((uint8*)Buffer->Memory +
-                      MinX*Buffer->BytesPerPixel +
-                      MinY*Buffer->Pitch);
-    
-    for(int Y = MinY; Y < MaxY; ++Y)
-    {
-        uint32 *Dest = (uint32*)DestRow;
-        uint32 *Source = SourceRow;
-        
-        for(int X = MinX; X < MaxX; ++X)
-        {
-            real32 A = (real32)((*Source >> 24) & 0xFF) / 255.0f;
-            real32 SR = (real32)((*Source >> 16) & 0xFF);
-            real32 SG = (real32)((*Source >> 8) & 0xFF);
-            real32 SB = (real32)((*Source >> 0) & 0xFF);
-            
-            real32 DR = (real32)((*Dest >> 16) & 0xFF);
-            real32 DG = (real32)((*Dest >> 8) & 0xFF);
-            real32 DB = (real32)((*Dest >> 0) & 0xFF);
-            
-            real32 R = (1.0f-A)*DR + A*SR;
-            real32 G = (1.0f-A)*DG + A*SG;
-            real32 B = (1.0f-A)*DB + A*SB;
-            
-            *Dest = (((uint32)(R + 0.5f) << 16) |
-                     ((uint32)(G + 0.5f) << 8) |
-                     ((uint32)(B + 0.5f) << 0));
-            
-            ++Dest;
-            ++Source;
-        }
-        
-        DestRow += Buffer->Pitch;
-        SourceRow -= Bitmap->Width;
-    }
-}
-
-
 loaded_bitmap yo;
-Client client;
+//Client client;
 
 real32 BackspaceTime = 0;
 int Backspace = 0;
@@ -707,6 +508,18 @@ Font Faune100 = {};
 real32 SnakeTimeCounter = 0;
 
 Apple App = {};
+
+
+#include "../data/imagesaves/grass.h"
+#include "../data/imagesaves/grass.cpp"
+#include "../data/imagesaves/right.h"
+#include "../data/imagesaves/right.cpp"
+#include "../data/imagesaves/up.h"
+#include "../data/imagesaves/up.cpp"
+#include "../data/imagesaves/left.h"
+#include "../data/imagesaves/left.cpp"
+#include "../data/imagesaves/down.h"
+#include "../data/imagesaves/down.cpp"
 
 #include "../data/imagesaves/faunefifty.h"
 #include "../data/imagesaves/fauneonehundred.h"
@@ -744,48 +557,43 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         manager.NextStorage = (char*)Memory->PermanentStorage + sizeof(game_state);
         
+#if !defined(RAYLIB_H)
 #if SAVE_IMAGES
-        // Set working directory in visual studio to the image save folder
-        test.data = stbi_load("grass.jpg", &test.x, &test.y, &test.n, 0);
-        SaveImageToHeaderFile("image.h", &test);
+        test = LoadImageResize("grass.jpg", GRIDSIZE, GRIDSIZE, "grass.h");
+        right = LoadImageResize("right.png", GRIDSIZE, GRIDSIZE, "right.h");
+        up = LoadImageResize("up.png", GRIDSIZE, GRIDSIZE, "up.h");
+        left = LoadImageResize("left.png", GRIDSIZE, GRIDSIZE, "left.h");
+        down = LoadImageResize("down.png", GRIDSIZE, GRIDSIZE, "down.h");
 #else
-        
-        // Load images from imagesaves folder
-        LoadImageFromimage_h(&test);
-        
+        LoadImageFromgrass_h(&test);
+        LoadImageFromright_h(&right);
+        LoadImageFromup_h(&up);
+        LoadImageFromleft_h(&left);
+        LoadImageFromdown_h(&down);
+#endif
+#else
+        testTexture = LoadImageResize("grass.jpg", GRIDSIZE, GRIDSIZE);
 #endif
         //loaded_bitmap grass = LoadBMP("grass.png");
         // Where the top left corner of the grid should be for it to look
         // centered in the window
         
-        
-        //Rect imageRect = {0, 0, 200, 200, 0};
-        unsigned char* resized = (unsigned char *)PermanentStorageBlank(imageRect.width * imageRect.height * test.n);
-        stbir_resize_uint8(test.data , test.x, test.y, 0,
-                           resized, imageRect.width, imageRect.height, 0, test.n);
-        unsigned char* toBeFreed = test.data;
-        test.data = resized;
-        
-#if SAVE_IMAGES
-        stbi_image_free(toBeFreed);
-#endif
-        //yo = LoadGlyphBitmap("../Faune-TextRegular.otf", "FauneRegular", 71, 256);
-        
-        
-        
+#if !defined(RAYLIB_H)
 #if SAVE_IMAGES
         
         Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
         Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
         SaveFontToHeaderFile("FAUNE50", "faunefifty.h", "imagesaves/faunefifty.h" ,&Faune50);
         SaveFontToHeaderFile("FAUNE100", "fauneonehundred.h", "imagesaves/fauneonehundred.h" ,&Faune100);
-        
 #else
         LoadFontFromHeaderFile(&Faune50, FAUNE50stbtt, FAUNE50stbttuserdata, FAUNE50stbttdata, FAUNE50Size,
                                FAUNE50Ascent, FAUNE50Scale, FAUNE50FontChar, FAUNE50FontCharMemory);
         LoadFontFromHeaderFile(&Faune100, FAUNE100stbtt, FAUNE100stbttuserdata, FAUNE100stbttdata, FAUNE100Size,
                                FAUNE100Ascent, FAUNE100Scale, FAUNE100FontChar, FAUNE100FontCharMemory);
-        
+#endif
+#else 
+        Faune100 = LoadFontEx("Faune-TextRegular.otf", 100, 0, 255);
+        Faune50 = LoadFontEx("Faune-TextRegular.otf", 50, 0, 255);
 #endif
         
         
@@ -817,7 +625,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         else
         {
             // NOTE(casey): Use digital movement tuning
-            if(Controller->MoveLeft.EndedDown)
+            if(Controller->MoveLeft.NewEndedDown)
             {
                 if (LEFT  == Player.LastMoveDirection)
                 {
@@ -833,7 +641,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 }
             }
             
-            if(Controller->MoveRight.EndedDown)
+            if(Controller->MoveRight.NewEndedDown)
             {
                 if (RIGHT  == Player.LastMoveDirection)
                 {
@@ -849,7 +657,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 }
             }
             
-            if(Controller->MoveDown.EndedDown)
+            if(Controller->MoveDown.NewEndedDown)
             {
                 if (DOWN == Player.LastMoveDirection)
                 {
@@ -865,7 +673,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 }
             }
             
-            if(Controller->MoveUp.EndedDown)
+            if(Controller->MoveUp.NewEndedDown)
             {
                 if (UP == Player.LastMoveDirection)
                 {
@@ -890,56 +698,53 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 tbPress = CheckTextBoxes(&MainMenu, Input->MouseX, Input->MouseY);
             }
             
-            if(Controller->Zero.EndedDown)
+            if(Controller->Zero.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "0");
             }
-            if(Controller->One.EndedDown)
+            if(Controller->One.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "1");
             }
-            if(Controller->Two.EndedDown)
+            if(Controller->Two.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "2");
             }
-            if(Controller->Three.EndedDown)
+            if(Controller->Three.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "3");
             }
-            if(Controller->Four.EndedDown)
+            if(Controller->Four.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "4");
             }
-            if(Controller->Five.EndedDown)
+            if(Controller->Five.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "5");
             }
-            if(Controller->Six.EndedDown)
+            if(Controller->Six.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "6");
             }
-            if(Controller->Seven.EndedDown)
+            if(Controller->Seven.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "7");
             }
-            if(Controller->Eight.EndedDown)
+            if(Controller->Eight.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "8");
             }
-            if(Controller->Nine.EndedDown)
+            if(Controller->Nine.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, "9");
             }
-            if(Controller->Period.EndedDown)
+            if(Controller->Period.NewEndedDown)
             {
                 AddCharTextBoxText(&MainMenu, ".");
             }
-            if(Controller->Back.EndedDown)
+            if(Controller->Back.NewEndedDown)
             {
-                if (Controller->Back.HalfTransitionCount == 1)
-                {
-                    RemoveCharTextBoxText(&MainMenu);
-                }
+                RemoveCharTextBoxText(&MainMenu);
             }
             
         }
@@ -988,7 +793,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         CheckButtonsHover(&LoseMenu, Input->MouseX, Input->MouseY);
         
-        ClearScreen(Buffer);
+        //ClearScreen();
         RenderNewGUI(Buffer, &LoseMenu);
     }
     else if (GameState->Menu == 1)
@@ -1120,8 +925,16 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         CheckButtonsHover(&MainMenu, Input->MouseX, Input->MouseY);
         
-        ClearScreen(Buffer);
+        
+#if !defined(RAYLIB_H)
+        ClearScreen();
         RenderNewGUI(Buffer, &MainMenu);
+#else
+        BeginDrawing();
+        ClearBackground(WHITE);
+        RenderNewGUI(Buffer, &MainMenu);
+        EndDrawing();
+#endif
         //Clear();
         //RenderTriangle();
     }
@@ -1153,9 +966,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //SnakeTimeCounter += Input->SecondsElapsed;
         
         
-        ClearScreen(Buffer);
-        
-        
         NewTransitionSnake(&Player, Input->SecondsElapsed);
         if (Player.DistanceTravelled >= 1 || Player.Speed == 0)
         {
@@ -1166,9 +976,23 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         CheckBounds(&Player, GRIDWIDTH, GRIDHEIGHT);
         
-        RenderBackgroundGrid(Buffer, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
-        RenderApple(Buffer, &App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        NewRenderSnake(Buffer, &Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        PrintOnScreen(Buffer, &Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
+        
+        
+#if !defined(RAYLIB_H)
+        ClearScreen();
+        RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
+        RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
+#else
+        BeginDrawing();
+        ClearBackground(WHITE);
+        RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test, &testTexture);
+        RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
+        DrawFPS(300, 10);
+        EndDrawing();
+#endif
     }
 }

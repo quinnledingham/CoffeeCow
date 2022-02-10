@@ -131,6 +131,7 @@ struct game_sound_output_buffer
 struct game_button_state
 {
     int HalfTransitionCount;
+    bool32 NewEndedDown;
     bool32 EndedDown;
 };
 
@@ -249,17 +250,17 @@ struct Rect
     uint32 color;
 };
 
-struct NewRect
+struct Circle
 {
-    float x;
-    float y;
-    int width;
-    int height;
-    uint32 color;
+    int X;
+    int Y;
+    int Radius;
+    float StartDegree;
+    uint32 Color;
 };
 
 internal void 
-RenderRect(game_offscreen_buffer *Buffer, Rect *S, int fill, uint32 color);
+RenderRect(Rect *S, int fill, uint32 color);
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
@@ -300,6 +301,7 @@ struct Apple
     int Score;
 };
 
+#if !defined(RAYLIB_H)
 struct Image
 {
     int x;
@@ -307,6 +309,7 @@ struct Image
     int n;
     unsigned char* data;
 };
+#endif
 
 struct loaded_bitmap
 {
@@ -360,7 +363,7 @@ entire_file
 ReadEntireFile(char *FileName);
 
 internal void
-RenderBitmap(game_offscreen_buffer *Buffer, loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
+RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
 
 
 

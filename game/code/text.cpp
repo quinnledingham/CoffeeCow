@@ -1,3 +1,5 @@
+
+
 #include "text.h"
 #include "memorymanager.h"
 #include <malloc.h>
@@ -118,64 +120,6 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
 
 #define MAXSTRINGSIZE 1000
 
-internal PrintOnScreenReturn
-PrintOnScreen(game_offscreen_buffer *Buffer,  Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
-{
-    int X = InputX;
-    int StrLength = StringLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        SrcFont->Memory[SrcChar].Advance = 0;
-        
-        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
-        if(BiggestY < Y)
-        {
-            BiggestY = Y;
-        }
-        
-        // advance x 
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(kern * SrcFont->Scale);
-        
-        X += SrcFont->Memory[SrcChar].Advance;
-    }
-    
-    int StringWidth = (X - InputX);
-    X = InputX;
-    
-    PrintOnScreenReturn R = {};
-    R.Height = BiggestY;
-    R.Width = StringWidth;;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        
-        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + BiggestY;
-        
-        loaded_bitmap SrcBitmap = {};
-        SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
-        SrcBitmap.Height = SrcFont->Memory[SrcChar].Height;
-        SrcBitmap.Pitch = SrcFont->Memory[SrcChar].Pitch;
-        SrcBitmap.Memory = SrcFont->Memory[SrcChar].Memory;
-        
-        ChangeBitmapColor(SrcBitmap, Color);
-        RenderBitmap(Buffer, &SrcBitmap, (real32)X, (real32)Y);
-        
-        X += SrcFont->Memory[SrcChar].Advance;
-        
-    }
-    
-    return R;
-}
-
 internal Font
 LoadEntireFont(char* FileName, float ScaleIn)
 {
@@ -233,51 +177,6 @@ LoadEntireFont(char* FileName, float ScaleIn)
     
     //free(File.Contents);
     return(NewFont);
-}
-
-internal void
-FilenameSearchModify(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            result[j] = *cursor;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
-
-internal void
-FilenameCapitalize(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '_' || *cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            char c = *cursor;
-            result[j] = c - 32;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
 }
 
 internal void

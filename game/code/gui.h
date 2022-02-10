@@ -28,6 +28,12 @@ struct Button
     uint32 TextColor;
 };
 
+#if !defined(RAYLIB_H)
+struct Texture2D
+{
+    
+};
+#endif
 
 struct TextBox
 {

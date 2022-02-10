@@ -441,8 +441,8 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
         R.width = Cursor->Width;
         R.height = Cursor->Height;
         
-        RenderRect(Buffer, &R, FILL, b->Color);
-        PrintOnScreen(Buffer, b->FontType,  b->Text, b->TextX, b->TextY, b->TextColor);
+        RenderRect(&R, FILL, b->Color);
+        PrintOnScreen(b->FontType,  b->Text, b->TextX, b->TextY, b->TextColor);
         Cursor = Cursor->Next;
     }
     
@@ -464,12 +464,12 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
         R.width = Cursor->Width;
         R.height = Cursor->Height;
         
-        RenderRect(Buffer, &R, FILL, b->Color);
-        PrintOnScreenReturn EndOfText = PrintOnScreen(Buffer, b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
+        RenderRect(&R, FILL, b->Color);
+        PrintOnScreen(b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
         if (b->ShowCursor == 1)
         {
-            v2 p1 = {EndOfText.Top.x, EndOfText.Top.y};
-            v2 p2 = {EndOfText.Top.x, EndOfText.Top.y + EndOfText.Height};
+            //v2 p1 = {EndOfText.Top.x, EndOfText.Top.y};
+            //v2 p2 = {EndOfText.Top.x, EndOfText.Top.y + EndOfText.Height};
             //RenderLine(Buffer,p1, p2);
         }
         
@@ -482,7 +482,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     {
         NewText* b = (NewText*)Cursor->Data;
         
-        PrintOnScreen(Buffer, b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
+        PrintOnScreen(b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
         Cursor = Cursor->Next;
     }
     Cursor = 0;

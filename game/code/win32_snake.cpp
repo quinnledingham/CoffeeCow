@@ -586,6 +586,15 @@ internal void
 Win32ProcessKeyboardMessage(game_button_state *NewState, bool32 IsDown)
 {
     //Assert(NewState->EndedDown != IsDown);
+    if (IsDown == (bool32)true && NewState->EndedDown == (bool32)false)
+    {
+        NewState->NewEndedDown = true;
+    }
+    else
+    {
+        NewState->NewEndedDown = false;
+    }
+    
     NewState->EndedDown = IsDown;
     ++NewState->HalfTransitionCount;
 }
@@ -637,7 +646,7 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
                 uint32 VKCode = (uint32)Message.wParam;
                 bool32 WasDown = ((Message.lParam & (1 << 30)) != 0);
                 bool32 IsDown = ((Message.lParam & (1 << 31)) == 0);
-                if(WasDown != IsDown)
+                if(WasDown != IsDown || 1)
                 {
                     // Game Buttons
                     if(VKCode == 'W')
