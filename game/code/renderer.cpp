@@ -137,9 +137,9 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
         for(int X = MinX; X < MaxX; ++X)
         {
             real32 A = (real32)((*Source >> 24) & 0xFF) / 255.0f;
-            real32 SR = (real32)((*Source >> 16) & 0xFF);
+            real32 SR = (real32)((*Source >> 0) & 0xFF);
             real32 SG = (real32)((*Source >> 8) & 0xFF);
-            real32 SB = (real32)((*Source >> 0) & 0xFF);
+            real32 SB = (real32)((*Source >> 16) & 0xFF);
             
             real32 DR = (real32)((*Dest >> 16) & 0xFF);
             real32 DG = (real32)((*Dest >> 8) & 0xFF);

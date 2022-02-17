@@ -92,8 +92,8 @@ unsigned long createRGB(int r, int g, int b)
 
 //#include "socketq.h"
 
-//#include "socketq.cpp"
-//#include "socketq.h"
+#include "socketq.cpp"
+#include "socketq.h"
 
 
 
@@ -153,6 +153,52 @@ NewAddSnakeNode(Snake *S, float X, float Y)
     cursor->Next = (SnakeNode*)PermanentStorageAssign(&partnew, sizeof(SnakeNode));
 }
 
+internal void
+AddLinkedListNode(LinkedList *L, void *Data)
+{
+    LinkedListNode TempN = {};
+    TempN.Data = Data;
+    TempN.Next = 0;
+    
+    LinkedListNode* N = (LinkedListNode*)PermanentStorageAssign(&TempN, sizeof(LinkedListNode));
+    if (L->Head == 0)
+    {
+        L->Head = N;
+    }
+    else
+    {
+        LinkedListNode* Cursor = L->Head;
+        while(Cursor->Next != 0)
+        {
+            Cursor = Cursor->Next;
+        }
+        Cursor->Next = N;
+    }
+}
+
+internal void
+RemoveFirstLinkedListNode(LinkedList* L)
+{
+    if (L->Head != 0)
+    {
+        if (L->Head->Next == 0)
+        {
+            L->Head = 0;
+        }
+        else
+        {
+            L->Head = L->Head->Next;
+        }
+    }
+}
+
+internal void
+AddInputLog(Snake *S, int32 Num)
+{
+    void* VoidNum = (void*)PermanentStorageAssign(&Num, sizeof(int32));
+    AddLinkedListNode(&S->InputLog, VoidNum);
+}
+
 
 internal void
 NewInitializeSnake(Snake *S)
@@ -170,150 +216,70 @@ global_variable Image right;
 global_variable Image up;
 global_variable Image left;
 global_variable Image down;
+global_variable Image apple;
 
 internal void
 NewRenderSnake(Snake* s, int  GridX, int  GridY, 
                int GridWidth, int GridHeight, int GridSize)
 {
     SnakeNode* cursor = s->Head;
-    while(cursor != 0)
+    while(cursor->Next != 0)
+    {
+        cursor = cursor->Next;
+    }
+    
+    while(cursor != s->Head)
     {
         
-        if (cursor == s->Head || cursor->Next == 0)
+        int CursorX = (int)(cursor->X * GridSize);
+        int CursorY = (int)(cursor->Y * GridSize);
+        Rect newSquare =
         {
-            
-            int CursorX = (int)(cursor->X * GridSize);
-            int CursorY = (int)(cursor->Y * GridSize);
-            /*
-            Circle NewHalfCircle =
-            {
-                GridX + CursorX,
-                GridY + CursorY,
-                GridSize / 2,
-                0
-            };
-            RenderCircle(&NewHalfCircle, FILL, 0xFFFF5E5E);
-            Circle Eye1 = {};
-            int X = 0;
-            int Y = 0;
-            int Width = 0;
-            int Height = 0;
-            if (cursor->Direction == RIGHT || cursor->Direction == LEFT)
-            {
-                Width = GridSize / 2;
-                Height = GridSize;
-            }
-            else if (cursor->Direction == UP || cursor->Direction == DOWN)
-            {
-                Width = GridSize;
-                Height = GridSize / 2;
-            }
-            
-            if (cursor == s->Head)
-            {
-                if (s->Head->Direction == RIGHT)
-                {
-                    X = 0;
-                    Y = 0;
-                }
-                else if (s->Head->Direction == LEFT)
-                {
-                    X = 1;
-                    Y = 0;
-                }
-                else if (s->Head->Direction == UP)
-                {
-                    X = 0;
-                    Y = 1;
-                }
-                else if (s->Head->Direction == DOWN)
-                {
-                    X = 0;
-                    Y = 0;
-                }
-                
-                Eye1  =
-                {
-                    GridX + CursorX + (X * GridSize),
-                    GridY + CursorY + (Y * GridSize),
-                    GridSize / 5,
-                    0
-                };
-            }
-            else
-            {
-                if (cursor->Direction == RIGHT)
-                {
-                    X = 1;
-                    Y = 0;
-                }
-                else if (cursor->Direction == LEFT)
-                {
-                    X = 0;
-                    Y = 0;
-                }
-                else if (cursor->Direction == UP)
-                {
-                    X = 0;
-                    Y = 0;
-                }
-                else if (cursor->Direction == DOWN)
-                {
-                    X = 0;
-                    Y = 1;
-                }
-            }
-            */
-            Rect newSquare =
-            {
-                GridX + CursorX + (0 * (GRIDSIZE / 2)), 
-                GridY + CursorY + (0 * (GRIDSIZE / 2)), 
-                GRIDSIZE, GRIDSIZE
-            };
-            //RenderRect(&newSquare, FILL, 0xFFFF5E5E);
-            if (cursor == s->Head)
-            {
-                loaded_bitmap BMP = {};
-                BMP.Width = GridSize;
-                BMP.Height = GridSize;
-                BMP.Pitch = BITMAP_BYTES_PER_PIXEL * BMP.Width;
-                
-                if (cursor->Direction == RIGHT)
-                {
-                    BMP.Memory = right.data;
-                }
-                else if (cursor->Direction == LEFT)
-                {
-                    BMP.Memory = left.data;
-                }
-                else if (cursor->Direction == UP)
-                {
-                    BMP.Memory = down.data;
-                }
-                else if (cursor->Direction == DOWN)
-                {
-                    BMP.Memory = up.data;
-                }
-                RenderBitmap(&BMP, (real32)(GridX + CursorX), (real32)(GridY + CursorY));
-                
-            }
-            
-            //RenderCircle(&Eye1, FILL, 0xFFFFFFFF);
-        }
-        else
+            GridX + CursorX, 
+            GridY + CursorY, 
+            GridSize, GridSize
+        };
+        
+        RenderRect(&newSquare, FILL, 0xFFFF5E5E);
+        
+        cursor = cursor->Previous;
+    }
+    
+    int CursorX = (int)(cursor->X * GridSize);
+    int CursorY = (int)(cursor->Y * GridSize);
+    
+    Rect newSquare =
+    {
+        GridX + CursorX + (0 * (GRIDSIZE / 2)), 
+        GridY + CursorY + (0 * (GRIDSIZE / 2)), 
+        GRIDSIZE, GRIDSIZE
+    };
+    //RenderRect(&newSquare, FILL, 0xFFFF5E5E);
+    if (cursor == s->Head)
+    {
+        loaded_bitmap BMP = {};
+        BMP.Width = GridSize;
+        BMP.Height = GridSize;
+        BMP.Pitch = BITMAP_BYTES_PER_PIXEL * BMP.Width;
+        
+        if (cursor->Direction == RIGHT)
         {
-            int CursorX = (int)(cursor->X * GridSize);
-            int CursorY = (int)(cursor->Y * GridSize);
-            Rect newSquare =
-            {
-                GridX + CursorX, 
-                GridY + CursorY, 
-                GridSize, GridSize
-            };
-            
-            RenderRect(&newSquare, FILL, 0xFFFF5E5E);
+            BMP.Memory = right.data;
         }
-        cursor = cursor->Next;
+        else if (cursor->Direction == LEFT)
+        {
+            BMP.Memory = left.data;
+        }
+        else if (cursor->Direction == UP)
+        {
+            BMP.Memory = down.data;
+        }
+        else if (cursor->Direction == DOWN)
+        {
+            BMP.Memory = up.data;
+        }
+        RenderBitmap(&BMP, (real32)(GridX + CursorX), (real32)(GridY + CursorY));
+        
     }
 }
 
@@ -327,8 +293,16 @@ RenderApple(Apple* A, int GridX, int GridY,
         GridY + (A->Y * GridSize), 
         GridSize, GridSize
     };
-    RenderRect(&newSquare, FILL, 0xFFff4040);
+    //RenderRect(&newSquare, FILL, 0xFFff4040);
+    //RenderRectImage(&newSquare, &apple);
+    loaded_bitmap BMP = {};
+    BMP.Width = GridSize;
+    BMP.Height = GridSize;
+    BMP.Pitch = BITMAP_BYTES_PER_PIXEL * BMP.Width;
+    BMP.Memory = apple.data;
+    RenderBitmap(&BMP, (real32)newSquare.x, (real32)newSquare.y);
 }
+
 
 internal void
 NewTransitionSnake(Snake* snake, float SecondsElapsed)
@@ -364,8 +338,34 @@ NewTransitionSnake(Snake* snake, float SecondsElapsed)
 internal void
 NewMoveSnake(Snake* snake)
 {
+    
     SnakeNode* cursor = snake->Head;
     
+    if (snake->InputLog.Head == 0)
+    {
+        AddInputLog(snake, snake->Direction);
+    }
+    
+    int32* NextDir = (int32*)snake->InputLog.Head->Data;
+    
+    if ((*NextDir == UP && snake->Direction == DOWN) ||
+        (*NextDir == DOWN && snake->Direction == UP))
+    {
+        
+    }
+    else if ((*NextDir == RIGHT && snake->Direction == LEFT) ||
+             (*NextDir == LEFT && snake->Direction == RIGHT))
+    {
+        
+    }
+    else
+    {
+        snake->Direction = *NextDir;
+        cursor->Direction = snake->Direction;
+    }
+    RemoveFirstLinkedListNode(&snake->InputLog);
+    
+    /*
     if (snake->NextDirection == -1)
     {
         cursor->Direction = snake->Direction;
@@ -377,13 +377,15 @@ NewMoveSnake(Snake* snake)
         snake->NextDirection = -1;
     }
     snake->LastMoveDirection = cursor->Direction;
-    
+    &/
+
     /*
     char FPSBuffer[256];
     _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
                 "X:%.02f Y:%.02f\n", cursor->X, cursor->Y);
     OutputDebugStringA(FPSBuffer);
     */
+    
     cursor->X = (real32)(RoundReal32ToInt32(cursor->X));
     cursor->Y = (real32)(RoundReal32ToInt32(cursor->Y));
     cursor = cursor->Next;
@@ -448,26 +450,53 @@ CheckBounds(Snake* snake, int GridWidth, int GridHeight)
     if (snake->Head->X  == 0 && snake->Direction == LEFT)
     {
         snake->Speed = 0;
+        return 0;
     }
     else if(snake->Head->X + 1 == GridWidth && snake->Direction == RIGHT)
     {
         snake->Speed = 0;
+        return 0;
     }
     else if (snake->Head->Y == 0 && snake->Direction == UP)
     {
         snake->Speed = 0;
+        return 0;
     }
     else if (snake->Head->Y == GridHeight - 1 && snake->Direction == DOWN)
     {
         snake->Speed = 0;
-    }
-    else
-    {
-        snake->Speed = snake->MaxSpeed;
-        return 1;
+        return 0;
     }
     
-    return 0;
+    SnakeNode* Cursor = snake->Head->Next;
+    while(Cursor != 0)
+    {
+        if (snake->Head->X - 1 == Cursor->X && snake->Head->Y == Cursor->Y && snake->Direction == LEFT)
+        {
+            snake->Speed = 0;
+            return 0;
+        }
+        else if (snake->Head->X + 1 == Cursor->X && snake->Head->Y == Cursor->Y && snake->Direction == RIGHT)
+        {
+            snake->Speed = 0;
+            return 0;
+        }
+        else if (snake->Head->Y - 1 == Cursor->Y && snake->Head->X == Cursor->X && snake->Direction == UP)
+        {
+            snake->Speed = 0;
+            return 0;
+        }
+        else if (snake->Head->Y + 1 == Cursor->Y && snake->Head->X == Cursor->X && snake->Direction == DOWN)
+        {
+            snake->Speed = 0;
+            return 0;
+        }
+        
+        Cursor = Cursor->Next;
+    }
+    
+    snake->Speed = snake->MaxSpeed;
+    return 1;
 }
 
 
@@ -497,7 +526,7 @@ ReadEntireFile(char *FileName)
 
 
 loaded_bitmap yo;
-//Client client;
+Client client;
 
 real32 BackspaceTime = 0;
 int Backspace = 0;
@@ -520,6 +549,8 @@ Apple App = {};
 #include "../data/imagesaves/left.cpp"
 #include "../data/imagesaves/down.h"
 #include "../data/imagesaves/down.cpp"
+#include "../data/imagesaves/apple.h"
+#include "../data/imagesaves/apple.cpp"
 
 #include "../data/imagesaves/faunefifty.h"
 #include "../data/imagesaves/fauneonehundred.h"
@@ -559,17 +590,19 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if !defined(RAYLIB_H)
 #if SAVE_IMAGES
-        test = LoadImageResize("grass.jpg", GRIDSIZE, GRIDSIZE, "grass.h");
+        test = LoadImageResize("grass2.png", GRIDSIZE, GRIDSIZE, "grass.h");
         right = LoadImageResize("right.png", GRIDSIZE, GRIDSIZE, "right.h");
         up = LoadImageResize("up.png", GRIDSIZE, GRIDSIZE, "up.h");
         left = LoadImageResize("left.png", GRIDSIZE, GRIDSIZE, "left.h");
         down = LoadImageResize("down.png", GRIDSIZE, GRIDSIZE, "down.h");
+        apple = LoadImageResize("apple.png", GRIDSIZE, GRIDSIZE, "apple.h");
 #else
         LoadImageFromgrass_h(&test);
         LoadImageFromright_h(&right);
         LoadImageFromup_h(&up);
         LoadImageFromleft_h(&left);
         LoadImageFromdown_h(&down);
+        LoadImageFromapple_h(&apple);
 #endif
 #else
         testTexture = LoadImageResize("grass.jpg", GRIDSIZE, GRIDSIZE);
@@ -608,8 +641,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     int btnPress = -1;
     int tbPress = -1;
-    
-    UpdateNewGUI(&MainMenu, Buffer->Width, Buffer->Height);
     
     for(int ControllerIndex = 0;
         ControllerIndex < ArrayCount(Input->Controllers);
@@ -688,15 +719,32 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                         Player.NextDirection = UP;
                 }
             }
+            
+            if (GameState->Menu == 0)
+            {
+                if(Controller->MoveLeft.NewEndedDown)
+                {
+                    AddInputLog(&Player, LEFT);
+                }
+                
+                if(Controller->MoveRight.NewEndedDown)
+                {
+                    AddInputLog(&Player, RIGHT);
+                }
+                
+                if(Controller->MoveDown.NewEndedDown)
+                {
+                    AddInputLog(&Player, DOWN);
+                }
+                
+                if(Controller->MoveUp.NewEndedDown)
+                {
+                    AddInputLog(&Player, UP);
+                }
+            }
+            
             //sprintf(FPS, "%d", Player.Direction);
             //PrintOnScreen(Buffer, &Faune50, FPS, FPSRect.x, FPSRect.y, 0xFF000000, &FPSRect);
-            
-            if(Input->MouseButtons[0].EndedDown)
-            {
-                btnPress = CheckButtonsClick(&MainMenu, Input->MouseX, Input->MouseY);
-                
-                tbPress = CheckTextBoxes(&MainMenu, Input->MouseX, Input->MouseY);
-            }
             
             if(Controller->Zero.NewEndedDown)
             {
@@ -753,42 +801,47 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     // TODO(casey): Allow sample offsets here for more robust platform options
     //GameOutputSound(SoundBuffer, GameState->ToneHz);
     
-    if (btnPress == GameStart)
-    {
-        GameState->Menu = 0;
-    }
-    else if (btnPress == Quit)
-    {
-        Input->quit = 1;
-    }
     
-    if (tbPress == IP)
-    {
-        ChangeTextBoxShowCursor(&MainMenu, IP);
-    }
-    if (tbPress == PORT)
-    {
-        ChangeTextBoxShowCursor(&MainMenu, PORT);
-    }
+    
+    
     if (GameState->Menu == 2)
     {
+        UpdateNewGUI(&LoseMenu, Buffer->Width, Buffer->Height);
+        
+        if(Input->MouseButtons[0].EndedDown)
+        {
+            btnPress = CheckButtonsClick(&LoseMenu, Input->MouseX, Input->MouseY);
+        }
+        
+        if (btnPress == Restart)
+        {
+            GameState->Menu = 0;
+        }
+        
         if (LoseMenu.Initialized == 0)
         {
-            LoseMenu.Padding = 0;
+            LoseMenu.Padding = 10;
             
             int Y = 0;
+            NewText TXT = {};
+            NewButton BTN = {};
             
-            NewText txt = 
-            {
-                "YOU LOST",    // Text
-                Btn1,       // ID
-                &Faune100,   // Font
-                0xFF000000, // TextColor
-            };
-            AddNewText(&LoseMenu, 0, Y++,  &txt);
+            TXT.Text = "YOU LOST";
+            TXT.ID = Btn1;
+            TXT.FontType = &Faune100;
+            TXT.TextColor = 0xFF000000;
+            AddNewText(&LoseMenu, 0, Y++,  &TXT);
+            
+            BTN.Text = "RESTART";    // Text
+            BTN.FontType =&Faune100;   // Font
+            BTN.ID = Restart;       // ID
+            BTN.RegularColor = 0xFF32a89b; // RegularColor
+            BTN.HoverColor = 0xFFeba434; // HoverColor
+            BTN.TextColor = 0xFFFFFFFF; // TextColor
+            AddNewButton(&LoseMenu, 0, Y++, 350, 100, &BTN);
             
             InitializeNewGUI(&LoseMenu);
-            MainMenu.Initialized = 1;
+            LoseMenu.Initialized = 1;
         }
         
         CheckButtonsHover(&LoseMenu, Input->MouseX, Input->MouseY);
@@ -798,6 +851,36 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     }
     else if (GameState->Menu == 1)
     {
+        UpdateNewGUI(&MainMenu, Buffer->Width, Buffer->Height);
+        
+        if(Input->MouseButtons[0].EndedDown)
+        {
+            btnPress = CheckButtonsClick(&MainMenu, Input->MouseX, Input->MouseY);
+            
+            tbPress = CheckTextBoxes(&MainMenu, Input->MouseX, Input->MouseY);
+        }
+        
+        if (btnPress == GameStart)
+        {
+            GameState->Menu = 0;
+        }
+        else if (btnPress == Btn4)
+        {
+            createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
+        }
+        else if (btnPress == Quit)
+        {
+            Input->quit = 1;
+        }
+        
+        if (tbPress == IP)
+        {
+            ChangeTextBoxShowCursor(&MainMenu, IP);
+        }
+        if (tbPress == PORT)
+        {
+            ChangeTextBoxShowCursor(&MainMenu, PORT);
+        }
         
         if (MainMenu.Initialized == 0)
         {
@@ -948,9 +1031,10 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             App.X = rand() % 17;
             App.Y = rand() % 17;
             
-            Player.MaxSpeed = 9.0f; // m/s
+            Player.MaxSpeed = 8.0f; // m/s
             Player.Speed = Player.MaxSpeed;
-            //createClient(&client, "192.168.1.75", "10109", TCP);
+            
+            App.Score = 0;
         }
         
         
@@ -974,25 +1058,34 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             CheckGetApple(&Player, &App);
         }
         
-        CheckBounds(&Player, GRIDWIDTH, GRIDHEIGHT);
         
-        
-        
+        if(!CheckBounds(&Player, GRIDWIDTH, GRIDHEIGHT))
+        {
+            GameState->Menu = 2;
+            GameInitialized = false;
+            Player = {};
+        }
+        else
+        {
+            
+            
 #if !defined(RAYLIB_H)
-        ClearScreen();
-        RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
-        RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
+            ClearScreen();
+            RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
+            RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
 #else
-        BeginDrawing();
-        ClearBackground(WHITE);
-        RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test, &testTexture);
-        RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
-        DrawFPS(300, 10);
-        EndDrawing();
+            BeginDrawing();
+            ClearBackground(WHITE);
+            RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test, &testTexture);
+            RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
+            DrawFPS(300, 10);
+            EndDrawing();
 #endif
+            
+        }
     }
 }

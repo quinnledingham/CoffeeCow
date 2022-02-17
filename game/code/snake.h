@@ -262,9 +262,21 @@ struct Circle
 internal void 
 RenderRect(Rect *S, int fill, uint32 color);
 
+struct LinkedListNode
+{
+    void* Data;
+    LinkedListNode* Next;
+};
+
+struct LinkedList
+{
+    LinkedListNode* Head;
+};
+
+
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 30
+#define GRIDSIZE 35
 
 #define RIGHT 0
 #define UP 1
@@ -288,6 +300,9 @@ struct Snake
     int NextDirection = -1;
     int LastMoveDirection; // Direction when MoveSnake was called last
     int Length;
+    
+    LinkedList InputLog;
+    
     real32 Speed;
     real32 MaxSpeed;
     real32 DistanceTravelled;
@@ -319,17 +334,6 @@ struct loaded_bitmap
     void *Memory;
     
     void *Free;
-};
-
-struct LinkedListNode
-{
-    void* Data;
-    LinkedListNode* Next;
-};
-
-struct LinkedList
-{
-    LinkedListNode* Head;
 };
 
 union v2

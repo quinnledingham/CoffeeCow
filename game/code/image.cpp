@@ -23,7 +23,7 @@ SaveImageToHeaderFile(char* filename, Image* image)
             "int %sx = %d;\n"
             "int %sy = %d;\n"
             "int %sn = %d;\n"
-            "const unsigned char %s[%d] = \n"
+            "static unsigned char %s[%d] = \n"
             "{\n"
             ,fcapital
             ,fcapital
@@ -41,7 +41,7 @@ SaveImageToHeaderFile(char* filename, Image* image)
     for(int i = 0; i < (image->x * image->y * image->n); i++)
     {
         fprintf(newfile,
-                "%d ,",
+                "0x%x ,",
                 *imgtosave);
         *imgtosave++;
     }
@@ -106,14 +106,21 @@ LoadImageResize(char* FileName, int Width, int Height, char* SaveFileName)
     Image NewImage;
     NewImage.data = stbi_load(FileName, &NewImage.x, &NewImage.y, &NewImage.n, 0);
     
+    Assert(NewImage.data != 0); // Image loaded
+    
     Rect imageRect = {0, 0, Width, Height, 0};
     unsigned char* resized = (unsigned char *)PermanentStorageBlank(imageRect.width * imageRect.height * NewImage.n);
+    
     stbir_resize_uint8(NewImage.data , NewImage.x, NewImage.y, 0,
                        resized, imageRect.width, imageRect.height, 0, NewImage.n);
-    unsigned char* toBeFreed = NewImage.data;
-    NewImage.data = resized;
-    SaveImageToHeaderFile(SaveFileName, &NewImage);
     
+    unsigned char* toBeFreed = NewImage.data;
+    
+    NewImage.data = resized;
+    NewImage.x = Width;
+    NewImage.y = Height;
+    
+    SaveImageToHeaderFile(SaveFileName, &NewImage);
     stbi_image_free(toBeFreed);
     
     return NewImage;

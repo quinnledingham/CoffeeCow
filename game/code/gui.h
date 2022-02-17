@@ -89,7 +89,9 @@ enum NewComponentIDs
     Btn3,
     Btn4,
     PORT,
-    IP
+    IP,
+    Restart,
+    JOIN
 };
 
 struct NewButton

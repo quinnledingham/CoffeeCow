@@ -18,6 +18,8 @@
 *   Copyright (c) 2013-2016 Ramon Santamaria (@raysan5)
 *
 ********************************************************************************************/
+#include <malloc.h>
+#include <stdlib.h>
 
 #include "raylib/raylib.h"
 #include <cstdint>
@@ -30,6 +32,7 @@ LoadImageResize(char* FileName, int Width, int Height)
     NewImage = LoadImage("grass.png");
     ImageResize(&NewImage, GRIDSIZE, GRIDSIZE);
     Texture2D NewTexture = LoadTextureFromImage(NewImage);
+    ExportImageAsCode(NewImage, "raylibtest.h");  
     UnloadImage(NewImage);
     return NewTexture;
 }
@@ -75,6 +78,12 @@ RenderRect(Rect *S, int fill, uint32 color)
         DrawRectangle(S->x, S->y, S->width, S->height, Col);
     else if (fill == NOFILL)
         DrawRectangleLines(S->x, S->y, S->width, S->height, Col);
+}
+
+internal void
+RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
+{
+    
 }
 
 internal void

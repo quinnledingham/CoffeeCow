@@ -366,6 +366,26 @@ AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox
     }
 }
 
+internal char*
+GetTextBoxText(NewGUI *G, int ID)
+{
+    NewGUIComponent* Cursor = G->TextBoxes;
+    while(Cursor != 0)
+    {
+        
+        
+        NewTextBox* TB = (NewTextBox*)Cursor->Data;
+        if (TB->ID == ID)
+        {
+            return TB->Text; 
+        }
+        
+        Cursor = Cursor->Next;
+    }
+    
+    return 0;
+}
+
 internal void
 UpdateRow(Row* R, int Width, int Height, int GridX)
 {
