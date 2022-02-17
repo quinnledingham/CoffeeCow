@@ -15,12 +15,12 @@ MouseInRect(Rect* R, int32 MouseX, int32 MouseY)
 
 
 internal void
-AddCharTextBoxText(NewGUI* G, char* Char)
+AddCharTextBoxText(GUI* G, char* Char)
 {
-    NewGUIComponent* Cursor = G->TextBoxes;
+    GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
-        NewTextBox* TB = (NewTextBox*)Cursor->Data;
+        TextBox* TB = (TextBox*)Cursor->Data;
         if (TB->ShowCursor == 1)
         {
             TB->Text = StringConcat(TB->Text, Char);
@@ -31,12 +31,12 @@ AddCharTextBoxText(NewGUI* G, char* Char)
 }
 
 internal void
-RemoveCharTextBoxText(NewGUI* G)
+RemoveCharTextBoxText(GUI* G)
 {
-    NewGUIComponent* Cursor = G->TextBoxes;
+    GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
-        NewTextBox* TB = (NewTextBox*)Cursor->Data;
+        TextBox* TB = (TextBox*)Cursor->Data;
         if (TB->ShowCursor == 1)
         {
             int Size = StringLength(TB->Text);
@@ -52,12 +52,12 @@ RemoveCharTextBoxText(NewGUI* G)
 
 
 internal void
-ChangeTextBoxShowCursor(NewGUI* G, int ID)
+ChangeTextBoxShowCursor(GUI* G, int ID)
 {
-    NewGUIComponent* Cursor = G->TextBoxes;
+    GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
-        NewTextBox* TB = (NewTextBox*)Cursor->Data;
+        TextBox* TB = (TextBox*)Cursor->Data;
         if (TB->ID == ID)
         {
             TB->ShowCursor = 1;
@@ -92,12 +92,12 @@ RenderLine(game_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
 }
 
 internal void
-CheckButtonsHover(NewGUI* G, int32 MouseX, int32 MouseY)
+CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
 {
-    NewGUIComponent* Cursor = G->Buttons;
+    GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0)
     {
-        NewButton* B = (NewButton*)Cursor->Data;
+        Button* B = (Button*)Cursor->Data;
         
         Rect R = {};
         R.x = Cursor->X;
@@ -120,9 +120,9 @@ CheckButtonsHover(NewGUI* G, int32 MouseX, int32 MouseY)
 
 // Returns what button was pressed if one was.
 internal int
-CheckButtonsClick(NewGUI* G, int32 MouseX, int32 MouseY)
+CheckButtonsClick(GUI* G, int32 MouseX, int32 MouseY)
 {
-    NewGUIComponent* Cursor = G->Buttons;
+    GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0)
     {
         Rect R = {};
@@ -133,7 +133,7 @@ CheckButtonsClick(NewGUI* G, int32 MouseX, int32 MouseY)
         
         if (MouseInRect(&R, MouseX, MouseY))
         {
-            NewButton* btn = (NewButton*)Cursor->Data;
+            Button* btn = (Button*)Cursor->Data;
             return btn->ID;
         }
         
@@ -144,9 +144,9 @@ CheckButtonsClick(NewGUI* G, int32 MouseX, int32 MouseY)
 }
 
 internal int
-CheckTextBoxes(NewGUI* G, int32 MouseX, int32 MouseY)
+CheckTextBoxes(GUI* G, int32 MouseX, int32 MouseY)
 {
-    NewGUIComponent* Cursor = G->TextBoxes;
+    GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
         Rect R = {};
@@ -155,7 +155,7 @@ CheckTextBoxes(NewGUI* G, int32 MouseX, int32 MouseY)
         R.width = Cursor->Width;
         R.height = Cursor->Height;
         
-        NewTextBox* btn = (NewTextBox*)Cursor->Data;
+        TextBox* btn = (TextBox*)Cursor->Data;
         btn->ShowCursor = 0;
         if (MouseInRect(&R, MouseX, MouseY))
         {
@@ -233,7 +233,7 @@ StringConcat(char* Source, char* Add)
 }
 
 internal int
-AddNewGUIComponentAll(NewGUIComponent* Head, NewGUIComponent* NewComponent)
+AddGUIComponentAll(GUIComponent* Head, GUIComponent* NewComponent)
 {
     // Start linked list
     if(Head == 0)
@@ -241,7 +241,7 @@ AddNewGUIComponentAll(NewGUIComponent* Head, NewGUIComponent* NewComponent)
         return 0;
     }
     
-    NewGUIComponent* Cursor = Head;
+    GUIComponent* Cursor = Head;
     while(Cursor->All != 0)
     {
         Cursor = Cursor->All;
@@ -252,11 +252,11 @@ AddNewGUIComponentAll(NewGUIComponent* Head, NewGUIComponent* NewComponent)
 }
 
 internal void
-AddNewButton(NewGUI* G, int GridX, int GridY, int Width, int Height, NewButton* B)
+AddButton(GUI* G, int GridX, int GridY, int Width, int Height, Button* B)
 {
     B->Color = B->RegularColor;
-    NewGUIComponent NewTemp = {};
-    NewGUIComponent* NewComponent = (NewGUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(NewGUIComponent));
+    GUIComponent NewTemp = {};
+    GUIComponent* NewComponent = (GUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(GUIComponent));
     
     NewComponent->GridX = GridX;
     NewComponent->GridY = GridY;
@@ -264,7 +264,7 @@ AddNewButton(NewGUI* G, int GridX, int GridY, int Width, int Height, NewButton* 
     NewComponent->Height = Height;
     NewComponent->WidthP = Width + (G->Padding * 2);
     NewComponent->HeightP = Height + (G->Padding * 2);
-    NewComponent->Data = PermanentStorageAssign((void*)B, sizeof(NewButton));
+    NewComponent->Data = PermanentStorageAssign((void*)B, sizeof(Button));
     
     *B = {}; // Resets struct used to pass this function information
     
@@ -275,7 +275,7 @@ AddNewButton(NewGUI* G, int GridX, int GridY, int Width, int Height, NewButton* 
     }
     else 
     {
-        NewGUIComponent* Cursor = G->Buttons;
+        GUIComponent* Cursor = G->Buttons;
         while(Cursor->Next != 0)
         {
             Cursor = Cursor->Next;
@@ -283,17 +283,17 @@ AddNewButton(NewGUI* G, int GridX, int GridY, int Width, int Height, NewButton* 
         Cursor->Next = NewComponent;
     }
     
-    if (!AddNewGUIComponentAll(G->All, NewComponent))
+    if (!AddGUIComponentAll(G->All, NewComponent))
     {
         G->All = NewComponent;
     }
 }
 
 internal void
-AddNewText(NewGUI* G, int GridX, int GridY,  NewText* T)
+AddText(GUI* G, int GridX, int GridY,  Text* T)
 {
-    NewGUIComponent NewTemp = {};
-    NewGUIComponent* NewComponent = (NewGUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(NewGUIComponent));
+    GUIComponent NewTemp = {};
+    GUIComponent* NewComponent = (GUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(GUIComponent));
     
     v2 StringDimension = GetStringDimensions(T->FontType, T->Text);
     
@@ -303,7 +303,7 @@ AddNewText(NewGUI* G, int GridX, int GridY,  NewText* T)
     NewComponent->Height = (int)StringDimension.y;
     NewComponent->WidthP = (int)StringDimension.x + (G->Padding * 2);
     NewComponent->HeightP = (int)StringDimension.y + (G->Padding * 2);
-    NewComponent->Data = PermanentStorageAssign((void*)T, sizeof(NewText));
+    NewComponent->Data = PermanentStorageAssign((void*)T, sizeof(Text));
     
     *T = {}; // Resets struct used to pass this function information
     
@@ -314,7 +314,7 @@ AddNewText(NewGUI* G, int GridX, int GridY,  NewText* T)
     }
     else 
     {
-        NewGUIComponent* Cursor = G->Texts;
+        GUIComponent* Cursor = G->Texts;
         while(Cursor->Next != 0)
         {
             Cursor = Cursor->Next;
@@ -322,17 +322,17 @@ AddNewText(NewGUI* G, int GridX, int GridY,  NewText* T)
         Cursor->Next = NewComponent;
     }
     
-    if (!AddNewGUIComponentAll(G->All, NewComponent))
+    if (!AddGUIComponentAll(G->All, NewComponent))
     {
         G->All = NewComponent;
     }
 }
 
 internal void
-AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox* TB)
+AddTextBox(GUI* G, int GridX, int GridY, int Width, int Height, TextBox* TB)
 {
-    NewGUIComponent NewTemp = {};
-    NewGUIComponent* NewComponent = (NewGUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(NewGUIComponent));
+    GUIComponent NewTemp = {};
+    GUIComponent* NewComponent = (GUIComponent*)PermanentStorageAssign((void*)&NewTemp, sizeof(GUIComponent));
     
     
     NewComponent->GridX = GridX;
@@ -341,7 +341,7 @@ AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox
     NewComponent->Height = Height;
     NewComponent->WidthP = Width + (G->Padding * 2);
     NewComponent->HeightP = Height + (G->Padding * 2);
-    NewComponent->Data = PermanentStorageAssign((void*)TB, sizeof(NewTextBox));
+    NewComponent->Data = PermanentStorageAssign((void*)TB, sizeof(TextBox));
     
     *TB = {}; // Resets struct used to pass this function information
     
@@ -352,7 +352,7 @@ AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox
     }
     else 
     {
-        NewGUIComponent* Cursor = G->TextBoxes;
+        GUIComponent* Cursor = G->TextBoxes;
         while(Cursor->Next != 0)
         {
             Cursor = Cursor->Next;
@@ -360,21 +360,21 @@ AddNewTextBox(NewGUI* G, int GridX, int GridY, int Width, int Height, NewTextBox
         Cursor->Next = NewComponent;
     }
     
-    if (!AddNewGUIComponentAll(G->All, NewComponent))
+    if (!AddGUIComponentAll(G->All, NewComponent))
     {
         G->All = NewComponent;
     }
 }
 
 internal char*
-GetTextBoxText(NewGUI *G, int ID)
+GetTextBoxText(GUI *G, int ID)
 {
-    NewGUIComponent* Cursor = G->TextBoxes;
+    GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
         
         
-        NewTextBox* TB = (NewTextBox*)Cursor->Data;
+        TextBox* TB = (TextBox*)Cursor->Data;
         if (TB->ID == ID)
         {
             return TB->Text; 
@@ -396,9 +396,9 @@ UpdateRow(Row* R, int Width, int Height, int GridX)
 }
 
 internal void
-InitializeNewGUI(NewGUI* G)
+InitializeGUI(GUI* G)
 {
-    NewGUIComponent* Cursor = G->All;
+    GUIComponent* Cursor = G->All;
     while(Cursor != 0)
     {
         UpdateRow(&G->Rows[Cursor->GridY], Cursor->WidthP, Cursor->HeightP, Cursor->GridX);
@@ -413,10 +413,10 @@ InitializeNewGUI(NewGUI* G)
 }
 
 internal void
-UpdateNewGUI(NewGUI* G, int BufferWidth, int BufferHeight)
+UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
 {
     
-    NewGUIComponent* Cursor = G->All;
+    GUIComponent* Cursor = G->All;
     while(Cursor != 0)
     {
         Row* R = &G->Rows[Cursor->GridY];
@@ -440,14 +440,14 @@ UpdateNewGUI(NewGUI* G, int BufferWidth, int BufferHeight)
 }
 
 internal void
-RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
+RenderGUI(game_offscreen_buffer *Buffer, GUI* G)
 {
     
     // Render buttons
-    NewGUIComponent* Cursor = G->Buttons;
+    GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0)
     {
-        NewButton* b = (NewButton*)Cursor->Data;
+        Button* b = (Button*)Cursor->Data;
         
         v2 SDim = GetStringDimensions(b->FontType, b->Text);
         b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
@@ -472,7 +472,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     Cursor = G->TextBoxes;
     while(Cursor != 0)
     {
-        NewTextBox* b = (NewTextBox*)Cursor->Data;
+        TextBox* b = (TextBox*)Cursor->Data;
         
         v2 SDim = GetStringDimensions(b->FontType, b->Text);
         b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
@@ -500,7 +500,7 @@ RenderNewGUI(game_offscreen_buffer *Buffer, NewGUI* G)
     Cursor = G->Texts;
     while(Cursor != 0)
     {
-        NewText* b = (NewText*)Cursor->Data;
+        Text* b = (Text*)Cursor->Data;
         
         PrintOnScreen(b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
         Cursor = Cursor->Next;

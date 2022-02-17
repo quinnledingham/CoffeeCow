@@ -17,6 +17,6 @@ REM cl %CommonCompilerFlags% ..\game\code\snake.cpp -Fmsnake.map -LD /link -incr
 cl %CommonCompilerFlags% ..\game\code\win32_snake.cpp -Fmwin32_snake.map /link %CommonLinkerFlags%
 REM cl %CommonCompilerFlags% ..\game\code\testserver.cpp -Fmtestserver.map /link %CommonLinkerFlags%
 
-cl %CommonCompilerFlags% ..\game\code\testserver.cpp
+REM cl %CommonCompilerFlags% ..\game\code\testserver.cpp
 
 popd

@@ -297,8 +297,6 @@ struct SnakeNode
 struct Snake
 {
     int Direction;
-    int NextDirection = -1;
-    int LastMoveDirection; // Direction when MoveSnake was called last
     int Length;
     
     LinkedList InputLog;

@@ -90,8 +90,6 @@ unsigned long createRGB(int r, int g, int b)
 
 #include "gui.cpp"
 
-//#include "socketq.h"
-
 #include "socketq.cpp"
 #include "socketq.h"
 
@@ -121,12 +119,11 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 
 global_variable int GameInitialized = false;
 global_variable Snake Player;
-global_variable GUI menu = {};
-global_variable NewGUI MainMenu = {};
-global_variable NewGUI LoseMenu = {};
+global_variable GUI MainMenu = {};
+global_variable GUI LoseMenu = {};
 
 internal void 
-NewAddSnakeNode(Snake *S, float X, float Y)
+AddSnakeNode(Snake *S, float X, float Y)
 {
     if (S->Head == 0)
     {
@@ -201,14 +198,14 @@ AddInputLog(Snake *S, int32 Num)
 
 
 internal void
-NewInitializeSnake(Snake *S)
+InitializeSnake(Snake *S)
 {
     S->Direction = RIGHT;
     S->Length = 3;
     
-    NewAddSnakeNode(S, 2, 2);
-    NewAddSnakeNode(S, 1, 2);
-    NewAddSnakeNode(S, 0, 2);
+    AddSnakeNode(S, 2, 2);
+    AddSnakeNode(S, 1, 2);
+    AddSnakeNode(S, 0, 2);
 }
 
 global_variable Image test;
@@ -219,8 +216,8 @@ global_variable Image down;
 global_variable Image apple;
 
 internal void
-NewRenderSnake(Snake* s, int  GridX, int  GridY, 
-               int GridWidth, int GridHeight, int GridSize)
+RenderSnake(Snake* s, int  GridX, int  GridY, 
+            int GridWidth, int GridHeight, int GridSize)
 {
     SnakeNode* cursor = s->Head;
     while(cursor->Next != 0)
@@ -305,7 +302,7 @@ RenderApple(Apple* A, int GridX, int GridY,
 
 
 internal void
-NewTransitionSnake(Snake* snake, float SecondsElapsed)
+TransitionSnake(Snake* snake, float SecondsElapsed)
 {
     float Dm = (snake->Speed * SecondsElapsed);
     float Dp = Dm;
@@ -336,7 +333,7 @@ NewTransitionSnake(Snake* snake, float SecondsElapsed)
 }
 
 internal void
-NewMoveSnake(Snake* snake)
+MoveSnake(Snake* snake)
 {
     
     SnakeNode* cursor = snake->Head;
@@ -348,43 +345,23 @@ NewMoveSnake(Snake* snake)
     
     int32* NextDir = (int32*)snake->InputLog.Head->Data;
     
-    if ((*NextDir == UP && snake->Direction == DOWN) ||
-        (*NextDir == DOWN && snake->Direction == UP))
-    {
-        
-    }
-    else if ((*NextDir == RIGHT && snake->Direction == LEFT) ||
-             (*NextDir == LEFT && snake->Direction == RIGHT))
-    {
-        
-    }
+    /*
+    char FPSBuffer[256];
+    _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
+                "NEXTDIR: %d DIRECTION:%d\n", *NextDir, snake->Direction);
+    OutputDebugStringA(FPSBuffer);
+    */
+    
+    if (*NextDir == UP && snake->Direction == DOWN) {}
+    else if (*NextDir == DOWN && snake->Direction == UP) {}
+    else if (*NextDir == RIGHT && snake->Direction == LEFT) {}
+    else if (*NextDir == LEFT && snake->Direction == RIGHT) {}
     else
     {
         snake->Direction = *NextDir;
         cursor->Direction = snake->Direction;
     }
     RemoveFirstLinkedListNode(&snake->InputLog);
-    
-    /*
-    if (snake->NextDirection == -1)
-    {
-        cursor->Direction = snake->Direction;
-    }
-    else
-    {
-        snake->Direction = snake->NextDirection;
-        cursor->Direction = snake->NextDirection;
-        snake->NextDirection = -1;
-    }
-    snake->LastMoveDirection = cursor->Direction;
-    &/
-
-    /*
-    char FPSBuffer[256];
-    _snprintf_s(FPSBuffer, sizeof(FPSBuffer),
-                "X:%.02f Y:%.02f\n", cursor->X, cursor->Y);
-    OutputDebugStringA(FPSBuffer);
-    */
     
     cursor->X = (real32)(RoundReal32ToInt32(cursor->X));
     cursor->Y = (real32)(RoundReal32ToInt32(cursor->Y));
@@ -416,13 +393,13 @@ CheckGetApple(Snake* S, Apple* A)
         }
         
         if (Cursor->NextDirection == RIGHT)
-            NewAddSnakeNode(S, Cursor->X - 1, Cursor->Y);
+            AddSnakeNode(S, Cursor->X - 1, Cursor->Y);
         if (Cursor->NextDirection == UP)
-            NewAddSnakeNode(S, Cursor->X, Cursor->Y + 1);
+            AddSnakeNode(S, Cursor->X, Cursor->Y + 1);
         if (Cursor->NextDirection == LEFT)
-            NewAddSnakeNode(S, Cursor->X + 1, Cursor->Y);
+            AddSnakeNode(S, Cursor->X + 1, Cursor->Y);
         if (Cursor->NextDirection == DOWN)
-            NewAddSnakeNode(S, Cursor->X, Cursor->Y - 1);
+            AddSnakeNode(S, Cursor->X, Cursor->Y - 1);
         
         int Good = 0;
         while(!Good)
@@ -655,71 +632,6 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         else
         {
-            // NOTE(casey): Use digital movement tuning
-            if(Controller->MoveLeft.NewEndedDown)
-            {
-                if (LEFT  == Player.LastMoveDirection)
-                {
-                    if (Player.LastMoveDirection != RIGHT)
-                        Player.Direction = LEFT;
-                    
-                    Player.NextDirection = -1;
-                }
-                else
-                {
-                    if (Player.LastMoveDirection != RIGHT)
-                        Player.NextDirection = LEFT;
-                }
-            }
-            
-            if(Controller->MoveRight.NewEndedDown)
-            {
-                if (RIGHT  == Player.LastMoveDirection)
-                {
-                    if (Player.LastMoveDirection != LEFT)
-                        Player.Direction = RIGHT;
-                    
-                    Player.NextDirection = -1;
-                }
-                else
-                {
-                    if (Player.LastMoveDirection != LEFT)
-                        Player.NextDirection = RIGHT;
-                }
-            }
-            
-            if(Controller->MoveDown.NewEndedDown)
-            {
-                if (DOWN == Player.LastMoveDirection)
-                {
-                    if (Player.LastMoveDirection != UP)
-                        Player.Direction = DOWN;
-                    
-                    Player.NextDirection = -1;
-                }
-                else
-                {
-                    if (Player.LastMoveDirection != UP)
-                        Player.NextDirection = DOWN;
-                }
-            }
-            
-            if(Controller->MoveUp.NewEndedDown)
-            {
-                if (UP == Player.LastMoveDirection)
-                {
-                    if (Player.LastMoveDirection != DOWN)
-                        Player.Direction = UP;
-                    
-                    Player.NextDirection = -1;
-                }
-                else
-                {
-                    if (Player.LastMoveDirection != DOWN)
-                        Player.NextDirection = UP;
-                }
-            }
-            
             if (GameState->Menu == 0)
             {
                 if(Controller->MoveLeft.NewEndedDown)
@@ -806,7 +718,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     
     if (GameState->Menu == 2)
     {
-        UpdateNewGUI(&LoseMenu, Buffer->Width, Buffer->Height);
+        UpdateGUI(&LoseMenu, Buffer->Width, Buffer->Height);
         
         if(Input->MouseButtons[0].EndedDown)
         {
@@ -823,14 +735,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             LoseMenu.Padding = 10;
             
             int Y = 0;
-            NewText TXT = {};
-            NewButton BTN = {};
+            Text TXT = {};
+            Button BTN = {};
             
             TXT.Text = "YOU LOST";
             TXT.ID = Btn1;
             TXT.FontType = &Faune100;
             TXT.TextColor = 0xFF000000;
-            AddNewText(&LoseMenu, 0, Y++,  &TXT);
+            AddText(&LoseMenu, 0, Y++,  &TXT);
             
             BTN.Text = "RESTART";    // Text
             BTN.FontType =&Faune100;   // Font
@@ -838,20 +750,20 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             BTN.RegularColor = 0xFF32a89b; // RegularColor
             BTN.HoverColor = 0xFFeba434; // HoverColor
             BTN.TextColor = 0xFFFFFFFF; // TextColor
-            AddNewButton(&LoseMenu, 0, Y++, 350, 100, &BTN);
+            AddButton(&LoseMenu, 0, Y++, 350, 100, &BTN);
             
-            InitializeNewGUI(&LoseMenu);
+            InitializeGUI(&LoseMenu);
             LoseMenu.Initialized = 1;
         }
         
         CheckButtonsHover(&LoseMenu, Input->MouseX, Input->MouseY);
         
         //ClearScreen();
-        RenderNewGUI(Buffer, &LoseMenu);
+        RenderGUI(Buffer, &LoseMenu);
     }
     else if (GameState->Menu == 1)
     {
-        UpdateNewGUI(&MainMenu, Buffer->Width, Buffer->Height);
+        UpdateGUI(&MainMenu, Buffer->Width, Buffer->Height);
         
         if(Input->MouseButtons[0].EndedDown)
         {
@@ -888,15 +800,15 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             
             int Y = 0;
             
-            NewText TXT = {};
-            NewButton btn = {};
-            NewTextBox tb = {};
+            Text TXT = {};
+            Button btn = {};
+            TextBox tb = {};
             
             TXT.Text = "SINGLEPLAYER";
             TXT.ID = Btn1;
             TXT.FontType = &Faune100;
             TXT.TextColor = 0xFF000000;
-            AddNewText(&MainMenu, 0, Y++,  &TXT);
+            AddText(&MainMenu, 0, Y++,  &TXT);
             
             btn = 
             {
@@ -910,7 +822,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFeba434, // HoverColor
                 0xFFFFFFFF, // TextColor
             };
-            AddNewButton(&MainMenu, 0, Y++, 300, 100, &btn);
+            AddButton(&MainMenu, 0, Y++, 300, 100, &btn);
             
             TXT = 
             {
@@ -919,7 +831,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 &Faune100,   // Font
                 0xFFFFFFFF, // TextColor
             };
-            AddNewText(&MainMenu, 0, Y++,  &TXT);
+            AddText(&MainMenu, 0, Y++,  &TXT);
             
             TXT = 
             {
@@ -928,7 +840,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 &Faune100,   // Font
                 0xFF000000, // TextColor
             };
-            AddNewText(&MainMenu, 0, Y++,  &TXT);
+            AddText(&MainMenu, 0, Y++,  &TXT);
             
             TXT = 
             {
@@ -937,7 +849,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 &Faune50,   // Font
                 0xFF000000, // TextColor
             };
-            AddNewText(&MainMenu, 0, Y,  &TXT);
+            AddText(&MainMenu, 0, Y,  &TXT);
             
             tb =
             {
@@ -950,7 +862,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFb3b3b3,
                 0xFF000000
             };
-            AddNewTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
+            AddTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
             
             TXT = 
             {
@@ -959,7 +871,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 &Faune50,   // Font
                 0xFF000000, // TextColor
             };
-            AddNewText(&MainMenu, 0, Y,  &TXT);
+            AddText(&MainMenu, 0, Y,  &TXT);
             
             tb =
             {
@@ -972,7 +884,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFb3b3b3,
                 0xFF000000
             };
-            AddNewTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
+            AddTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
             
             btn = 
             {
@@ -986,7 +898,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFeba434, // HoverColor
                 0xFFFFFFFF, // TextColor
             };
-            AddNewButton(&MainMenu, 0, Y++, 200, 100, &btn);
+            AddButton(&MainMenu, 0, Y++, 200, 100, &btn);
             
             btn = 
             {
@@ -1000,9 +912,9 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
                 0xFFeba434, // HoverColor
                 0xFFFFFFFF, // TextColor
             };
-            AddNewButton(&MainMenu, 0, Y++, 200, 100, &btn);
+            AddButton(&MainMenu, 0, Y++, 200, 100, &btn);
             
-            InitializeNewGUI(&MainMenu);
+            InitializeGUI(&MainMenu);
             MainMenu.Initialized = 1;
         }
         
@@ -1011,7 +923,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
 #if !defined(RAYLIB_H)
         ClearScreen();
-        RenderNewGUI(Buffer, &MainMenu);
+        RenderGUI(Buffer, &MainMenu);
 #else
         BeginDrawing();
         ClearBackground(WHITE);
@@ -1025,7 +937,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     {
         if (GameInitialized == false)
         {
-            NewInitializeSnake(&Player);
+            InitializeSnake(&Player);
             GameInitialized = true;
             
             App.X = rand() % 17;
@@ -1050,11 +962,11 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         //SnakeTimeCounter += Input->SecondsElapsed;
         
         
-        NewTransitionSnake(&Player, Input->SecondsElapsed);
+        TransitionSnake(&Player, Input->SecondsElapsed);
         if (Player.DistanceTravelled >= 1 || Player.Speed == 0)
         {
             Player.DistanceTravelled = 0;
-            NewMoveSnake(&Player);
+            MoveSnake(&Player);
             CheckGetApple(&Player, &App);
         }
         
@@ -1073,14 +985,14 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             ClearScreen();
             RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test);
             RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-            NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            RenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
             PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
 #else
             BeginDrawing();
             ClearBackground(WHITE);
             RenderBackgroundGrid(centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE, &test, &testTexture);
             RenderApple(&App, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-            NewRenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+            RenderSnake(&Player, centeredX, centeredY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
             PrintOnScreen(&Faune50, IntToString(App.Score), 5, 5, 0xFF000000);
             DrawFPS(300, 10);
             EndDrawing();

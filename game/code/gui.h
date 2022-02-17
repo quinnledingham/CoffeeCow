@@ -1,24 +1,38 @@
 #ifndef GUI_H
 #define GUI_H
 
-struct Text
+
+#if !defined(RAYLIB_H)
+struct Texture2D
 {
-    int X;
-    int Y;
-    int Width;
-    int Height;
-    char* Text;
-    int ID;
-    Font* FontType;
-    uint32 TextColor;
+    
+};
+#endif
+
+internal int
+StringLength(char* String);
+
+internal char*
+StringConcat(char* Source, char* Add);
+
+enum ComponentIDs
+{
+    Btn1,
+    Btn2,
+    Btn3,
+    Btn4,
+    PORT,
+    IP,
+    Restart,
+    JOIN,
+    GameStart,
+    Quit
 };
 
 struct Button
 {
-    int X;
-    int Y;
-    int Width;
-    int Height;
+    int TextX;
+    int TextY;
     char* Text;
     Font* FontType;
     int ID;
@@ -28,19 +42,18 @@ struct Button
     uint32 TextColor;
 };
 
-#if !defined(RAYLIB_H)
-struct Texture2D
+struct Text
 {
-    
+    char* Text;
+    int ID;
+    Font* FontType;
+    uint32 TextColor;
 };
-#endif
 
 struct TextBox
 {
-    int X;
-    int Y;
-    int Width;
-    int Height;
+    int TextX;
+    int TextY;
     char* Text;
     Font* FontType;
     int ID;
@@ -51,84 +64,6 @@ struct TextBox
 };
 
 struct GUIComponent
-{
-    GUIComponent* next;
-    void* component;
-};
-
-
-enum ComponentID
-{
-    GameStart,
-    Quit,
-    Join,
-    TextIP,
-    TextBoxIP,
-    TextPort,
-    TextBoxPort,
-    Singleplayer
-};
-struct GUI
-{
-    int initialized;
-    GUIComponent* buttons;
-    GUIComponent* Texts;
-    GUIComponent* TextBoxes;
-};
-
-internal int
-StringLength(char* String);
-
-internal char*
-StringConcat(char* Source, char* Add);
-
-enum NewComponentIDs
-{
-    Btn1,
-    Btn2,
-    Btn3,
-    Btn4,
-    PORT,
-    IP,
-    Restart,
-    JOIN
-};
-
-struct NewButton
-{
-    int TextX;
-    int TextY;
-    char* Text;
-    Font* FontType;
-    int ID;
-    uint32 Color;
-    uint32 RegularColor;
-    uint32 HoverColor;
-    uint32 TextColor;
-};
-
-struct NewText
-{
-    char* Text;
-    int ID;
-    Font* FontType;
-    uint32 TextColor;
-};
-
-struct NewTextBox
-{
-    int TextX;
-    int TextY;
-    char* Text;
-    Font* FontType;
-    int ID;
-    int ShowCursor;
-    
-    uint32 Color;
-    uint32 TextColor;
-};
-
-struct NewGUIComponent
 {
     int X;
     int Y;
@@ -141,8 +76,8 @@ struct NewGUIComponent
     int WidthP;
     int HeightP;
     
-    NewGUIComponent* Next;
-    NewGUIComponent* All;
+    GUIComponent* Next;
+    GUIComponent* All;
     void* Data;
 };
 
@@ -158,7 +93,7 @@ struct Row
     Column Columns[10];
 };
 
-struct NewGUI
+struct GUI
 {
     int Initialized;
     Row Rows[10];
@@ -166,10 +101,10 @@ struct NewGUI
     int Width = 0;
     int Height = 0;
     int Padding = 0;
-    NewGUIComponent* All;
-    NewGUIComponent* Buttons;
-    NewGUIComponent* TextBoxes;
-    NewGUIComponent* Texts;
+    GUIComponent* All;
+    GUIComponent* Buttons;
+    GUIComponent* TextBoxes;
+    GUIComponent* Texts;
 };
 
 
