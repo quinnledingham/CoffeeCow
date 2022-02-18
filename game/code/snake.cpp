@@ -424,6 +424,7 @@ CheckGetApple(Snake* S, Apple* A)
 internal int
 CheckBounds(Snake* snake, int GridWidth, int GridHeight)
 {
+    // Snake hits the wall
     if (snake->Head->X  == 0 && snake->Direction == LEFT)
     {
         snake->Speed = 0;
@@ -445,6 +446,7 @@ CheckBounds(Snake* snake, int GridWidth, int GridHeight)
         return 0;
     }
     
+    // Snake hits itself
     SnakeNode* Cursor = snake->Head->Next;
     while(Cursor != 0)
     {
@@ -714,12 +716,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
     //GameOutputSound(SoundBuffer, GameState->ToneHz);
     
     
-    
-    
     if (GameState->Menu == 2)
     {
-        UpdateGUI(&LoseMenu, Buffer->Width, Buffer->Height);
-        
         if(Input->MouseButtons[0].EndedDown)
         {
             btnPress = CheckButtonsClick(&LoseMenu, Input->MouseX, Input->MouseY);
@@ -757,14 +755,12 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         
         CheckButtonsHover(&LoseMenu, Input->MouseX, Input->MouseY);
-        
+        UpdateGUI(&LoseMenu, Buffer->Width, Buffer->Height);
         //ClearScreen();
         RenderGUI(Buffer, &LoseMenu);
     }
     else if (GameState->Menu == 1)
     {
-        UpdateGUI(&MainMenu, Buffer->Width, Buffer->Height);
-        
         if(Input->MouseButtons[0].EndedDown)
         {
             btnPress = CheckButtonsClick(&MainMenu, Input->MouseX, Input->MouseY);
@@ -922,12 +918,13 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         
         
 #if !defined(RAYLIB_H)
+        UpdateGUI(&MainMenu, Buffer->Width, Buffer->Height);
         ClearScreen();
         RenderGUI(Buffer, &MainMenu);
 #else
         BeginDrawing();
         ClearBackground(WHITE);
-        RenderNewGUI(Buffer, &MainMenu);
+        RenderGUI(Buffer, &MainMenu);
         EndDrawing();
 #endif
         //Clear();

@@ -15,7 +15,12 @@
       "ProjectGuid": "4580e431-da39-4e5f-801b-5310f596ac2b",
       "DisplayName": "testserver",
       "ColorIndex": 1
+    },
+    "9fda5025-6105-4ad3-80ed-a6eec13345f6": {
+      "ProjectGuid": "9fda5025-6105-4ad3-80ed-a6eec13345f6",
+      "DisplayName": "testserver",
+      "ColorIndex": 2
     }
   },
-  "NextColorIndex": 2
+  "NextColorIndex": 3
 }
