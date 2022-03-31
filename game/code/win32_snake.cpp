@@ -850,7 +850,7 @@ Win32InitOpenGL(HWND Window)
         }
         
         OpenGLInit(Info, OpenGL.SupportsSRGBFramebuffer);
-    }
+    ,}
     else
     {
         OutputDebugStringA("GL failure!");
