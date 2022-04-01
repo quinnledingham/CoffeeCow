@@ -1,0 +1,3 @@
+[submodule "game/code/qlib"]
+	path = game/code/qlib
+	url = https://github.com/quinnledingham/qlib
