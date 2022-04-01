@@ -90,8 +90,8 @@ unsigned long createRGB(int r, int g, int b)
 
 #include "gui.cpp"
 
-#include "socketq.cpp"
-#include "socketq.h"
+//#include "socketq.cpp"
+//#include "socketq.h"
 
 
 
@@ -505,7 +505,7 @@ ReadEntireFile(char *FileName)
 
 
 loaded_bitmap yo;
-Client client;
+//Client client;
 
 real32 BackspaceTime = 0;
 int Backspace = 0;
@@ -774,7 +774,7 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
         }
         else if (btnPress == Btn4)
         {
-            createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
+            //createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
         }
         else if (btnPress == Quit)
         {
