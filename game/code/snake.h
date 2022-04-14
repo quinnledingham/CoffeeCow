@@ -34,44 +34,7 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 // TODO(casey): swap, min, max ... macros???
 
-#define internal static 
-#define local_persist static 
-#define global_variable static
 
-#define Pi32 3.14159265359f
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-typedef int32 bool32;
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef float real32;
-typedef double real64;
-
-typedef int8 s8;
-typedef int8 s08;
-typedef int16 s16;
-typedef int32 s32;
-typedef int64 s64;
-typedef bool32 b32;
-
-typedef uint8 u8;
-typedef uint8 u08;
-typedef uint16 u16;
-typedef uint32 u32;
-typedef uint64 u64;
-
-typedef real32 r32;
-typedef real64 r64;
-
-typedef uintptr_t umm;
-typedef intptr_t smm;
 
 #define BITMAP_BYTES_PER_PIXEL 4
 
@@ -241,15 +204,6 @@ struct game_state
 #define NOFILL 0
 #define FILL 1
 
-struct Rect
-{
-    int x;
-    int y;
-    int width;
-    int height;
-    uint32 color;
-};
-
 struct Circle
 {
     int X;
@@ -315,13 +269,7 @@ struct Apple
 };
 
 #if !defined(RAYLIB_H)
-struct Image
-{
-    int x;
-    int y;
-    int n;
-    unsigned char* data;
-};
+
 #endif
 
 struct loaded_bitmap
@@ -333,36 +281,6 @@ struct loaded_bitmap
     
     void *Free;
 };
-
-union v2
-{
-    struct
-    {
-        real32 x, y;
-    };
-    struct
-    {
-        real32 u, v;
-    };
-    real32 E[2];
-};
-
-struct PrintOnScreenReturn
-{
-    v2 Top;
-    
-    int Width;
-    int Height;
-};
-
-struct entire_file
-{
-    u32 ContentsSize;
-    void *Contents;
-};
-
-entire_file
-ReadEntireFile(char *FileName);
 
 internal void
 RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
