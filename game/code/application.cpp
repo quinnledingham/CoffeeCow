@@ -2,16 +2,19 @@
 
 #include "snake.h"
 
+Image test;
+Texture TexTest;
+Font Faune50 = {};
+Font Faune100 = {};
+
 internal void
 RenderBackgroundGrid(int GridX, int GridY, int GridWidth, int GridHeight, int GridSize)
 {
-    uint32 Color = 0xFF0000FF;
     for (int i = 0; i < GridWidth; i++)
     {
         for (int j = 0; j < GridHeight; j++)
         {
-            Color += 50;
-            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize, Color);
+            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize, TexTest);
         }
     }
 }
@@ -26,28 +29,37 @@ Camera C =
     0,
 };
 
-Image test;
-Texture TexTest;
+
+global_variable GUI MainMenu = {};
+
+#include "../data/imagesaves/grass2.h"
+#include "../data/imagesaves/grass2.cpp"
 
 void UpdateRender(platform* p)
 {
-    game_state *GameState = (game_state*)p->Memory.PermanentStorageSize;
+    game_state *GameState = (game_state*)p->Memory.PermanentStorage;
     
     if (!p->Initialized)
     {
+        Manager.Next = (char*)p->Memory.PermanentStorage;
         qalloc(sizeof(game_state));
         
-        C.FOV = 180.01f;
+        C.FOV = 60.0f;
         C.F = 0.01f;
         p->Initialized = true;
         
+        GameState->Menu = 1;
+        
 #if SAVE_IMAGES
         test = LoadImage("grass2.png");
-        TexTest.Init(&test);
+        test = ResizeImage(test, GRIDSIZE, GRIDSIZE);
+        SaveImage(&test, "grass2.h");
+        Faune50 = LoadEntireFont("Faune-TextRegular.otf", 50);
+        Faune100 = LoadEntireFont("Faune-TextRegular.otf", 100);
 #else
-        
+        LoadImageFromgrass2_h(&test);
 #endif
-        
+        TexTest.Init(&test);
     }
     
     
@@ -60,7 +72,7 @@ void UpdateRender(platform* p)
     real32 Speed = 1000.0f *p->Input.dt;
     if(Controller->MoveLeft.EndedDown)
     {
-        C.F -= Speed;
+        C.Position.x -= Speed;
     }
     
     if(Controller->MoveRight.EndedDown)
@@ -83,10 +95,24 @@ void UpdateRender(platform* p)
     
     C.Dimension = p->Dimension;
     
-    BeginMode2D(C);
-    RenderBackgroundGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-    
-    
-    
-    EndMode2D();
+    if (GameState->Menu == 1)
+    {
+        if (MainMenu.Initialized == 0)
+        {
+#include "main_menu.cpp"
+            MainMenu.Initialized = 1;
+        }
+        
+        BeginMode2D(C);
+        UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
+        ClearScreen();
+        RenderGUI(&MainMenu);
+        EndMode2D();
+    }
+    else
+    {
+        BeginMode2D(C);
+        RenderBackgroundGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        EndMode2D();
+    }
 }

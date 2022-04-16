@@ -36,7 +36,7 @@
 
 
 
-#define BITMAP_BYTES_PER_PIXEL 4
+
 
 inline uint32
 SafeTruncateUInt64(uint64 Value)
@@ -267,25 +267,6 @@ struct Apple
     int Y;
     int Score;
 };
-
-#if !defined(RAYLIB_H)
-
-#endif
-
-struct loaded_bitmap
-{
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
-    
-    void *Free;
-};
-
-internal void
-RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
-
-
 
 #define SNAKE_H
 #endif

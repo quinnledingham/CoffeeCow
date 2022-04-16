@@ -8,67 +8,12 @@
 
 #include "snake.h"
 
-internal void
-FilenameSearchModify(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            result[j] = *cursor;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
-
-internal void
-FilenameCapitalize(char* filename, char* result)
-{
-    int j = 0;
-    
-    char* cursor = filename;
-    while (*cursor != 0)
-    {
-        if (*cursor == '_' || *cursor == '.')
-        {
-            result[j] = '_';
-        }
-        else
-        {
-            char c = *cursor;
-            result[j] = c - 32;
-        }
-        cursor++;
-        j++;
-    }
-    result[j] = 0;
-}
-
 #include <math.h>
 inline int32
 RoundReal32ToInt32(real32 Real32)
 {
     int32 Result = (int32)roundf(Real32);
     return(Result);
-}
-
-unsigned long createRGBA(int r, int g, int b, int a)
-{   
-    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
-}
-
-unsigned long createRGB(int r, int g, int b)
-{   
-    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
 }
 
 #include "stdio.h"
