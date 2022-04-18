@@ -19,13 +19,6 @@
     1 - Slow code welcome.
 */
 
-#if SNAKE_SLOW
-// TODO(casey): Complete assertion macro - don't worry everyone!
-#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
-#else
-#define Assert(Expression)
-#endif
-
 #define Kilobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
@@ -33,10 +26,6 @@
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 // TODO(casey): swap, min, max ... macros???
-
-
-
-
 
 inline uint32
 SafeTruncateUInt64(uint64 Value)
@@ -161,9 +150,9 @@ struct game_input
     // TODO(casey): Insert clock values here.    
     game_controller_input Controllers[5];
     real32 SecondsElapsed;
-    
     int32 quit;
 };
+
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
@@ -230,13 +219,14 @@ struct LinkedList
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 35
+#define GRIDSIZE 50
 
 #define RIGHT 0
 #define UP 1
 #define LEFT 2
 #define DOWN 3
-
+#define NODIRECTION 4
+/*
 struct SnakeNode
 {
     real32 X;
@@ -260,7 +250,7 @@ struct Snake
     real32 DistanceTravelled;
     SnakeNode* Head;
 };
-
+*/
 struct Apple
 {
     int X;

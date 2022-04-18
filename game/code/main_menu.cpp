@@ -116,4 +116,7 @@ btn =
 };
 AddButton(&MainMenu, 0, Y++, 200, 100, &btn);
 
+MainMenu.ClientWidth = p->Dimension.Width;
+MainMenu.ClientHeight = p->Dimension.Height;
+
 InitializeGUI(&MainMenu);
