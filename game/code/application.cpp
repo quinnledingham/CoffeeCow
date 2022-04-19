@@ -30,11 +30,32 @@ SetCursorMode(platform_input *Input, CursorMode CursorM)
     }
 }
 
+internal bool32
+ValidDirection(int OldDirection, int NewDirection)
+{
+    // Same Direction
+    if (OldDirection == NewDirection)
+    {
+        return false;
+    }
+    // Backwards Direction
+    if (OldDirection + 2 == NewDirection || OldDirection - 2 == NewDirection)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
 internal void
 AddInputNode(Snake *snake, int NewDirection)
 {
     if (snake->InputHead == 0)
     {
+        if (!ValidDirection(snake->Direction, NewDirection))
+        {
+            return;
+        }
         snake->InputHead = (InputNode*)qalloc(sizeof(InputNode));
         snake->InputHead->Direction = NewDirection;
         return;
@@ -45,8 +66,14 @@ AddInputNode(Snake *snake, int NewDirection)
     {
         Cursor = Cursor->Next;
     }
+    
+    if (!ValidDirection(Cursor->Direction, NewDirection))
+    {
+        return;
+    }
+    
     Cursor->Next = (InputNode*)qalloc(sizeof(InputNode));
-    Cursor->Direction = NewDirection;
+    Cursor->Next->Direction = NewDirection;
 }
 
 internal void
@@ -81,6 +108,23 @@ AddSnakeNode(Snake *snake, real32 x, real32 y)
 }
 
 internal void
+InitSnake(Snake *snake)
+{
+    SnakeNode* Cursor = snake->Head;
+    while(Cursor != 0)
+    {
+        // Sets the snake to move in the same direction
+        int* D = &Cursor->Direction;
+        if (*D == NODIRECTION)
+        {
+            Cursor->NextDirection = snake->Direction;
+            *D = snake->Direction;
+        }
+        Cursor = Cursor->Next;
+    }
+}
+
+internal void
 DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
 {
     SnakeNode* Cursor = snake->Head;
@@ -93,92 +137,104 @@ DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
     }
 }
 
-internal void
-MoveSnakeNode(Snake *snake, SnakeNode *Node, real32 Dm)
+internal bool32
+CheckMoveSnakeNode(real32 x, real32 y, int Direction)
 {
-    int* D = &Node->Direction;
-    if (*D == NODIRECTION)
-    {
-        Node->NextDirection = snake->Direction;
-        *D = snake->Direction;
-    }
+    if (Direction == LEFT && x <= 0)
+        return false;
+    if (Direction == RIGHT && x >= GRIDWIDTH - 1)
+        return false;
+    if (Direction == UP && y <= 0)
+        return false;
+    if (Direction == DOWN && y >= GRIDHEIGHT - 1)
+        return false;
     
-    if (snake->Head != Node)
+    return true;
+}
+
+// returns amount to move
+internal bool32
+DetermineNextDirectionSnakeNode(Snake *snake)
+{
+    SnakeNode* Cursor = snake->Head;
+    while(Cursor != 0)
     {
-        if (snake->TransitionAmt > 1)
+        SnakeNode* Node = Cursor;
+        if (snake->Head == Node && snake->InputHead != 0)
         {
-            *D = Node->NextDirection;
+            snake->Direction = snake->InputHead->Direction;
+            Node->Direction = snake->Direction;
+            PopInputNode(snake);
+        }
+        else if (snake->Head != Node)
+        {
+            Node->Direction = Node->NextDirection;
             Node->NextDirection = Node->Previous->Direction;
-            
-            Node->x = roundf(Node->x);
-            Node->y = roundf(Node->y);
-            
-            Dm = snake->TransitionAmt - 1;
         }
-    }
-    else
-    {
-        if (snake->TransitionAmt > 1)
+        
+        Node->x = roundf(Node->x);
+        Node->y = roundf(Node->y);
+        
+        if (!CheckMoveSnakeNode(snake->Head->x, snake->Head->y, snake->Head->Direction))
         {
-            if (snake->InputHead != 0)
-            {
-                snake->Direction = snake->InputHead->Direction;
-                *D = snake->Direction;
-                PopInputNode(snake);
-                
-                Node->x = roundf(Node->x);
-                Node->y = roundf(Node->y);
-                
-                Dm = snake->TransitionAmt - 1;
-            }
-            else
-            {
-                Node->x = roundf(Node->x);
-                Node->y = roundf(Node->y);
-                
-                Dm = snake->TransitionAmt - 1;
-            }
+            return false;
         }
+        
+        Cursor = Cursor->Next;
     }
     
-    if (*D == DOWN)
+    return true;
+}
+
+internal void
+MoveSnakeNode(Snake* snake, real32 Dm)
+{
+    SnakeNode* Node = snake->Head;
+    while(Node != 0)
     {
-        Node->y += Dm;
-    }
-    if (*D == UP)
-    {
-        Node->y -= Dm;
-    }
-    if (*D == LEFT)
-    {
-        Node->x -= Dm;
-    }
-    if (*D == RIGHT)
-    {
-        Node->x += Dm;
+        int* D = &Node->Direction;
+        if (*D == DOWN)
+        {
+            Node->y += Dm;
+        }
+        if (*D == UP)
+        {
+            Node->y -= Dm;
+        }
+        if (*D == LEFT)
+        {
+            Node->x -= Dm;
+        }
+        if (*D == RIGHT)
+        {
+            Node->x += Dm;
+        }
+        
+        Node = Node->Next;
     }
 }
 
 internal void
 MoveSnake(Snake *snake, real32 SecondsElapsed)
 {
-    float Dm = (snake->Speed * SecondsElapsed);
-    snake->TransitionAmt += Dm;
-    PrintqDebug(S() + snake->Direction + "\n");
-    //snake->Head->Direction = snake->Direction;
-    MoveSnakeNode(snake, snake->Head, Dm);
+    real32 Dm = (snake->Speed * SecondsElapsed);
+    real32 TransitionAmt = snake->TransitionAmt + Dm;
     
-    SnakeNode* Cursor = snake->Head->Next;
-    while(Cursor != 0)
+    if (TransitionAmt > 1)
     {
-        MoveSnakeNode(snake, Cursor, Dm);
-        Cursor = Cursor->Next;
-    }
-    
-    if (snake->TransitionAmt > 1)
-    {
-        //PrintqDebug("Wow");
+        if (!DetermineNextDirectionSnakeNode(snake))
+        {
+            return;
+        }
+        Dm = TransitionAmt - 1;
+        
         snake->TransitionAmt = 0;
+        MoveSnakeNode(snake, Dm);
+    }
+    else
+    {
+        MoveSnakeNode(snake, Dm);
+        snake->TransitionAmt += Dm;
     }
 }
 
@@ -232,7 +288,7 @@ void UpdateRender(platform* p)
     if (p->Input.dt != 0)
     {
         FPS = 1 / p->Input.WorkSecondsElapsed;
-        //PrintqDebug(S() + (int)FPS + "\n");
+        PrintqDebug(S() + (int)FPS + "\n");
     }
     
     //p->Input.Seconds += p->Input.WorkSecondsElapsed;
@@ -305,6 +361,7 @@ void UpdateRender(platform* p)
             
             Player.Speed = 10; // m/s
             Player.Direction = DOWN;
+            InitSnake(&Player);
             //AddInputNode(&Player, DOWN);
             Player.Initialized = true;
         }
