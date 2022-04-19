@@ -100,7 +100,7 @@ btn =
     0xFFeba434, // HoverColor
     0xFFFFFFFF, // TextColor
 };
-AddButton(&MainMenu, 0, Y++, 200, 100, &btn);
+AddButton(&MainMenu, 0, Y++, 250, 100, &btn);
 
 btn = 
 {
@@ -114,7 +114,7 @@ btn =
     0xFFeba434, // HoverColor
     0xFFFFFFFF, // TextColor
 };
-AddButton(&MainMenu, 0, Y++, 200, 100, &btn);
+AddButton(&MainMenu, 0, Y++, 250, 100, &btn);
 
 MainMenu.ClientWidth = p->Dimension.Width;
 MainMenu.ClientHeight = p->Dimension.Height;

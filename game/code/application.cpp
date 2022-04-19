@@ -4,6 +4,9 @@
 
 Image test;
 Texture TexTest;
+Texture Background;
+Texture Grid;
+Texture Rocks;
 Font Faune50 = {};
 Font Faune100 = {};
 Font Faune = {};
@@ -15,7 +18,19 @@ RenderBackgroundGrid(int GridX, int GridY, int GridWidth, int GridHeight, int Gr
     {
         for (int j = 0; j < GridHeight; j++)
         {
-            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), GridSize, GridSize, TexTest);
+            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), 0, GridSize, GridSize, Background, 0);
+        }
+    }
+}
+
+internal void
+RenderGrid(int GridX, int GridY, int GridWidth, int GridHeight, int GridSize)
+{
+    for (int i = 0; i < GridWidth; i++)
+    {
+        for (int j = 0; j < GridHeight; j++)
+        {
+            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), -0.9f, GridSize, GridSize, Grid, 0);
         }
     }
 }
@@ -27,6 +42,10 @@ SetCursorMode(platform_input *Input, CursorMode CursorM)
     {
         Input->Cursor = CursorM;
         Input->NewCursor = true;
+    }
+    else
+    {
+        Input->NewCursor = false;
     }
 }
 
@@ -132,7 +151,7 @@ DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
     {
         DrawRect((int)roundf(GridX + (Cursor->x * GridSize)),
                  (int)roundf(GridY + (Cursor->y * GridSize)),
-                 GridSize, GridSize, 0xFFFF0000);
+                 GridSize, GridSize, 0xFF964B00);
         Cursor = Cursor->Next;
     }
 }
@@ -156,10 +175,9 @@ CheckMoveSnakeNode(real32 x, real32 y, int Direction)
 internal bool32
 DetermineNextDirectionSnakeNode(Snake *snake)
 {
-    SnakeNode* Cursor = snake->Head;
-    while(Cursor != 0)
+    SnakeNode* Node = snake->Head;
+    while(Node != 0)
     {
-        SnakeNode* Node = Cursor;
         if (snake->Head == Node && snake->InputHead != 0)
         {
             snake->Direction = snake->InputHead->Direction;
@@ -175,12 +193,12 @@ DetermineNextDirectionSnakeNode(Snake *snake)
         Node->x = roundf(Node->x);
         Node->y = roundf(Node->y);
         
-        if (!CheckMoveSnakeNode(snake->Head->x, snake->Head->y, snake->Head->Direction))
+        if (snake->Head == Node && !CheckMoveSnakeNode(snake->Head->x, snake->Head->y, snake->Head->Direction))
         {
             return false;
         }
         
-        Cursor = Cursor->Next;
+        Node = Node->Next;
     }
     
     return true;
@@ -242,7 +260,7 @@ Snake Player = {};
 
 Camera C =
 {
-    v3(0, 0, -5),
+    v3(0, 0, -900),
     v3(0, 0, 0),
     v3(0, 1, 0),
     0,
@@ -250,10 +268,12 @@ Camera C =
     0,
 };
 
+real32 Rotation = 0;
+
 global_variable GUI MainMenu = {};
 
-#include "../data/imagesaves/grass2.h"
-#include "../data/imagesaves/grass2.cpp"
+//#include "../data/imagesaves/grass2.h"
+//#include "../data/imagesaves/grass2.cpp"
 
 void UpdateRender(platform* p)
 {
@@ -264,16 +284,30 @@ void UpdateRender(platform* p)
         Manager.Next = (char*)p->Memory.PermanentStorage;
         qalloc(sizeof(game_state));
         
-        C.FOV = 60.0f;
+        C.FOV = 90.0f;
         C.F = 0.01f;
         p->Initialized = true;
         
-        GameState->Menu = 0;
+        GameState->Menu = 1;
+        
+        Image ImgGrid = {};
+        Image ImgBackground = {};
+        Image ImgRocks = {};
         
 #if SAVE_IMAGES
         test = LoadImage("grass2.png");
-        test = ResizeImage(test, GRIDSIZE, GRIDSIZE);
-        SaveImage(&test, "grass2.h");
+        test = ResizeImage(test, GRIDWIDTH * GRIDSIZE, GRIDHEIGHT * GRIDSIZE);
+        //SaveImage(&test, "grass2.h");
+        
+        ImgGrid = LoadImage("grid.png");
+        ImgGrid = ResizeImage(ImgGrid, GRIDSIZE, GRIDSIZE);
+        
+        //ImgBackground = LoadImage("sand.png");
+        //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
+        
+        ImgRocks = LoadImage("rocks.png");
+        ImgRocks = ResizeImage(ImgRocks, 1133, 1133);
+        
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
         Faune100 = LoadFont("Rubik-Medium.ttf", 100);
         Faune = LoadFont("Rubik-Medium.ttf", 350);
@@ -281,6 +315,10 @@ void UpdateRender(platform* p)
         LoadImageFromgrass2_h(&test);
 #endif
         TexTest.Init(&test);
+        Grid.Init(&ImgGrid);
+        Background.Init("sand.png");
+        Rocks.Init(&ImgRocks);
+        
     }
     
     
@@ -288,11 +326,8 @@ void UpdateRender(platform* p)
     if (p->Input.dt != 0)
     {
         FPS = 1 / p->Input.WorkSecondsElapsed;
-        PrintqDebug(S() + (int)FPS + "\n");
+        PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
     }
-    
-    //p->Input.Seconds += p->Input.WorkSecondsElapsed;
-    //PrintqDebug(S() + (int)p->Input.Seconds + "\n");
     
     int HalfGridX = (GRIDWIDTH * GRIDSIZE) / 2;
     int HalfGridY = (GRIDHEIGHT * GRIDSIZE) / 2;
@@ -387,12 +422,28 @@ void UpdateRender(platform* p)
             AddInputNode(&Player, UP);
         }
         
+        if(Controller->ActionUp.EndedDown)
+        {
+            //C.Position.y += 5.0f;
+            Rotation += 5.0f;
+        }
+        if(Controller->ActionDown.EndedDown)
+        {
+            //C.Position.y -= 5.0f;
+            Rotation -= 5.0f;
+        }
+        
         MoveSnake(&Player, p->Input.WorkSecondsElapsed);
         
-        BeginMode2D(C);
+        BeginMode3D(C);
         
-        RenderBackgroundGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        DrawRect(-(p->Dimension.Width)/2 - 5, - (p->Dimension.Height)/2 - 5, 1.0f,
+                 p->Dimension.Width + 5,  p->Dimension.Height + 5, Background, 0);
+        //RenderBackgroundGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        RenderGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         DrawSnake(&Player, -HalfGridX, -HalfGridY, GRIDSIZE);
+        DrawRect(-HalfGridX - 141, -HalfGridY - 141, -10.0f, Rocks.mWidth, Rocks.mHeight, Rocks, Rotation);
+        
         
         EndMode2D();
     }
