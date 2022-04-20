@@ -435,7 +435,7 @@ void UpdateRender(platform* p)
         
         MoveSnake(&Player, p->Input.WorkSecondsElapsed);
         
-        BeginMode3D(C);
+        BeginMode2D(C);
         
         DrawRect(-(p->Dimension.Width)/2 - 5, - (p->Dimension.Height)/2 - 5, 1.0f,
                  p->Dimension.Width + 5,  p->Dimension.Height + 5, Background, 0);
