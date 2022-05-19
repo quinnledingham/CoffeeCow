@@ -1,11 +1,5 @@
-#if !defined(SNAKE_H)
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Casey Muratori $
-   $Notice: (C) Copyright 2014 by Molly Rocket, Inc. All Rights Reserved. $
-   ======================================================================== */
+#ifndef SNAKE_H
+#define SNAKE_H
 
 struct game_state
 {
@@ -26,7 +20,7 @@ struct Circle
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 50
+#define GRIDSIZE 25
 
 #define RIGHT 0
 #define UP 1
@@ -71,5 +65,4 @@ struct Apple
     int Score;
 };
 
-#define SNAKE_H
-#endif
+#endif //SNAKE_H

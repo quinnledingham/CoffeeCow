@@ -233,6 +233,19 @@ MoveSnakeNode(Snake* snake, real32 Dm)
 }
 
 internal void
+AlignSnake(Snake *snake)
+{
+    SnakeNode* Node = snake->Head;
+    while(Node != 0)
+    {
+        Node->x = roundf(Node->x);
+        Node->y = roundf(Node->y);
+        
+        Node = Node->Next;
+    }
+}
+
+internal void
 MoveSnake(Snake *snake, real32 SecondsElapsed)
 {
     real32 Dm = (snake->Speed * SecondsElapsed);
@@ -242,6 +255,7 @@ MoveSnake(Snake *snake, real32 SecondsElapsed)
     {
         if (!DetermineNextDirectionSnakeNode(snake))
         {
+            AlignSnake(snake);
             return;
         }
         Dm = TransitionAmt - 1;
@@ -305,8 +319,11 @@ void UpdateRender(platform* p)
         //ImgBackground = LoadImage("sand.png");
         //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
         
+        int GridSizeWidth = GRIDWIDTH * GRIDSIZE;
+        int GridSizeHeight = GRIDHEIGHT * GRIDSIZE;
+        
         ImgRocks = LoadImage("rocks.png");
-        ImgRocks = ResizeImage(ImgRocks, 1133, 1133);
+        ImgRocks = ResizeImage(ImgRocks, GridSizeWidth * 4/3 - 1, GridSizeHeight * 4/3 - 1);
         
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
         Faune100 = LoadFont("Rubik-Medium.ttf", 100);
@@ -424,12 +441,10 @@ void UpdateRender(platform* p)
         
         if(Controller->ActionUp.EndedDown)
         {
-            //C.Position.y += 5.0f;
             Rotation += 5.0f;
         }
         if(Controller->ActionDown.EndedDown)
         {
-            //C.Position.y -= 5.0f;
             Rotation -= 5.0f;
         }
         
@@ -437,12 +452,17 @@ void UpdateRender(platform* p)
         
         BeginMode2D(C);
         
-        DrawRect(-(p->Dimension.Width)/2 - 5, - (p->Dimension.Height)/2 - 5, 1.0f,
-                 p->Dimension.Width + 5,  p->Dimension.Height + 5, Background, 0);
-        //RenderBackgroundGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
+        DrawRect(-(p->Dimension.Width)/2 - 5,
+                 -(p->Dimension.Height)/2 - 5, 1.0f,
+                 p->Dimension.Width + 5,  
+                 p->Dimension.Height + 5, Background, 0);
         RenderGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
         DrawSnake(&Player, -HalfGridX, -HalfGridY, GRIDSIZE);
-        DrawRect(-HalfGridX - 141, -HalfGridY - 141, -10.0f, Rocks.mWidth, Rocks.mHeight, Rocks, Rotation);
+        DrawRect(-HalfGridX - (GRIDSIZE * GRIDWIDTH * 1/6),
+                 -HalfGridY - (GRIDSIZE * GRIDHEIGHT * 1/6),
+                 -1.0f,
+                 Rocks.mWidth, Rocks.mHeight,
+                 Rocks, Rotation);
         
         
         EndMode2D();
