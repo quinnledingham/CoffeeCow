@@ -1,4 +1,5 @@
 MainMenu.Padding = 10;
+MainMenu.DefaultPadding = 10;
 
 int Y = 0;
 
@@ -8,7 +9,7 @@ TextBox tb = {};
 
 TXT.Text = "SINGLEPLAYER";
 TXT.ID = Btn1;
-TXT.FontType = &Faune100;
+TXT.FontType = Faune100;
 TXT.TextColor = 0xFF000000;
 AddText(&MainMenu, 0, Y++,  &TXT);
 
@@ -17,7 +18,7 @@ btn =
     0,
     0,
     "START",    // Text
-    &Faune100,   // Font
+    Faune100,   // Font
     GameStart,       // ID
     0,          // Color (CurrentColor)
     0xFF32a89b, // RegularColor
@@ -30,7 +31,7 @@ TXT =
 {
     "0",    // Text
     Btn1,       // ID
-    &Faune100,   // Font
+    Faune100,   // Font
     0xFFFFFFFF, // TextColor
 };
 AddText(&MainMenu, 0, Y++,  &TXT);
@@ -39,7 +40,7 @@ TXT =
 {
     "MULTIPLAYER",    // Text
     Btn1,       // ID
-    &Faune100,   // Font
+    Faune100,   // Font
     0xFF000000, // TextColor
 };
 AddText(&MainMenu, 0, Y++,  &TXT);
@@ -48,10 +49,10 @@ TXT =
 {
     "IP:",    // Text
     Btn1,       // ID
-    &Faune50,   // Font
+    Faune50,   // Font
     0xFF000000, // TextColor
 };
-AddText(&MainMenu, 0, Y,  &TXT);
+AddText(&MainMenu, 0, Y, &TXT);
 
 tb =
 {
@@ -70,7 +71,7 @@ TXT =
 {
     "PORT:",    // Text
     Btn1,       // ID
-    &Faune50,   // Font
+    Faune50,   // Font
     0xFF000000, // TextColor
 };
 AddText(&MainMenu, 0, Y,  &TXT);
@@ -93,7 +94,7 @@ btn =
     0,
     0,
     "JOIN",    // Text
-    &Faune100,   // Font
+    Faune100,   // Font
     Btn4,       // ID
     0,          // Color (CurrentColor)
     0xFF32a89b, // RegularColor
@@ -107,7 +108,7 @@ btn =
     0,
     0,
     "QUIT",    // Text
-    &Faune100,   // Font
+    Faune100,   // Font
     Quit,       // ID
     0,          // Color (CurrentColor)
     0xFF32a89b, // RegularColor

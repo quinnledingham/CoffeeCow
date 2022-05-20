@@ -20,7 +20,7 @@ struct Circle
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 25
+#define GRIDSIZE 50
 
 #define RIGHT 0
 #define UP 1
@@ -32,6 +32,8 @@ struct SnakeNode
 {
     real32 x;
     real32 y;
+    int GridX;
+    int GridY;
     int Direction;
     int NextDirection;
     

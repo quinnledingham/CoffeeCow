@@ -7,6 +7,7 @@ Texture TexTest;
 Texture Background;
 Texture Grid;
 Texture Rocks;
+Texture SnakeHead;
 Font Faune50 = {};
 Font Faune100 = {};
 Font Faune = {};
@@ -147,11 +148,39 @@ internal void
 DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
 {
     SnakeNode* Cursor = snake->Head;
+    
+    int Rotation = 0;
+    if (Cursor->Direction == LEFT)
+        Rotation = 90;
+    if (Cursor->Direction == RIGHT)
+        Rotation = -90;
+    if (Cursor->Direction == UP)
+        Rotation = 180;
+    if (Cursor->Direction == DOWN)
+        Rotation = 0;
+    
+    DrawRect((int)roundf(GridX + (Cursor->x * GridSize)), (int)roundf(GridY + (Cursor->y * GridSize)), 1,
+             GridSize, GridSize, SnakeHead, (real32)Rotation);
+    Cursor = Cursor->Next;
+    
     while(Cursor != 0)
     {
+        
+        
+        // Draw turning snake
+        if (Cursor->Next != 0 &&
+            Cursor->Direction != Cursor->Next->Direction)
+        {
+            DrawRect((int)roundf(GridX + ((real32)Cursor->Next->GridX * GridSize)),
+                     (int)roundf(GridY + ((real32)Cursor->Next->GridY * GridSize)),
+                     GridSize, GridSize, 0xFF964B00);
+        }
+        
+        
         DrawRect((int)roundf(GridX + (Cursor->x * GridSize)),
                  (int)roundf(GridY + (Cursor->y * GridSize)),
                  GridSize, GridSize, 0xFF964B00);
+        
         Cursor = Cursor->Next;
     }
 }
@@ -196,6 +225,28 @@ DetermineNextDirectionSnakeNode(Snake *snake)
         if (snake->Head == Node && !CheckMoveSnakeNode(snake->Head->x, snake->Head->y, snake->Head->Direction))
         {
             return false;
+        }
+        
+        // Set SnakeNode next grid position
+        if (Node->Direction == RIGHT)
+        {
+            Node->GridX = (int)Node->x + 1;
+            Node->GridY = (int)Node->y;
+        }
+        if (Node->Direction == UP)
+        {
+            Node->GridX = (int)Node->x;
+            Node->GridY = (int)Node->y - 1;
+        }
+        if (Node->Direction == LEFT)
+        {
+            Node->GridX = (int)Node->x - 1;
+            Node->GridY = (int)Node->y;
+        }
+        if (Node->Direction == DOWN)
+        {
+            Node->GridX = (int)Node->x;
+            Node->GridY = (int)Node->y + 1;
         }
         
         Node = Node->Next;
@@ -285,6 +336,7 @@ Camera C =
 real32 Rotation = 0;
 
 global_variable GUI MainMenu = {};
+global_variable GUI PauseMenu = {};
 
 //#include "../data/imagesaves/grass2.h"
 //#include "../data/imagesaves/grass2.cpp"
@@ -307,6 +359,7 @@ void UpdateRender(platform* p)
         Image ImgGrid = {};
         Image ImgBackground = {};
         Image ImgRocks = {};
+        Image ImgSnakeHead = {};
         
 #if SAVE_IMAGES
         test = LoadImage("grass2.png");
@@ -315,6 +368,9 @@ void UpdateRender(platform* p)
         
         ImgGrid = LoadImage("grid.png");
         ImgGrid = ResizeImage(ImgGrid, GRIDSIZE, GRIDSIZE);
+        
+        ImgSnakeHead = LoadImage("cowhead.png");
+        ImgSnakeHead = ResizeImage(ImgSnakeHead, GRIDSIZE, GRIDSIZE);
         
         //ImgBackground = LoadImage("sand.png");
         //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
@@ -335,7 +391,7 @@ void UpdateRender(platform* p)
         Grid.Init(&ImgGrid);
         Background.Init("sand.png");
         Rocks.Init(&ImgRocks);
-        
+        SnakeHead.Init(&ImgSnakeHead);
     }
     
     
@@ -366,6 +422,7 @@ void UpdateRender(platform* p)
         {
             SetCursorMode(&p->Input, Arrow);
             GameState->Menu = 0;
+            return;
         }
         else if (btnPress == Btn4)
         {
@@ -393,6 +450,7 @@ void UpdateRender(platform* p)
         
         //PrintqDebug(S() + p->Input.MouseX + " " + p->Input.MouseY + "\n");
         
+        
         BeginMode2D(C);
         UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
         ClearScreen();
@@ -402,7 +460,7 @@ void UpdateRender(platform* p)
         //PrintOnScreen(&Faune, "Wow", 0, 0, 0xFFFF0000);
         EndMode2D();
     }
-    else
+    else if (GameState->Menu == 0)
     {
         if (Player.Initialized == false)
         {
@@ -419,6 +477,12 @@ void UpdateRender(platform* p)
         }
         
         platform_controller_input *Controller = &p->Input.Controllers[0];
+        
+        if (Controller->Escape.NewEndedDown)
+        {
+            GameState->Menu = 2;
+        }
+        
         if(Controller->MoveLeft.NewEndedDown)
         {
             AddInputNode(&Player, LEFT);
@@ -465,6 +529,51 @@ void UpdateRender(platform* p)
                  Rocks, Rotation);
         
         
+        EndMode2D();
+    }
+    else if (GameState->Menu == 2)
+    {
+        if (PauseMenu.Initialized == 0)
+        {
+#include "pause_menu.cpp" 
+            PauseMenu.Initialized = 1;
+        }
+        
+        int btnPress = -1;
+        int tbPress = -1;
+        
+        if(p->Input.MouseButtons[0].EndedDown)
+        {
+            btnPress = CheckButtonsClick(&PauseMenu, p->Input.MouseX, p->Input.MouseY);
+            tbPress = CheckTextBoxes(&PauseMenu, p->Input.MouseX, p->Input.MouseY);
+        }
+        
+        if (btnPress == Menu)
+        {
+            SetCursorMode(&p->Input, Arrow);
+            GameState->Menu = 1;
+            return;
+        }
+        
+        if (CheckButtonsHover(&PauseMenu, p->Input.MouseX, p->Input.MouseY))
+        {
+            SetCursorMode(&p->Input, Hand);
+        }
+        else
+        {
+            SetCursorMode(&p->Input, Arrow);
+        }
+        
+        platform_controller_input *Controller = &p->Input.Controllers[0];
+        if (Controller->Escape.NewEndedDown)
+        {
+            GameState->Menu = 0;
+        }
+        
+        BeginMode2D(C);
+        UpdateGUI(&PauseMenu, p->Dimension.Width, p->Dimension.Height);
+        ClearScreen();
+        RenderGUI(&PauseMenu);
         EndMode2D();
     }
 }
