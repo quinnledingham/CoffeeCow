@@ -7,6 +7,6 @@ set CommonLinkerFlags= -incremental:no -opt:ref user32.lib gdi32.lib winmm.lib
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
 
-cl %CommonCompilerFlags% C:\Snake\game\code\application.cpp -Fmwin32_renderer.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% C:\Snake\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
 popd

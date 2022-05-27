@@ -7,7 +7,11 @@ Texture TexTest;
 Texture Background;
 Texture Grid;
 Texture Rocks;
+
 Texture SnakeHead;
+Texture SnakeStraight;
+Texture SnakeCorner;
+
 Font Faune50 = {};
 Font Faune100 = {};
 Font Faune = {};
@@ -147,8 +151,71 @@ InitSnake(Snake *snake)
 internal void
 DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
 {
+    // Go to end of snake
     SnakeNode* Cursor = snake->Head;
+    while(Cursor->Next != 0)
+    {
+        Cursor = Cursor->Next;
+    }
     
+    while(Cursor != snake->Head)
+    {
+        
+        
+        int Rotation = 0;
+        if (Cursor->Direction == LEFT)
+            Rotation = 90;
+        if (Cursor->Direction == RIGHT)
+            Rotation = -90;
+        if (Cursor->Direction == UP)
+            Rotation = 180;
+        if (Cursor->Direction == DOWN)
+            Rotation = 0;
+        DrawRect((int)roundf(GridX + (Cursor->x * GridSize)),
+                 (int)roundf(GridY + (Cursor->y * GridSize)), 1,
+                 GridSize, GridSize, SnakeStraight, (real32)Rotation);
+        
+        // Draw turning snake
+        if (Cursor->Previous != 0 &&
+            Cursor->Direction != Cursor->Previous->Direction)
+        {
+            int Rotation = 0;
+            if ((Cursor->Previous->Direction == LEFT && Cursor->Direction == DOWN) ||
+                (Cursor->Previous->Direction == UP && Cursor->Direction == RIGHT)) 
+                Rotation = 180;
+            if ((Cursor->Previous->Direction == RIGHT && Cursor->Direction == DOWN) ||
+                (Cursor->Previous->Direction == UP && Cursor->Direction == LEFT)) 
+                Rotation = -90;
+            if ((Cursor->Previous->Direction == DOWN && Cursor->Direction == RIGHT) ||
+                (Cursor->Previous->Direction == RIGHT && Cursor->Direction == UP))
+                Rotation = 0;
+            if ((Cursor->Previous->Direction == DOWN && Cursor->Direction == RIGHT) ||
+                (Cursor->Previous->Direction == LEFT && Cursor->Direction == UP)) 
+                Rotation = 90;
+            
+            DrawRect((int)roundf(GridX + ((real32)Cursor->GridX * GridSize)),
+                     (int)roundf(GridY + ((real32)Cursor->GridY * GridSize)), 1,
+                     GridSize, GridSize, SnakeCorner, (real32)Rotation);
+        }
+        
+        Cursor = Cursor->Previous;
+    }
+    
+    int Rotation = 0;
+    if (Cursor->Direction == LEFT)
+        Rotation = 90;
+    if (Cursor->Direction == RIGHT)
+        Rotation = -90;
+    if (Cursor->Direction == UP)
+        Rotation = 180;
+    if (Cursor->Direction == DOWN)
+        Rotation = 0;
+    
+    DrawRect((int)roundf(GridX + (Cursor->x * GridSize)), (int)roundf(GridY + (Cursor->y * GridSize)), 1,
+             GridSize, GridSize, SnakeHead, (real32)Rotation);
+    
+    /*
+        SnakeNode* Cursor = snake->Head;
     int Rotation = 0;
     if (Cursor->Direction == LEFT)
         Rotation = 90;
@@ -165,8 +232,6 @@ DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
     
     while(Cursor != 0)
     {
-        
-        
         // Draw turning snake
         if (Cursor->Next != 0 &&
             Cursor->Direction != Cursor->Next->Direction)
@@ -183,6 +248,7 @@ DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
         
         Cursor = Cursor->Next;
     }
+*/
 }
 
 internal bool32
@@ -321,7 +387,14 @@ MoveSnake(Snake *snake, real32 SecondsElapsed)
     }
 }
 
+internal void
+UpdateCoffeeCowCollisionBox(CoffeeCow *Cow)
+{
+    memset(Cow->CoffeeCowCollisionBox, 0, sizeof(CoffeeCowCollisionNode) * sizeof(Cow->CoffeeCowCollisionBox));
+}
+
 Snake Player = {};
+CoffeeCow CowPlayer = {};
 
 Camera C =
 {
@@ -359,7 +432,10 @@ void UpdateRender(platform* p)
         Image ImgGrid = {};
         Image ImgBackground = {};
         Image ImgRocks = {};
+        
         Image ImgSnakeHead = {};
+        Image ImgSnakeStraight = {};
+        Image ImgSnakeCorner = {};
         
 #if SAVE_IMAGES
         test = LoadImage("grass2.png");
@@ -371,6 +447,10 @@ void UpdateRender(platform* p)
         
         ImgSnakeHead = LoadImage("cowhead.png");
         ImgSnakeHead = ResizeImage(ImgSnakeHead, GRIDSIZE, GRIDSIZE);
+        ImgSnakeStraight = LoadImage("straight.png");
+        ImgSnakeStraight = ResizeImage(ImgSnakeStraight, GRIDSIZE, GRIDSIZE);
+        ImgSnakeCorner = LoadImage("corner.png");
+        ImgSnakeCorner = ResizeImage(ImgSnakeCorner, GRIDSIZE, GRIDSIZE);
         
         //ImgBackground = LoadImage("sand.png");
         //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
@@ -391,7 +471,10 @@ void UpdateRender(platform* p)
         Grid.Init(&ImgGrid);
         Background.Init("sand.png");
         Rocks.Init(&ImgRocks);
+        
         SnakeHead.Init(&ImgSnakeHead);
+        SnakeStraight.Init(&ImgSnakeStraight);
+        SnakeCorner.Init(&ImgSnakeCorner);
     }
     
     
@@ -469,7 +552,7 @@ void UpdateRender(platform* p)
             AddSnakeNode(&Player, 1, 2);
             AddSnakeNode(&Player, 1, 1);
             
-            Player.Speed = 10; // m/s
+            Player.Speed = 5; // m/s
             Player.Direction = DOWN;
             InitSnake(&Player);
             //AddInputNode(&Player, DOWN);

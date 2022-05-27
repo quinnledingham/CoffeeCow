@@ -67,4 +67,47 @@ struct Apple
     int Score;
 };
 
+struct Coffee
+{
+    int X;
+    int Y;
+};
+
+struct CoffeeCowNode
+{
+    int X;
+    int Y;
+    int CurrentDirection;
+    int NextDirection;
+    
+    CoffeeCowNode *Next;
+    CoffeeCowNode *Previous;
+};
+
+struct CoffeeCowCollisionNode
+{
+    int X;
+    int Y;
+};
+
+// This struct will hold 
+struct CoffeeCow
+{
+    CoffeeCowNode *Head;
+    CoffeeCowNode *Tail;
+    
+    CoffeeCowCollisionNode CoffeeCowCollisionBox[GRIDWIDTH * GRIDHEIGHT];
+    
+    real32 TransitionAmount = 0;
+    real32 Speed;
+    int Direction;
+    int CLength;
+    int Score;
+    
+    bool Moving = true;
+    InputNode *InputHead;
+    
+    bool32 Initialized = false;
+};
+
 #endif //SNAKE_H
