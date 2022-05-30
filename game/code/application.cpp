@@ -12,6 +12,10 @@ Texture SnakeHead;
 Texture SnakeStraight;
 Texture SnakeCorner;
 
+Texture HeadOutline;
+Texture StraightOutline;
+Texture CornerOutline;
+
 Font Faune50 = {};
 Font Faune100 = {};
 Font Faune = {};
@@ -47,20 +51,6 @@ RenderBuffer(RectBuffer *Buffer)
     
     Buffer->Clear();
 };
-
-/*
-internal void
-RenderBackgroundGrid(int GridX, int GridY, int GridWidth, int GridHeight, int GridSize)
-{
-    for (int i = 0; i < GridWidth; i++)
-    {
-        for (int j = 0; j < GridHeight; j++)
-        {
-            DrawRect(GridX + (i * GridSize), GridY + (j * GridSize), 0, GridSize, GridSize, Background, 0);
-        }
-    }
-}
-*/
 
 internal void
 RenderGrid(int GridX, int GridY, int GridWidth, int GridHeight, int GridSize)
@@ -101,340 +91,13 @@ ValidDirection(int OldDirection, int NewDirection)
 {
     // Same Direction
     if (OldDirection == NewDirection)
-    {
         return false;
-    }
     // Backwards Direction
     if (OldDirection + 2 == NewDirection || OldDirection - 2 == NewDirection)
-    {
-        return false;
-    }
-    
-    return true;
-}
-
-internal void
-AddInputNode(Snake *snake, int NewDirection)
-{
-    if (snake->InputHead == 0)
-    {
-        if (!ValidDirection(snake->Direction, NewDirection))
-        {
-            return;
-        }
-        snake->InputHead = (InputNode*)qalloc(sizeof(InputNode));
-        snake->InputHead->Direction = NewDirection;
-        return;
-    }
-    
-    InputNode* Cursor = snake->InputHead;
-    while(Cursor->Next != 0)
-    {
-        Cursor = Cursor->Next;
-    }
-    
-    if (!ValidDirection(Cursor->Direction, NewDirection))
-    {
-        return;
-    }
-    
-    Cursor->Next = (InputNode*)qalloc(sizeof(InputNode));
-    Cursor->Next->Direction = NewDirection;
-}
-
-internal void
-PopInputNode(Snake *snake)
-{
-    snake->InputHead = snake->InputHead->Next;
-}
-
-internal void
-AddSnakeNode(Snake *snake, real32 x, real32 y)
-{
-    if (snake->Head == 0)
-    {
-        snake->Head = (SnakeNode*)qalloc(sizeof(SnakeNode));
-        snake->Head->Direction = NODIRECTION;
-        snake->Head->x = x;
-        snake->Head->y = y;
-    }
-    else
-    {
-        SnakeNode* Cursor = snake->Head;
-        while(Cursor->Next != 0)
-        {
-            Cursor = Cursor->Next;
-        }
-        Cursor->Next = (SnakeNode*)qalloc(sizeof(SnakeNode));
-        Cursor->Next->Direction = NODIRECTION;
-        Cursor->Next->x = x;
-        Cursor->Next->y = y;
-        Cursor->Next->Previous = Cursor;
-    }
-}
-
-internal void
-InitSnake(Snake *snake)
-{
-    SnakeNode* Cursor = snake->Head;
-    while(Cursor != 0)
-    {
-        // Sets the snake to move in the same direction
-        int* D = &Cursor->Direction;
-        if (*D == NODIRECTION)
-        {
-            Cursor->NextDirection = snake->Direction;
-            *D = snake->Direction;
-        }
-        Cursor = Cursor->Next;
-    }
-}
-
-/*
-internal void
-DrawSnake(Snake *snake, int GridX, int GridY, int GridSize)
-{
-    // Go to end of snake
-    SnakeNode* Cursor = snake->Head;
-    while(Cursor->Next != 0)
-    {
-        Cursor = Cursor->Next;
-    }
-    
-    while(Cursor != snake->Head)
-    {
-        
-        
-        int Rotation = 0;
-        if (Cursor->Direction == LEFT)
-            Rotation = 90;
-        if (Cursor->Direction == RIGHT)
-            Rotation = -90;
-        if (Cursor->Direction == UP)
-            Rotation = 180;
-        if (Cursor->Direction == DOWN)
-            Rotation = 0;
-        
-        DrawRect((int)roundf(GridX + (Cursor->x * GridSize)),
-                 (int)roundf(GridY + (Cursor->y * GridSize)), 1,
-                 GridSize, GridSize, SnakeStraight, (real32)Rotation);
-        
-        // Draw turning snake
-        if (Cursor->Previous != 0 &&
-            Cursor->Direction != Cursor->Previous->Direction)
-        {
-            int Rotation = 0;
-            if ((Cursor->Previous->Direction == LEFT && Cursor->Direction == DOWN) ||
-                (Cursor->Previous->Direction == UP && Cursor->Direction == RIGHT)) 
-                Rotation = 180;
-            if ((Cursor->Previous->Direction == RIGHT && Cursor->Direction == DOWN) ||
-                (Cursor->Previous->Direction == UP && Cursor->Direction == LEFT)) 
-                Rotation = -90;
-            if ((Cursor->Previous->Direction == DOWN && Cursor->Direction == RIGHT) ||
-                (Cursor->Previous->Direction == RIGHT && Cursor->Direction == UP))
-                Rotation = 0;
-            if ((Cursor->Previous->Direction == DOWN && Cursor->Direction == RIGHT) ||
-                (Cursor->Previous->Direction == LEFT && Cursor->Direction == UP)) 
-                Rotation = 90;
-            
-            DrawRect((int)roundf(GridX + ((real32)Cursor->GridX * GridSize)),
-                     (int)roundf(GridY + ((real32)Cursor->GridY * GridSize)), 1,
-                     GridSize, GridSize, SnakeCorner, (real32)Rotation);
-        }
-        
-        Cursor = Cursor->Previous;
-    }
-    
-    int Rotation = 0;
-    if (Cursor->Direction == LEFT)
-        Rotation = 90;
-    if (Cursor->Direction == RIGHT)
-        Rotation = -90;
-    if (Cursor->Direction == UP)
-        Rotation = 180;
-    if (Cursor->Direction == DOWN)
-        Rotation = 0;
-    
-    DrawRect((int)roundf(GridX + (Cursor->x * GridSize)), (int)roundf(GridY + (Cursor->y * GridSize)), 1,
-             GridSize, GridSize, SnakeHead, (real32)Rotation);
-    
-    
-        SnakeNode* Cursor = snake->Head;
-    int Rotation = 0;
-    if (Cursor->Direction == LEFT)
-        Rotation = 90;
-    if (Cursor->Direction == RIGHT)
-        Rotation = -90;
-    if (Cursor->Direction == UP)
-        Rotation = 180;
-    if (Cursor->Direction == DOWN)
-        Rotation = 0;
-    
-    DrawRect((int)roundf(GridX + (Cursor->x * GridSize)), (int)roundf(GridY + (Cursor->y * GridSize)), 1,
-             GridSize, GridSize, SnakeHead, (real32)Rotation);
-    Cursor = Cursor->Next;
-    
-    while(Cursor != 0)
-    {
-        // Draw turning snake
-        if (Cursor->Next != 0 &&
-            Cursor->Direction != Cursor->Next->Direction)
-        {
-            DrawRect((int)roundf(GridX + ((real32)Cursor->Next->GridX * GridSize)),
-                     (int)roundf(GridY + ((real32)Cursor->Next->GridY * GridSize)),
-                     GridSize, GridSize, 0xFF964B00);
-        }
-        
-        DrawRect((int)roundf(GridX + (Cursor->x * GridSize)),
-                 (int)roundf(GridY + (Cursor->y * GridSize)),
-                 GridSize, GridSize, 0xFF964B00);
-        
-        Cursor = Cursor->Next;
-    }
-
-}
-*/
-internal bool32
-CheckMoveSnakeNode(real32 x, real32 y, int Direction)
-{
-    if (Direction == LEFT && x <= 0)
-        return false;
-    if (Direction == RIGHT && x >= GRIDWIDTH - 1)
-        return false;
-    if (Direction == UP && y <= 0)
-        return false;
-    if (Direction == DOWN && y >= GRIDHEIGHT - 1)
         return false;
     
     return true;
 }
-
-// returns amount to move
-internal bool32
-DetermineNextDirectionSnakeNode(Snake *snake)
-{
-    SnakeNode* Node = snake->Head;
-    while(Node != 0)
-    {
-        if (snake->Head == Node && snake->InputHead != 0)
-        {
-            snake->Direction = snake->InputHead->Direction;
-            Node->Direction = snake->Direction;
-            PopInputNode(snake);
-        }
-        else if (snake->Head != Node)
-        {
-            Node->Direction = Node->NextDirection;
-            Node->NextDirection = Node->Previous->Direction;
-        }
-        
-        Node->x = roundf(Node->x);
-        Node->y = roundf(Node->y);
-        
-        if (snake->Head == Node && !CheckMoveSnakeNode(snake->Head->x, snake->Head->y, snake->Head->Direction))
-        {
-            return false;
-        }
-        
-        // Set SnakeNode next grid position
-        if (Node->Direction == RIGHT)
-        {
-            Node->GridX = (int)Node->x + 1;
-            Node->GridY = (int)Node->y;
-        }
-        if (Node->Direction == UP)
-        {
-            Node->GridX = (int)Node->x;
-            Node->GridY = (int)Node->y - 1;
-        }
-        if (Node->Direction == LEFT)
-        {
-            Node->GridX = (int)Node->x - 1;
-            Node->GridY = (int)Node->y;
-        }
-        if (Node->Direction == DOWN)
-        {
-            Node->GridX = (int)Node->x;
-            Node->GridY = (int)Node->y + 1;
-        }
-        
-        Node = Node->Next;
-    }
-    
-    return true;
-}
-
-internal void
-MoveSnakeNode(Snake* snake, real32 Dm)
-{
-    SnakeNode* Node = snake->Head;
-    while(Node != 0)
-    {
-        int* D = &Node->Direction;
-        if (*D == DOWN)
-        {
-            Node->y += Dm;
-        }
-        if (*D == UP)
-        {
-            Node->y -= Dm;
-        }
-        if (*D == LEFT)
-        {
-            Node->x -= Dm;
-        }
-        if (*D == RIGHT)
-        {
-            Node->x += Dm;
-        }
-        
-        Node = Node->Next;
-    }
-}
-
-internal void
-AlignSnake(Snake *snake)
-{
-    SnakeNode* Node = snake->Head;
-    while(Node != 0)
-    {
-        Node->x = roundf(Node->x);
-        Node->y = roundf(Node->y);
-        
-        Node = Node->Next;
-    }
-}
-
-internal void
-MoveSnake(Snake *snake, real32 SecondsElapsed)
-{
-    real32 Dm = (snake->Speed * SecondsElapsed);
-    real32 TransitionAmt = snake->TransitionAmt + Dm;
-    
-    if (TransitionAmt > 1)
-    {
-        if (!DetermineNextDirectionSnakeNode(snake))
-        {
-            AlignSnake(snake);
-            return;
-        }
-        Dm = TransitionAmt - 1;
-        
-        snake->TransitionAmt = 0;
-        MoveSnakeNode(snake, Dm);
-    }
-    else
-    {
-        MoveSnakeNode(snake, Dm);
-        snake->TransitionAmt += Dm;
-    }
-}
-
-// Arr
-
-
-
-// Coffee Cow
 
 // First figure out where all the corners are
 // Connect squares to them
@@ -444,7 +107,7 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
 {
     // Put the head, tail, and corners into a list
     Arr Corners = {};
-    Corners.Init(Cow->Nodes.Size, sizeof(CoffeeCowNode));
+    Corners.Init(Cow->Nodes.Size, sizeof(Rect));
     
     for (int i = 0; i < Cow->Nodes.Size; i++)
     {
@@ -453,7 +116,7 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         {
             v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
                roundf(GridY + ((Node->Coords.y) * GridSize)),
-               0.0f),
+               0.5f),
             v2(GridSize, GridSize),
             SnakeStraight,
             0.0f,
@@ -486,15 +149,22 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
                 NodeRect.Coords.z = 2.0f;
                 NodeRect.Tex = SnakeHead;
                 RBuffer.Push(NodeRect);
+                Corners.Push(&NodeRect);
                 
-                Corners.Push(Node);
+                NodeRect.Coords.z = 0.0f;
+                NodeRect.Tex = HeadOutline;
+                RBuffer.Push(NodeRect);
             }
         }
         if (i == Cow->Nodes.Size - 1) {
             CoffeeCowNode *PreviousNode = (CoffeeCowNode*)Cow->Nodes[i - 1];
             NodeRect.Tex = SnakeCorner;
             RBuffer.Push(NodeRect);
-            Corners.Push(Node);
+            Corners.Push(&NodeRect);
+            
+            NodeRect.Coords.z = 0.0f;
+            NodeRect.Tex = CornerOutline;
+            RBuffer.Push(NodeRect);
         }
         else {
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
@@ -503,14 +173,18 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
                 {
                     v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
                        roundf(GridY + ((Node->Coords.y) * GridSize)),
-                       -0.5f),
+                       0.5f),
                     v2(GridSize, GridSize),
                     SnakeCorner,
                     0.0f,
                     BlendMode::gl_one
                 };
                 RBuffer.Push(NodeRect);
-                Corners.Push(Node);
+                Corners.Push(&NodeRect);
+                
+                NodeRect.Coords.z = 0.0f;
+                NodeRect.Tex = CornerOutline;
+                RBuffer.Push(NodeRect);
             }
         }
     }
@@ -518,10 +192,10 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
     // Draw the connect rects
     for (int i = 0; i < (Corners.Size - 1); i++)
     {
-        CoffeeCowNode *Node = (CoffeeCowNode*)Corners[i];
-        CoffeeCowNode *NextNode = (CoffeeCowNode*)Corners[i + 1];
-        CoffeeCowNode *Left;
-        CoffeeCowNode *Right;
+        Rect *Node = (Rect*)Corners[i];
+        Rect *NextNode = (Rect*)Corners[i + 1];
+        Rect *Left;
+        Rect *Right;
         if (Node->Coords.x < NextNode->Coords.x || Node->Coords.y < NextNode->Coords.y) {
             Left = Node;
             Right = NextNode;
@@ -536,33 +210,35 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         Coords.x = Left->Coords.x;
         Coords.y = Left->Coords.y;
         
-        Size.x = (GridSize * (Left->Coords.x - Right->Coords.x) * -1);
-        Size.y = (GridSize * (Left->Coords.y - Right->Coords.y) * -1);
+        Size.x = (Left->Coords.x - Right->Coords.x) * -1;
+        Size.y = (Left->Coords.y - Right->Coords.y) * -1;
         
         if (Size.x == 0) Size.x = (real32)GridSize;
         if (Size.y == 0) Size.y = (real32)GridSize;
         
-        Coords.x *= GridSize;
-        Coords.y *= GridSize;
-        
-        if (Size.y > Size.x) {
-            Coords.y += (GridSize/2);
-        }
-        else if (Size.y < Size.x) {
+        if (Left->Coords.y == Right->Coords.y)
             Coords.x += (GridSize/2);
-        }
+        if (Left->Coords.x == Right->Coords.x)
+            Coords.y += (GridSize/2);
         
         Rect NodeRect =
         {
-            v3(roundf(GridX + Coords.x),
-               roundf(GridY + Coords.y),
-               0.0f),
+            v3(roundf(Coords.x),
+               roundf(Coords.y),
+               0.5f),
             Size,
             SnakeStraight,
             0.0f,
             BlendMode::gl_one,
         };
-        RBuffer.Push(NodeRect);
+        
+        if (Left->Coords.y != Right->Coords.y || Left->Coords.x != Right->Coords.x) {
+            RBuffer.Push(NodeRect);
+            
+            NodeRect.Coords.z = 0.0f;
+            NodeRect.Tex = StraightOutline;
+            RBuffer.Push(NodeRect);
+        }
     }
 }
 
@@ -624,8 +300,6 @@ DetermineNextDirectionCoffeeCow(CoffeeCow *Cow)
             CoffeeCowNode* PreviousNode = (CoffeeCowNode*)Cow->Nodes[i - 1];
             Node->NextDirection = PreviousNode->CurrentDirection;
         }
-        
-        
         
         //if (i == 0 && !CheckMove(Node->Coords.x, Node->Coords.y, Cow->Direction)) return false;
     }
@@ -709,6 +383,10 @@ void UpdateRender(platform* p)
         Image ImgSnakeStraight = {};
         Image ImgSnakeCorner = {};
         
+        Image ImgHeadOutline = {};
+        Image ImgStraightOutline = {};
+        Image ImgCornerOutline = {};
+        
 #if SAVE_IMAGES
         test = LoadImage("grass2.png");
         test = ResizeImage(test, GRIDWIDTH * GRIDSIZE, GRIDHEIGHT * GRIDSIZE);
@@ -719,10 +397,18 @@ void UpdateRender(platform* p)
         
         ImgSnakeHead = LoadImage("cowhead.png");
         ImgSnakeHead = ResizeImage(ImgSnakeHead, GRIDSIZE, GRIDSIZE);
+        ImgHeadOutline= LoadImage("cowheadoutline.png");
+        ImgHeadOutline= ResizeImage(ImgHeadOutline, GRIDSIZE, GRIDSIZE);
+        
         ImgSnakeStraight = LoadImage("straight.png");
         ImgSnakeStraight = ResizeImage(ImgSnakeStraight, GRIDSIZE, GRIDSIZE);
+        ImgStraightOutline= LoadImage("straightoutline.png");
+        ImgStraightOutline = ResizeImage(ImgStraightOutline, GRIDSIZE, GRIDSIZE);
+        
         ImgSnakeCorner = LoadImage("circle.png");
         ImgSnakeCorner = ResizeImage(ImgSnakeCorner, GRIDSIZE, GRIDSIZE);
+        ImgCornerOutline = LoadImage("circleoutline.png");
+        ImgCornerOutline = ResizeImage(ImgCornerOutline, GRIDSIZE, GRIDSIZE);
         
         //ImgBackground = LoadImage("sand.png");
         //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
@@ -745,18 +431,23 @@ void UpdateRender(platform* p)
         Rocks.Init(&ImgRocks);
         
         SnakeHead.Init(&ImgSnakeHead);
+        HeadOutline.Init(&ImgHeadOutline);
+        
         SnakeStraight.Init(&ImgSnakeStraight);
+        StraightOutline.Init(&ImgStraightOutline);
+        
         SnakeCorner.Init(&ImgSnakeCorner);
+        CornerOutline.Init(&ImgCornerOutline);
     }
     
-    /*
+    
     float FPS = 0;
     if (p->Input.dt != 0)
     {
         FPS = 1 / p->Input.WorkSecondsElapsed;
         PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
     }
-    */
+    
     
     int HalfGridX = (GRIDWIDTH * GRIDSIZE) / 2;
     int HalfGridY = (GRIDHEIGHT * GRIDSIZE) / 2;
@@ -818,27 +509,15 @@ void UpdateRender(platform* p)
     }
     else if (GameState->Menu == 0)
     {
-        if (Player.Initialized == false)
+        if (CowPlayer.Initialized == false)
         {
-            AddSnakeNode(&Player, 1, 4);
-            AddSnakeNode(&Player, 1, 3);
-            AddSnakeNode(&Player, 1, 2);
-            AddSnakeNode(&Player, 1, 1);
-            
-            Player.Speed = 1; // m/s
-            Player.Direction = DOWN;
-            InitSnake(&Player);
-            //AddInputNode(&Player, DOWN);
-            Player.Initialized = true;
-            
-            
             CowPlayer.Nodes.Init(GRIDWIDTH * GRIDHEIGHT, sizeof(CoffeeCowNode));
             AddCoffeeCowNode(&CowPlayer, 1, 4);
             AddCoffeeCowNode(&CowPlayer, 1, 3);
             AddCoffeeCowNode(&CowPlayer, 1, 2);
             AddCoffeeCowNode(&CowPlayer, 1, 1);
             CowPlayer.Inputs.Init(3, sizeof(int));
-            CowPlayer.Speed = 1; // m/s
+            CowPlayer.Speed = 7; // m/s
             CowPlayer.Direction = DOWN;
             CowPlayer.Initialized = true;
         }
