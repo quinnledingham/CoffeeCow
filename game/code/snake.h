@@ -20,7 +20,7 @@ struct Circle
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 70
+#define GRIDSIZE 40
 
 #define RIGHT 0
 #define UP 1
