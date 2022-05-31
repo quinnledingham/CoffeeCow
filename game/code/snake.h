@@ -20,7 +20,7 @@ struct Circle
 
 #define GRIDWIDTH 17
 #define GRIDHEIGHT 17
-#define GRIDSIZE 50
+#define GRIDSIZE 70
 
 #define RIGHT 0
 #define UP 1
@@ -100,6 +100,11 @@ struct Arr
         TypeSize = ts;
         
         Data = qalloc(ms * ts);
+    }
+    
+    void Del()
+    {
+        dalloc(Data);
     }
     
     void Push(void *NewData)

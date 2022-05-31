@@ -158,6 +158,7 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         }
         if (i == Cow->Nodes.Size - 1) {
             CoffeeCowNode *PreviousNode = (CoffeeCowNode*)Cow->Nodes[i - 1];
+            NodeRect.Coords.z = 0.5f;
             NodeRect.Tex = SnakeCorner;
             RBuffer.Push(NodeRect);
             Corners.Push(&NodeRect);
@@ -240,6 +241,8 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
             RBuffer.Push(NodeRect);
         }
     }
+    
+    Corners.Del();
 }
 
 internal void
