@@ -1,5 +1,5 @@
-PauseMenu.Padding = 10;
-PauseMenu.DefaultPadding = 10;
+GameOverMenu.Padding = 10;
+GameOverMenu.DefaultPadding = 10;
 
 int Y = 0;
 
@@ -7,17 +7,17 @@ Text TXT = {};
 Button btn = {};
 TextBox tb = {};
 
-TXT.Text = "Paused";
+TXT.Text = "Game Over";
 TXT.ID = Btn1;
 TXT.FontType = Faune100;
 TXT.TextColor = 0xFF000000;
-AddText(&PauseMenu, 0, Y++,  &TXT);
+AddText(&GameOverMenu, 0, Y++,  &TXT);
 
 btn = 
 {
     0,
     0,
-    "Reset",    // Text
+    "Play Again",    // Text
     Faune100,   // Font
     Reset,       // ID
     0,          // Color (CurrentColor)
@@ -25,13 +25,13 @@ btn =
     0xFFeba434, // HoverColor
     0xFFFFFFFF, // TextColor
 };
-AddButton(&PauseMenu, 0, Y++, 300, 100, &btn);
+AddButton(&GameOverMenu, 0, Y++, 600, 150, &btn);
 
 btn = 
 {
     0,
     0,
-    "Menu",    // Text
+    "Main Menu",    // Text
     Faune100,   // Font
     Menu,       // ID
     0,          // Color (CurrentColor)
@@ -39,9 +39,9 @@ btn =
     0xFFeba434, // HoverColor
     0xFFFFFFFF, // TextColor
 };
-AddButton(&PauseMenu, 0, Y++, 300, 100, &btn);
+AddButton(&GameOverMenu, 0, Y++, 600, 150, &btn);
 
-PauseMenu.ClientWidth = 1000;
-PauseMenu.ClientHeight = 1000;
+GameOverMenu.ClientWidth = 1000;
+GameOverMenu.ClientHeight = 1000;
 
-InitializeGUI(&PauseMenu);
+InitializeGUI(&GameOverMenu);
