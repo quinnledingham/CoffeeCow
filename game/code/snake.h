@@ -7,6 +7,9 @@ struct game_state
     int ToneHz;
     int GreenOffset;
     int BlueOffset;
+    int GridSize;
+    int GridHeight;
+    int GridWidth;
 };
 
 struct Circle

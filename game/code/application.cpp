@@ -2,7 +2,6 @@
 
 #include "snake.h"
 
-Image test;
 Texture TexTest;
 Texture Background;
 Texture Grid;
@@ -362,6 +361,23 @@ global_variable GUI PauseMenu = {};
 
 //#include "../data/imagesaves/grass2.h"
 //#include "../data/imagesaves/grass2.
+internal void
+LoadGameAssets(int GridSize, int GridWidth, int GridHeight)
+{
+    TexTest = LoadTexture("grass2.png", GridSize, GridSize);
+    Grid = LoadTexture("grid.png", GridSize, GridSize);
+    Background.Init("sand.png");
+    Rocks = LoadTexture("rocks.png", 
+                        (GridWidth * GridSize) * 4/3 - 1,
+                        (GridHeight * GridSize) * 4/3 - 1);
+    
+    SnakeHead = LoadTexture("cowhead.png", GridSize, GridSize);
+    HeadOutline = LoadTexture("cowheadoutline.png", GridSize, GridSize);
+    SnakeStraight = LoadTexture("straight.png", GridSize, GridSize);
+    StraightOutline = LoadTexture("straightoutline.png", GridSize, GridSize);
+    SnakeCorner = LoadTexture("circle.png", GridSize, GridSize);
+    CornerOutline = LoadTexture("circleoutline.png", GridSize, GridSize);
+}
 
 void UpdateRender(platform* p)
 {
@@ -377,72 +393,24 @@ void UpdateRender(platform* p)
         p->Initialized = true;
         
         GameState->Menu = 1;
-        
-        Image ImgGrid = {};
-        Image ImgBackground = {};
-        Image ImgRocks = {};
-        
-        Image ImgSnakeHead = {};
-        Image ImgSnakeStraight = {};
-        Image ImgSnakeCorner = {};
-        
-        Image ImgHeadOutline = {};
-        Image ImgStraightOutline = {};
-        Image ImgCornerOutline = {};
+        GameState->GridWidth = 17;
+        GameState->GridHeight = 17;
+        //GameState->GridSize = p->Dimension.Height / (GameState->GridWidth + 1);
         
 #if SAVE_IMAGES
-        test = LoadImage("grass2.png");
-        test = ResizeImage(test, GRIDWIDTH * GRIDSIZE, GRIDHEIGHT * GRIDSIZE);
-        //SaveImage(&test, "grass2.h");
-        
-        ImgGrid = LoadImage("grid.png");
-        ImgGrid = ResizeImage(ImgGrid, GRIDSIZE, GRIDSIZE);
-        
-        ImgSnakeHead = LoadImage("cowhead.png");
-        ImgSnakeHead = ResizeImage(ImgSnakeHead, GRIDSIZE, GRIDSIZE);
-        ImgHeadOutline= LoadImage("cowheadoutline.png");
-        ImgHeadOutline= ResizeImage(ImgHeadOutline, GRIDSIZE, GRIDSIZE);
-        
-        ImgSnakeStraight = LoadImage("straight.png");
-        ImgSnakeStraight = ResizeImage(ImgSnakeStraight, GRIDSIZE, GRIDSIZE);
-        ImgStraightOutline= LoadImage("straightoutline.png");
-        ImgStraightOutline = ResizeImage(ImgStraightOutline, GRIDSIZE, GRIDSIZE);
-        
-        ImgSnakeCorner = LoadImage("circle.png");
-        ImgSnakeCorner = ResizeImage(ImgSnakeCorner, GRIDSIZE, GRIDSIZE);
-        ImgCornerOutline = LoadImage("circleoutline.png");
-        ImgCornerOutline = ResizeImage(ImgCornerOutline, GRIDSIZE, GRIDSIZE);
-        
-        //ImgBackground = LoadImage("sand.png");
-        //ImgBackground = ResizeImage(ImgBackground, , GRIDHEIGHT * GRIDSIZE);
-        
-        int GridSizeWidth = GRIDWIDTH * GRIDSIZE;
-        int GridSizeHeight = GRIDHEIGHT * GRIDSIZE;
-        
-        ImgRocks = LoadImage("rocks.png");
-        ImgRocks = ResizeImage(ImgRocks, GridSizeWidth * 4/3 - 1, GridSizeHeight * 4/3 - 1);
-        
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
         Faune100 = LoadFont("Rubik-Medium.ttf", 100);
         Faune = LoadFont("Rubik-Medium.ttf", 350);
 #else
         LoadImageFromgrass2_h(&test);
 #endif
-        TexTest.Init(&test);
-        Grid.Init(&ImgGrid);
-        Background.Init("sand.png");
-        Rocks.Init(&ImgRocks);
-        
-        SnakeHead.Init(&ImgSnakeHead);
-        HeadOutline.Init(&ImgHeadOutline);
-        
-        SnakeStraight.Init(&ImgSnakeStraight);
-        StraightOutline.Init(&ImgStraightOutline);
-        
-        SnakeCorner.Init(&ImgSnakeCorner);
-        CornerOutline.Init(&ImgCornerOutline);
     }
     
+    int NewGridSize = p->Dimension.Height / (GameState->GridWidth + 1);
+    if (NewGridSize != GameState->GridSize) {
+        GameState->GridSize = NewGridSize;
+        LoadGameAssets(GameState->GridSize,GameState->GridWidth, GameState->GridHeight);
+    }
     
     float FPS = 0;
     if (p->Input.dt != 0)
@@ -452,8 +420,8 @@ void UpdateRender(platform* p)
     }
     
     
-    int HalfGridX = (GRIDWIDTH * GRIDSIZE) / 2;
-    int HalfGridY = (GRIDHEIGHT * GRIDSIZE) / 2;
+    int HalfGridX = (GameState->GridWidth * GameState->GridSize) / 2;
+    int HalfGridY = (GameState->GridHeight * GameState->GridSize) / 2;
     
     C.Dimension = p->Dimension;
     
@@ -504,17 +472,14 @@ void UpdateRender(platform* p)
         BeginMode2D(C);
         UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
         ClearScreen();
-        //bool32 g = Equal("wo", "wow");
         RenderGUI(&MainMenu);
-        //DrawRect(0, 0, GRIDSIZE, GRIDSIZE, TexTest);
-        //PrintOnScreen(&Faune, "Wow", 0, 0, 0xFFFF0000);
         EndMode2D();
     }
     else if (GameState->Menu == 0)
     {
         if (CowPlayer.Initialized == false)
         {
-            CowPlayer.Nodes.Init(GRIDWIDTH * GRIDHEIGHT, sizeof(CoffeeCowNode));
+            CowPlayer.Nodes.Init(GameState->GridWidth * GameState->GridHeight, sizeof(CoffeeCowNode));
             AddCoffeeCowNode(&CowPlayer, 1, 4);
             AddCoffeeCowNode(&CowPlayer, 1, 3);
             AddCoffeeCowNode(&CowPlayer, 1, 2);
@@ -548,16 +513,15 @@ void UpdateRender(platform* p)
         
         BeginMode2D(C);
         
-        RBuffer.Push(Rect(v3(-(real32)HalfGridX - (GRIDSIZE * GRIDWIDTH * 1/6),
-                             -(real32)HalfGridY - (GRIDSIZE * GRIDHEIGHT * 1/6), 1.0f),
+        RBuffer.Push(Rect(v3(-(real32)HalfGridX - (GameState->GridSize * GameState->GridWidth * 1/6),
+                             -(real32)HalfGridY - (GameState->GridSize * GameState->GridHeight * 1/6), 1.0f),
                           v2((real32)Rocks.mWidth, (real32)Rocks.mHeight),
                           Rocks, 0, BlendMode::gl_src_alpha));
         RBuffer.Push(Rect(v3(-((real32)p->Dimension.Width)/2 - 5, 
                              -((real32)p->Dimension.Height)/2 - 5, -1.0f),
                           v2(p->Dimension.Width + 5, p->Dimension.Height + 5), Background, 0, BlendMode::gl_src_alpha));
-        
-        RenderGrid(-HalfGridX, -HalfGridY, GRIDWIDTH, GRIDHEIGHT, GRIDSIZE);
-        DrawCoffeeCow(&CowPlayer, -HalfGridX, -HalfGridY, GRIDSIZE);
+        RenderGrid(-HalfGridX, -HalfGridY, GameState->GridWidth, GameState->GridHeight, GameState->GridSize);
+        DrawCoffeeCow(&CowPlayer, -HalfGridX, -HalfGridY, GameState->GridSize);
         RenderBuffer(&RBuffer);
         
         EndMode2D();
