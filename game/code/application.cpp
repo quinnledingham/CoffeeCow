@@ -11,6 +11,7 @@ Texture CoffeeTex;
 Texture SnakeHead;
 Texture SnakeStraight;
 Texture SnakeCorner;
+Texture CoffeeStreak;
 
 Texture HeadOutline;
 Texture StraightOutline;
@@ -50,11 +51,7 @@ RenderBuffer(RectBuffer *Buffer)
                      Buffer->Buffer[i].Tex,
                      Buffer->Buffer[i].Rotation, Buffer->Buffer[i].Mode);
         else if (Buffer->Buffer[i].RMode == RectMode::Color)
-            DrawRect((int)Buffer->Buffer[i].Coords.x, 
-                     (int)Buffer->Buffer[i].Coords.y,
-                     (int)Buffer->Buffer[i].Size.x,
-                     (int)Buffer->Buffer[i].Size.y,
-                     Buffer->Buffer[i].Color);
+            DrawRect(Buffer->Buffer[i].Coords, Buffer->Buffer[i].Size, Buffer->Buffer[i].Color, Buffer->Buffer[i].Rotation);
     }
     
     Buffer->Clear();
@@ -116,8 +113,8 @@ DrawCoffee(Coffee *C, int GridX, int GridY, int GridSize)
                          -0.1f);
     NodeRect.Size = v2(GridSize, GridSize);
     NodeRect.Tex =  CoffeeTex;
-    NodeRect.Rotation = 0.0f;
-    NodeRect.Mode = BlendMode::gl_one;
+    NodeRect.Rotation = C->Rotation;
+    NodeRect.Mode = BlendMode::gl_src_alpha;
     
     RBuffer.Push(NodeRect);
 }
@@ -139,6 +136,139 @@ DrawCoffeeCowNodes(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         
         RBuffer.Push(NodeRect);
     }
+}
+
+inline v2
+GetSize(v3 Left, v3 Right, real32 GridSize)
+{
+    v2 Size;
+    Size.x = (Left.x - Right.x) * -1;
+    Size.y = (Left.y - Right.y) * -1;
+    if (Size.x == 0) Size.x = GridSize;
+    if (Size.y == 0) Size.y = GridSize;
+    
+    //Size.x = roundf(Size.x);
+    //Size.y = roundf(Size.y);
+    
+    return Size;
+}
+
+internal real32
+GetRotation(int Direction);
+
+internal real32
+GetRotation(int StartDirection, int EndDirection, int Part);
+
+// with down being the default direction
+internal real32
+GetRotation(int Direction)
+{
+    real32 Rotation = 0;
+    if (Direction == LEFT)
+        Rotation = 90.0f;
+    if (Direction == RIGHT)
+        Rotation = 270.0f;
+    if (Direction == UP)
+        Rotation = 180.0f;
+    if (Direction == DOWN)
+        Rotation = 0.0f;
+    
+    return Rotation;
+}
+
+internal real32
+GetAngleDiff(int StartDirection, int EndDirection)
+{
+    real32 Goal;
+    real32 BRotation = GetRotation(StartDirection);
+    real32 ERotation = GetRotation(EndDirection);
+    if (StartDirection == DOWN && EndDirection == RIGHT) {
+        Goal = -90;
+    }
+    else if (StartDirection == RIGHT && EndDirection == DOWN) {
+        Goal = 90;
+    }
+    else {
+        Goal = ERotation - BRotation;
+    }
+    return Goal;
+}
+
+internal real32
+GetRotation(int StartDirection, int MiddleDirection, int EndDirection,
+            int Part, real32 TransitionAmt)
+{
+    real32 Goal = 0;
+    real32 BRotation = GetRotation(StartDirection);
+    real32 MRotation = GetRotation(MiddleDirection);
+    real32 ERotation = GetRotation(EndDirection);
+    Goal = GetAngleDiff(StartDirection, EndDirection);
+    
+    real32 Rot = 0;
+    
+    if (Part == 1) {
+        real32 Transition = TransitionAmt - 0.5f;
+        if (Transition < 0)
+            Transition = 0;
+        else
+            Transition *= 2;
+        Rot = (Transition * (Goal/2)) + BRotation;
+    }
+    else if (Part == 2) {
+        real32 Transition = TransitionAmt;
+        if (Transition > 0.5f) {
+            Transition = 0;
+            Rot = ERotation;
+        }
+        else {
+            Transition *= 2;
+            Rot = (Transition * (Goal/2)) + BRotation + (Goal/2);
+        }
+    }
+    else if (Part == 3) {
+        real32 Transition = TransitionAmt;
+        if (Transition > 0.5f) {
+            Transition = TransitionAmt - 0.5f;
+            Transition *= 2;
+            Goal = GetAngleDiff(MiddleDirection, EndDirection);
+            Rot = (Transition * (Goal/2)) + MRotation;
+        }
+        else {
+            Transition *= 2;
+            Goal = GetAngleDiff(StartDirection, MiddleDirection);
+            Rot = (Transition * (Goal/2)) + BRotation + (Goal/2);
+        }
+    }
+    
+    return Rot;
+}
+
+internal v2
+CoordsTransition(v2 Coords, int Direction, real32 TransitionAmt,
+                 int GridX, int GridY, int GridSize)
+{
+    v2 NewCoords = {};
+    NewCoords.x = Coords.x;
+    NewCoords.y = Coords.y;
+    
+    if (Direction == RIGHT) {
+        NewCoords.x = roundf(GridX + ((NewCoords.x + TransitionAmt)* GridSize));
+        NewCoords.y = roundf(GridY + ((NewCoords.y) * GridSize));
+    }
+    if (Direction == UP) {
+        NewCoords.x = roundf(GridX + ((NewCoords.x) * GridSize));
+        NewCoords.y = roundf(GridY + ((NewCoords.y - TransitionAmt) * GridSize));
+    }
+    if (Direction == LEFT) {
+        NewCoords.x = roundf(GridX + ((NewCoords.x - TransitionAmt) * GridSize));
+        NewCoords.y = roundf(GridY + ((NewCoords.y) * GridSize));
+    }
+    if (Direction == DOWN) {
+        NewCoords.x = roundf(GridX + ((NewCoords.x) * GridSize));
+        NewCoords.y = roundf(GridY + ((NewCoords.y + TransitionAmt) * GridSize));
+    }
+    
+    return NewCoords;
 }
 
 // First figure out where all the corners are
@@ -165,26 +295,11 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         
         if (i == 0 || i == Cow->Nodes.Size - 1)
         {
-            if (Node->CurrentDirection == RIGHT)
-                NodeRect.Coords.x = roundf(GridX + ((Node->Coords.x + Cow->TransitionAmt)* GridSize));
-            if (Node->CurrentDirection == UP)
-                NodeRect.Coords.y = roundf(GridY + ((Node->Coords.y - Cow->TransitionAmt) * GridSize));
-            if (Node->CurrentDirection == LEFT)
-                NodeRect.Coords.x = roundf(GridX + ((Node->Coords.x - Cow->TransitionAmt) * GridSize));
-            if (Node->CurrentDirection == DOWN)
-                NodeRect.Coords.y = roundf(GridY + ((Node->Coords.y + Cow->TransitionAmt) * GridSize));
+            NodeRect.Coords = v3(CoordsTransition(v2(Node->Coords.x, 
+                                                     Node->Coords.y), Node->CurrentDirection, Cow->TransitionAmt, GridX, GridY, GridSize), 0.5f);
             
             if (i == 0) {
-                int Rotation = 0;
-                if (Node->CurrentDirection == LEFT)
-                    Rotation = 90;
-                if (Node->CurrentDirection == RIGHT)
-                    Rotation = -90;
-                if (Node->CurrentDirection == UP)
-                    Rotation = 180;
-                if (Node->CurrentDirection == DOWN)
-                    Rotation = 0;
-                NodeRect.Rotation = (real32)Rotation;
+                NodeRect.Rotation = GetRotation(Node->CurrentDirection);
                 
                 NodeRect.Coords.z = 2.0f;
                 NodeRect.Tex = SnakeHead;
@@ -210,16 +325,15 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         else {
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
             if (NextNode->CurrentDirection != Node->CurrentDirection) {
-                NodeRect =
-                {
-                    v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
-                       roundf(GridY + ((Node->Coords.y) * GridSize)),
-                       0.5f),
-                    v2(GridSize, GridSize),
-                    SnakeCorner,
-                    0.0f,
-                    BlendMode::gl_one
-                };
+                NodeRect = {};
+                NodeRect.Coords = v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
+                                     roundf(GridY + ((Node->Coords.y) * GridSize)),
+                                     0.5f);
+                NodeRect.Size = v2(GridSize, GridSize);
+                NodeRect.Tex = SnakeCorner;
+                NodeRect.Rotation = 0.0f;
+                NodeRect.Mode = BlendMode::gl_one;
+                
                 RBuffer.Push(NodeRect);
                 Corners.Push(&NodeRect);
                 
@@ -227,6 +341,64 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
                 NodeRect.Tex = CornerOutline;
                 RBuffer.Push(NodeRect);
             }
+        }
+        
+        if (Node->Streak) {
+            Rect StreakRect = {};
+            
+            StreakRect.Coords = v3(CoordsTransition(v2(Node->Coords.x,
+                                                       Node->Coords.y),
+                                                    Node->CurrentDirection,
+                                                    Cow->TransitionAmt,
+                                                    GridX, GridY, GridSize), 
+                                   3.0f);
+            
+            CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
+            CoffeeCowNode *PreviousNode = (CoffeeCowNode*)Cow->Nodes[i - 1];
+            
+            bool32 MovingIntoCorner = (PreviousNode->CurrentDirection != Node->CurrentDirection);
+            bool32 MovingOutOfCorner = (NextNode->CurrentDirection != Node->CurrentDirection);
+            
+            // Node moving into corner
+            if (MovingIntoCorner && !MovingOutOfCorner) {
+                StreakRect.Rotation = GetRotation(Node->CurrentDirection, 
+                                                  -1,
+                                                  PreviousNode->CurrentDirection,
+                                                  1, Cow->TransitionAmt);
+            }
+            // Node moving out of corner
+            else if (MovingOutOfCorner && !MovingIntoCorner) {
+                
+                StreakRect.Rotation = GetRotation(NextNode->CurrentDirection,
+                                                  -1,
+                                                  Node->CurrentDirection,
+                                                  2, Cow->TransitionAmt);
+                
+            }
+            else if (MovingIntoCorner && MovingOutOfCorner) {
+                StreakRect.Rotation = GetRotation(NextNode->CurrentDirection,
+                                                  Node->CurrentDirection,
+                                                  PreviousNode->CurrentDirection,
+                                                  3, Cow->TransitionAmt);
+                if (i == 1) {
+                    PrintqDebug(S() + (int)StreakRect.Rotation + "\n");
+                }
+            }
+            else {
+                StreakRect.Rotation = GetRotation(Node->CurrentDirection);
+            }
+            
+            real32 OutlineFactor = 0.96f;
+            real32 Outline = (real32)(GridSize - (GridSize * OutlineFactor));
+            StreakRect.Size = v2(GridSize - (Outline*2), GridSize - (Outline*2));
+            StreakRect.Coords.x += Outline;
+            StreakRect.Coords.y += Outline;
+            
+            StreakRect.Coords.z = 3.0f;
+            StreakRect.Tex = CoffeeStreak;
+            StreakRect.Mode = BlendMode::gl_one;
+            
+            RBuffer.Push(StreakRect);
         }
     }
     
@@ -251,40 +423,42 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
         Coords.x = Left->Coords.x;
         Coords.y = Left->Coords.y;
         
-        Size.x = (Left->Coords.x - Right->Coords.x) * -1;
-        Size.y = (Left->Coords.y - Right->Coords.y) * -1;
-        
-        if (Size.x == 0) Size.x = (real32)GridSize;
-        if (Size.y == 0) Size.y = (real32)GridSize;
-        
-        real32 OutlineFactor = 0.925f;
+        real32 OutlineFactor = 0.96f;
         real32 Outline = (real32)(GridSize - (GridSize * OutlineFactor));
-        Size.x -= Outline;
-        Size.y -= Outline;
+        Size = GetSize(Left->Coords, Right->Coords, GridSize - (Outline*2));
         
-        if (Left->Coords.y == Right->Coords.y)
+        if (Left->Coords.y == Right->Coords.y) {
             Coords.x += (GridSize/2);
-        if (Left->Coords.x == Right->Coords.x)
+            Coords.y += Outline;
+        }
+        if (Left->Coords.x == Right->Coords.x) {
             Coords.y += (GridSize/2);
+            Coords.x += Outline;
+        }
         
         Rect NodeRect = {};
-        NodeRect.Coords = v3(roundf(Coords.x) + (Outline/2),
-                             roundf(Coords.y) + (Outline/2),
+        NodeRect.Coords = v3(Coords.x,
+                             Coords.y,
                              0.5f);
         NodeRect.Size = Size;
         NodeRect.Color = 0xFFFFFFFF;
+        //NodeRect.Color = 0xFF9370DB;
         NodeRect.Rotation = 0.0f;
         NodeRect.RMode = RectMode::Color;
         
         if (Left->Coords.y != Right->Coords.y || Left->Coords.x != Right->Coords.x) {
             RBuffer.Push(NodeRect);
-            NodeRect.Coords = v3(roundf(Coords.x),
-                                 roundf(Coords.y),
+            
+            if (Left->Coords.y == Right->Coords.y)
+                Coords.y -= Outline;
+            if (Left->Coords.x == Right->Coords.x) 
+                Coords.x -= Outline;
+            
+            NodeRect.Coords = v3((Coords.x),
+                                 (Coords.y),
                                  0.5f);
             NodeRect.Coords.z = 0.0f;
-            Size.x += Outline;
-            Size.y += Outline;
-            NodeRect.Size = Size;
+            NodeRect.Size = GetSize(Left->Coords, Right->Coords, (real32)GridSize);
             NodeRect.Tex = StraightOutline;
             NodeRect.RMode = RectMode::Tex;
             RBuffer.Push(NodeRect);
@@ -414,6 +588,14 @@ AddCoffeeCowNode(CoffeeCow *Cow, int X, int Y, int CDirection, int NDirection)
     NewNode.Coords = v2(X, Y);
     NewNode.CurrentDirection = CDirection;
     NewNode.NextDirection = NDirection;
+    NewNode.Streak = false;
+    
+    if (Cow->Nodes.Size > 1) {
+        CoffeeCowNode *LastTail = (CoffeeCowNode*)Cow->Nodes[Cow->Nodes.Size - 1];
+        int Rand = Random(1, 2);
+        if (Rand == 2)
+            LastTail->Streak = true;
+    }
     
     Cow->Nodes.Push((void*)&NewNode);
 }
@@ -491,6 +673,7 @@ LoadGameAssets(int GridSize, int GridWidth, int GridHeight)
     SnakeCorner = LoadTexture("circle.png", GridSize, GridSize);
     CornerOutline = LoadTexture("circleoutline.png", GridSize, GridSize);
     CoffeeTex = LoadTexture("coffee.png", GridSize, GridSize);
+    CoffeeStreak = LoadTexture("coffeestreak.png", GridSize, GridSize);
 }
 
 real32 Rotation = 100;
@@ -520,12 +703,16 @@ void UpdateRender(platform* p)
         GameState->GridHeight = 17;
         //GameState->GridSize = p->Dimension.Height / (GameState->GridWidth + 1);
         
+        /*
         Client client = {};
         client.create("127.0.0.1", "44575", TCP);
-        
         char Buffer[50];
         sprintf(Buffer, "yo homey\n");
         client.sendq(Buffer, 50);
+        */
+        
+        //GameState->GridSize = 40;
+        //LoadGameAssets(GameState->GridSize,GameState->GridWidth, GameState->GridHeight);
         
 #if SAVE_IMAGES
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
@@ -621,7 +808,8 @@ void UpdateRender(platform* p)
             Rotation -= 10.0f;
         
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed))
-            GameState->Menu = 3;
+            //GameState->Menu = 3;
+            int i = 0;
         
         CoffeeCowNode* Head = (CoffeeCowNode*)CowPlayer->Nodes[0];
         if (Head->Coords.x == Collect->Coords.x &&
@@ -662,7 +850,12 @@ void UpdateRender(platform* p)
                           v2(p->Dimension.Width + 5, p->Dimension.Height + 5), Background, 0, BlendMode::gl_src_alpha));
         RenderGrid(-HalfGridX, -HalfGridY, GameState->GridWidth, GameState->GridHeight, GameState->GridSize);
         DrawCoffeeCow(CowPlayer, -HalfGridX, -HalfGridY, GameState->GridSize);
+        
+        Collect->Rotation += (p->Input.WorkSecondsElapsed * 100);
+        if (Collect->Rotation > 360)
+            Collect->Rotation -= 360;
         DrawCoffee(Collect, -HalfGridX, -HalfGridY, GameState->GridSize);
+        
         RenderBuffer(&RBuffer);
         
         Strinq Score = S() + CowPlayer->Score;

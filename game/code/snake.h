@@ -84,6 +84,7 @@ struct CoffeeCowNode
     v2 Coords;
     int CurrentDirection;
     int NextDirection;
+    bool32 Streak;
 };
 
 struct CoffeeCowCollisionNode
@@ -208,6 +209,7 @@ struct RectBuffer
 struct Coffee
 {
     v2 Coords;
+    real32 Rotation;
     bool32 Initialized;
 };
 

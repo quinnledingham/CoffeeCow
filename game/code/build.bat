@@ -9,7 +9,7 @@ pushd ..\..\build
 
 cl %CommonCompilerFlags% C:\Snake\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
-cl %CommonCompilerFlags% C:\Snake\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
+REM cl %CommonCompilerFlags% C:\Snake\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
 
 popd
