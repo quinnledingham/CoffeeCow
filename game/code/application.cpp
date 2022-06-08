@@ -520,6 +520,13 @@ void UpdateRender(platform* p)
         GameState->GridHeight = 17;
         //GameState->GridSize = p->Dimension.Height / (GameState->GridWidth + 1);
         
+        Client client = {};
+        client.create("127.0.0.1", "44575", TCP);
+        
+        char Buffer[50];
+        sprintf(Buffer, "yo homey\n");
+        client.sendq(Buffer, 50);
+        
 #if SAVE_IMAGES
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
         Faune100 = LoadFont("Rubik-Medium.ttf", 100);
