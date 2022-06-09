@@ -213,18 +213,13 @@ struct Coffee
     bool32 Initialized;
 };
 
-struct game_state
+enum struct
+menu
 {
-    int Menu;
-    int ToneHz;
-    int GreenOffset;
-    int BlueOffset;
-    int GridSize;
-    int GridHeight;
-    int GridWidth;
-    
-    CoffeeCow Player1;
-    Coffee Collect;
+    game,
+    main_menu,
+    pause_menu,
+    game_over_menu
 };
 
 enum struct
@@ -232,6 +227,18 @@ GameMode
 {
     Singleplayer,
     Multiplayer,
+};
+
+struct game_state
+{
+    menu Menu;
+    int ToneHz;
+    int GridSize;
+    int GridHeight;
+    int GridWidth;
+    
+    CoffeeCow Player1;
+    Coffee Collect;
 };
 
 #endif //SNAKE_H

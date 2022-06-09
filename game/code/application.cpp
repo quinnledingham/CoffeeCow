@@ -1,5 +1,4 @@
 #include "qlib/qlib.cpp"
-
 #include "snake.h"
 
 Texture TexTest;
@@ -74,20 +73,6 @@ RenderGrid(int GridX, int GridY, int GridWidth, int GridHeight, int GridSize)
             GridRect.Mode = BlendMode::gl_src_alpha;
             RBuffer.Push(GridRect);
         }
-    }
-}
-
-internal void
-SetCursorMode(platform_input *Input, CursorMode CursorM)
-{
-    if (Input->Cursor != CursorM)
-    {
-        Input->Cursor = CursorM;
-        Input->NewCursor = true;
-    }
-    else
-    {
-        Input->NewCursor = false;
     }
 }
 
@@ -380,9 +365,6 @@ DrawCoffeeCow(CoffeeCow *Cow, int GridX, int GridY, int GridSize)
                                                   Node->CurrentDirection,
                                                   PreviousNode->CurrentDirection,
                                                   3, Cow->TransitionAmt);
-                if (i == 1) {
-                    PrintqDebug(S() + (int)StreakRect.Rotation + "\n");
-                }
             }
             else {
                 StreakRect.Rotation = GetRotation(Node->CurrentDirection);
@@ -600,8 +582,6 @@ AddCoffeeCowNode(CoffeeCow *Cow, int X, int Y, int CDirection, int NDirection)
     Cow->Nodes.Push((void*)&NewNode);
 }
 
-//CoffeeCow CowPlayer = {};
-
 Camera C =
 {
     v3(0, 0, -900),
@@ -642,8 +622,6 @@ InitializeGame(GameMode Mode, game_state *GameState)
         else if (Startx > GameState->GridWidth - 4)
             Startx =  GameState->GridWidth - 4;
         
-        //sPrintqDebug(S() + "Startx: " + Startx + " Starty: "+ Starty + "\n");
-        
         for (int i = 0; i < 4; i++) {
             AddCoffeeCowNode(CowPlayer, Startx, Starty, Direction, Direction);
             Startx += incx;
@@ -653,6 +631,7 @@ InitializeGame(GameMode Mode, game_state *GameState)
         CowPlayer->Speed = 7; // m/s
         CowPlayer->Direction = Direction;
         CowPlayer->Initialized = true;
+        GameState->Collect.Initialized = false;
     }
 }
 
@@ -676,12 +655,6 @@ LoadGameAssets(int GridSize, int GridWidth, int GridHeight)
     CoffeeStreak = LoadTexture("coffeestreak.png", GridSize, GridSize);
 }
 
-real32 Rotation = 100;
-
-global_variable GUI MainMenu = {};
-global_variable GUI PauseMenu = {};
-global_variable GUI GameOverMenu = {};
-
 //#include "../data/imagesaves/grass2.h"
 //#include "../data/imagesaves/grass2.
 
@@ -698,10 +671,9 @@ void UpdateRender(platform* p)
         C.F = 0.01f;
         p->Initialized = true;
         
-        GameState->Menu = 1;
+        GameState->Menu = menu::main_menu;
         GameState->GridWidth = 17;
         GameState->GridHeight = 17;
-        //GameState->GridSize = p->Dimension.Height / (GameState->GridWidth + 1);
         
         /*
         Client client = {};
@@ -710,9 +682,6 @@ void UpdateRender(platform* p)
         sprintf(Buffer, "yo homey\n");
         client.sendq(Buffer, 50);
         */
-        
-        //GameState->GridSize = 40;
-        //LoadGameAssets(GameState->GridSize,GameState->GridWidth, GameState->GridHeight);
         
 #if SAVE_IMAGES
         Faune50 = LoadFont("Rubik-Medium.ttf", 50);
@@ -733,55 +702,15 @@ void UpdateRender(platform* p)
     if (p->Input.dt != 0)
     {
         FPS = 1 / p->Input.WorkSecondsElapsed;
-        //PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
+        PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
     }
-    
     
     int HalfGridX = (GameState->GridWidth * GameState->GridSize) / 2;
     int HalfGridY = (GameState->GridHeight * GameState->GridSize) / 2;
     
     C.Dimension = p->Dimension;
     
-    if (GameState->Menu == 1)
-    {
-        int btnPress = -1;
-        int tbPress = -1;
-        
-        if(p->Input.MouseButtons[0].EndedDown) {
-            btnPress = CheckButtonsClick(&MainMenu, p->Input.MouseX, p->Input.MouseY);
-            tbPress = CheckTextBoxes(&MainMenu, p->Input.MouseX, p->Input.MouseY);
-        }
-        
-        if (btnPress == GameStart) {
-            SetCursorMode(&p->Input, Arrow);
-            GameState->Menu = 0;
-            return;
-        }
-        else if (btnPress == Btn4)
-        {
-            //createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
-        }
-        else if (btnPress == Quit)
-            p->Input.Quit = 1;
-        
-        if (MainMenu.Initialized == 0) {
-#include "main_menu.cpp" 
-            MainMenu.Initialized = 1;
-        }
-        
-        if (CheckButtonsHover(&MainMenu, p->Input.MouseX, p->Input.MouseY))
-            SetCursorMode(&p->Input, Hand);
-        else
-            SetCursorMode(&p->Input, Arrow);
-        
-        BeginMode2D(C);
-        UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
-        ClearScreen();
-        RenderGUI(&MainMenu);
-        EndMode2D();
-    }
-    else if (GameState->Menu == 0)
-    {
+    if (GameState->Menu == menu::game) {
         CoffeeCow *CowPlayer = &GameState->Player1;
         Coffee *Collect = &GameState->Collect;
         
@@ -791,7 +720,7 @@ void UpdateRender(platform* p)
         platform_controller_input *Controller = &p->Input.Controllers[0];
         
         if (Controller->Escape.NewEndedDown)
-            GameState->Menu = 2;
+            GameState->Menu = menu::pause_menu;
         
         if(Controller->MoveLeft.NewEndedDown)
             AddInput(CowPlayer, LEFT);
@@ -802,14 +731,8 @@ void UpdateRender(platform* p)
         if(Controller->MoveUp.NewEndedDown)
             AddInput(CowPlayer, UP);
         
-        if(Controller->ActionUp.EndedDown)
-            Rotation += 10.0f;
-        if(Controller->ActionDown.EndedDown)
-            Rotation -= 10.0f;
-        
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed))
-            //GameState->Menu = 3;
-            int i = 0;
+            GameState->Menu = menu::game_over_menu;
         
         CoffeeCowNode* Head = (CoffeeCowNode*)CowPlayer->Nodes[0];
         if (Head->Coords.x == Collect->Coords.x &&
@@ -835,8 +758,18 @@ void UpdateRender(platform* p)
         }
         
         if (Collect->Initialized == false) {
-            Collect->Coords.x = (real32)Random(0, GameState->GridWidth - 1);
-            Collect->Coords.y = (real32)Random(0, GameState->GridHeight - 1);
+            bool32 ValidLocation = false;
+            while (!ValidLocation) {
+                Collect->Coords.x = (real32)Random(0, GameState->GridWidth - 1);
+                Collect->Coords.y = (real32)Random(0, GameState->GridHeight - 1);
+                ValidLocation = true;
+                for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
+                    CoffeeCowNode* Node = (CoffeeCowNode*)CowPlayer->Nodes[i];
+                    if (Node->Coords.x == Collect->Coords.x &&
+                        Node->Coords.y == Collect->Coords.y)
+                        ValidLocation = false;
+                }
+            }
             Collect->Initialized = true;
         }
         
@@ -866,92 +799,13 @@ void UpdateRender(platform* p)
                       0xFFFFFFFF);
         EndMode2D();
     }
-    else if (GameState->Menu == 2)
-    {
-        if (PauseMenu.Initialized == 0)
-        {
-#include "pause_menu.cpp" 
-            PauseMenu.Initialized = 1;
-        }
-        
-        int btnPress = -1;
-        int tbPress = -1;
-        
-        if(p->Input.MouseButtons[0].EndedDown)
-        {
-            btnPress = CheckButtonsClick(&PauseMenu, p->Input.MouseX, p->Input.MouseY);
-            tbPress = CheckTextBoxes(&PauseMenu, p->Input.MouseX, p->Input.MouseY);
-        }
-        
-        if (btnPress == Menu) {
-            SetCursorMode(&p->Input, Arrow);
-            memset(&GameState->Player1, 0, sizeof(CoffeeCow));
-            GameState->Menu = 1;
-            return;
-        }
-        else if (btnPress == Reset) {
-            GameState->Menu = 0;
-            InitializeGame(GameMode::Singleplayer, GameState);
-        }
-        
-        if (CheckButtonsHover(&PauseMenu, p->Input.MouseX, p->Input.MouseY))
-            SetCursorMode(&p->Input, Hand);
-        else
-            SetCursorMode(&p->Input, Arrow);
-        
-        platform_controller_input *Controller = &p->Input.Controllers[0];
-        
-        if (Controller->Escape.NewEndedDown)
-            GameState->Menu = 0;
-        
-        BeginMode2D(C);
-        UpdateGUI(&PauseMenu, p->Dimension.Width, p->Dimension.Height);
-        ClearScreen();
-        RenderGUI(&PauseMenu);
-        EndMode2D();
+    else if (GameState->Menu == menu::main_menu){
+#include "main_menu.cpp" 
     }
-    else if (GameState->Menu == 3)
-    {
-        if (GameOverMenu.Initialized == 0)
-        {
+    else if (GameState->Menu == menu::pause_menu) {
+#include "pause_menu.cpp" 
+    }
+    else if (GameState->Menu == menu::game_over_menu) {
 #include "game_over_menu.cpp" 
-            GameOverMenu.Initialized = 1;
-        }
-        
-        int btnPress = -1;
-        int tbPress = -1;
-        
-        if(p->Input.MouseButtons[0].EndedDown)
-        {
-            btnPress = CheckButtonsClick(&GameOverMenu, p->Input.MouseX, p->Input.MouseY);
-            tbPress = CheckTextBoxes(&GameOverMenu, p->Input.MouseX, p->Input.MouseY);
-        }
-        
-        if (btnPress == Menu) {
-            SetCursorMode(&p->Input, Arrow);
-            memset(&GameState->Player1, 0, sizeof(CoffeeCow));
-            GameState->Menu = 1;
-            return;
-        }
-        else if (btnPress == Reset) {
-            GameState->Menu = 0;
-            InitializeGame(GameMode::Singleplayer, GameState);
-        }
-        
-        if (CheckButtonsHover(&GameOverMenu, p->Input.MouseX, p->Input.MouseY))
-            SetCursorMode(&p->Input, Hand);
-        else
-            SetCursorMode(&p->Input, Arrow);
-        
-        platform_controller_input *Controller = &p->Input.Controllers[0];
-        
-        if (Controller->Escape.NewEndedDown)
-            GameState->Menu = 0;
-        
-        BeginMode2D(C);
-        UpdateGUI(&GameOverMenu, p->Dimension.Width, p->Dimension.Height);
-        ClearScreen();
-        RenderGUI(&GameOverMenu);
-        EndMode2D();
     }
 }
