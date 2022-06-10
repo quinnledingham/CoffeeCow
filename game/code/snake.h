@@ -21,76 +21,27 @@ Make resizing a gui easier
 #ifndef SNAKE_H
 #define SNAKE_H
 
-struct Circle
-{
-    int X;
-    int Y;
-    int Radius;
-    float StartDegree;
-    uint32 Color;
-};
-
-#define GRIDWIDTH 17
-#define GRIDHEIGHT 17
-#define GRIDSIZE 40
-
 #define RIGHT 0
 #define UP 1
 #define LEFT 2
 #define DOWN 3
 #define NODIRECTION 4
 
-struct SnakeNode
+enum ComponentIDs
 {
-    real32 x;
-    real32 y;
-    int GridX;
-    int GridY;
-    int Direction;
-    int NextDirection;
-    
-    SnakeNode *Next;
-    SnakeNode *Previous;
-};
-
-struct InputNode
-{
-    int Direction;
-    InputNode *Next;
-};
-
-struct Snake
-{
-    SnakeNode *Head;
-    real32 TransitionAmt = 0;
-    real32 Speed;
-    int Direction;
-    
-    bool Moving = true;
-    InputNode *InputHead;
-    
-    bool32 Initialized = false;
-};
-
-struct Apple
-{
-    int X;
-    int Y;
-    int Score;
-};
-
-struct CoffeeCowNode
-{
-    v2 Coords;
-    int CurrentDirection;
-    int NextDirection;
-    bool32 Streak;
-};
-
-struct CoffeeCowCollisionNode
-{
-    int X;
-    int Y;
+    Btn1,
+    Btn2,
+    Btn3,
+    Btn4,
+    PORT,
+    IP,
+    Restart,
+    JOIN,
+    GameStart,
+    Quit,
+    Menu,
+    Reset,
+    Multiplayer
 };
 
 struct Arr
@@ -144,9 +95,17 @@ struct Arr
     }
 };
 
+struct CoffeeCowNode
+{
+    v2 Coords;
+    int CurrentDirection;
+    int NextDirection;
+    bool32 Streak;
+};
+
 struct CoffeeCow
 {
-    Arr Nodes;
+    Arr Nodes; // CoffeeCowNode
     
     real32 TransitionAmt = 0;
     real32 Speed;
@@ -155,7 +114,7 @@ struct CoffeeCow
     int Score;
     
     bool Moving = true;
-    Arr Inputs;
+    Arr Inputs; // int
     
     bool32 Initialized = false;
 };
@@ -180,8 +139,17 @@ struct Rect
     
     inline Rect() : Coords(v3(0, 0, 0)), Size(v2(0, 0)), Tex(), 
     Rotation(0), Mode(BlendMode::gl_src_alpha) {}
-    inline Rect(v3 _Coords, v2 _Size, Texture _Tex, real32 _Rotation, BlendMode _Mode) :
-    Coords(_Coords), Size(_Size), Tex(_Tex), Rotation(_Rotation), Mode(_Mode) {}
+    
+    inline Rect(v3 _Coords, 
+                v2 _Size, 
+                Texture _Tex, 
+                real32 _Rotation, 
+                BlendMode _Mode) :
+    Coords(_Coords), 
+    Size(_Size), 
+    Tex(_Tex), 
+    Rotation(_Rotation), 
+    Mode(_Mode) {}
     
     inline Rect(v3 _Coords, v2 _Size, uint32 _Color, real32 _Rotation) :
     Coords(_Coords), Size(_Size), Color(_Color), Rotation(_Rotation) {}
@@ -218,8 +186,9 @@ menu
 {
     game,
     main_menu,
+    multiplayer_menu,
     pause_menu,
-    game_over_menu
+    game_over_menu,
 };
 
 enum struct

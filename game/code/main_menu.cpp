@@ -10,7 +10,7 @@ if (MainMenu.Initialized == 0) {
     Button btn = {};
     TextBox tb = {};
     
-    TXT.Text = "SINGLEPLAYER";
+    TXT.Text = "COFFEE COW";
     TXT.ID = Btn1;
     TXT.FontType = Faune100;
     TXT.TextColor = 0xFF000000;
@@ -20,7 +20,7 @@ if (MainMenu.Initialized == 0) {
     {
         0,
         0,
-        "START",    // Text
+        "Singleplayer",    // Text
         Faune100,   // Font
         GameStart,       // ID
         0,          // Color (CurrentColor)
@@ -28,89 +28,27 @@ if (MainMenu.Initialized == 0) {
         0xFFeba434, // HoverColor
         0xFFFFFFFF, // TextColor
     };
-    AddButton(&MainMenu, 0, Y++, 300, 100, &btn);
-    
-    TXT = 
-    {
-        "0",    // Text
-        Btn1,       // ID
-        Faune100,   // Font
-        0xFFFFFFFF, // TextColor
-    };
-    AddText(&MainMenu, 0, Y++,  &TXT);
-    
-    TXT = 
-    {
-        "MULTIPLAYER",    // Text
-        Btn1,       // ID
-        Faune100,   // Font
-        0xFF000000, // TextColor
-    };
-    AddText(&MainMenu, 0, Y++,  &TXT);
-    
-    TXT = 
-    {
-        "IP:",    // Text
-        Btn1,       // ID
-        Faune50,   // Font
-        0xFF000000, // TextColor
-    };
-    AddText(&MainMenu, 0, Y, &TXT);
-    
-    tb =
-    {
-        0,
-        0,
-        "",
-        &Faune50,
-        IP,
-        0,
-        0xFFb3b3b3,
-        0xFF000000
-    };
-    AddTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
-    
-    TXT = 
-    {
-        "PORT:",    // Text
-        Btn1,       // ID
-        Faune50,   // Font
-        0xFF000000, // TextColor
-    };
-    AddText(&MainMenu, 0, Y,  &TXT);
-    
-    tb =
-    {
-        0,
-        0,
-        "",
-        &Faune50,
-        PORT,
-        0,
-        0xFFb3b3b3,
-        0xFF000000
-    };
-    AddTextBox(&MainMenu, 1, Y++, 500, 50, &tb);
+    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
     
     btn = 
     {
         0,
         0,
-        "JOIN",    // Text
+        "Multiplayer",    // Text
         Faune100,   // Font
-        Btn4,       // ID
+        Multiplayer,       // ID
         0,          // Color (CurrentColor)
         0xFF32a89b, // RegularColor
         0xFFeba434, // HoverColor
         0xFFFFFFFF, // TextColor
     };
-    AddButton(&MainMenu, 0, Y++, 250, 100, &btn);
+    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
     
     btn = 
     {
         0,
         0,
-        "QUIT",    // Text
+        "Quit",    // Text
         Faune100,   // Font
         Quit,       // ID
         0,          // Color (CurrentColor)
@@ -118,12 +56,10 @@ if (MainMenu.Initialized == 0) {
         0xFFeba434, // HoverColor
         0xFFFFFFFF, // TextColor
     };
-    AddButton(&MainMenu, 0, Y++, 250, 100, &btn);
+    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
     
-    //MainMenu.ClientWidth = p->Dimension.Width;
-    //MainMenu.ClientHeight = p->Dimension.Height;
-    MainMenu.ClientWidth = 1000;
-    MainMenu.ClientHeight = 1000;
+    MainMenu.DefaultWidth = 1000;
+    MainMenu.DefaultHeight = 1000;
     InitializeGUI(&MainMenu);
     
     MainMenu.Initialized = 1;
@@ -135,7 +71,10 @@ if (MainMenu.Initialized == 0) {
     if (Events.BtnPressID == GameStart) {
         SetCursorMode(&p->Input, Arrow);
         GameState->Menu = menu::game;
-        return;
+    }
+    else if (Events.BtnPressID == Multiplayer) {
+        SetCursorMode(&p->Input, Arrow);
+        GameState->Menu = menu::multiplayer_menu;
     }
     else if (Events.BtnPressID == Btn4) {
         //createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
@@ -143,8 +82,10 @@ if (MainMenu.Initialized == 0) {
     else if (Events.BtnPressID == Quit)
         p->Input.Quit = 1;
     
-    BeginMode2D(C);
     UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
     RenderGUI(&MainMenu);
+    
+    BeginMode2D(C);
+    RenderPieceGroup(RenderGroup);
     EndMode2D();
 }

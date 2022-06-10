@@ -45,8 +45,8 @@ if (PauseMenu.Initialized == 0)
     };
     AddButton(&PauseMenu, 0, Y++, 300, 100, &btn);
     
-    PauseMenu.ClientWidth = 1000;
-    PauseMenu.ClientHeight = 1000;
+    PauseMenu.DefaultWidth = 1000;
+    PauseMenu.DefaultHeight = 1000;
     
     InitializeGUI(&PauseMenu);
     
@@ -70,8 +70,10 @@ if (PauseMenu.Initialized == 0)
     if (Controller->Escape.NewEndedDown)
         GameState->Menu = menu::game;
     
-    BeginMode2D(C);
     UpdateGUI(&PauseMenu, p->Dimension.Width, p->Dimension.Height);
     RenderGUI(&PauseMenu);
+    
+    BeginMode2D(C);
+    RenderPieceGroup(RenderGroup);
     EndMode2D();
 }

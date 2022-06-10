@@ -45,8 +45,8 @@ if (GameOverMenu.Initialized == 0)
     };
     AddButton(&GameOverMenu, 0, Y++, 600, 150, &btn);
     
-    GameOverMenu.ClientWidth = 1000;
-    GameOverMenu.ClientHeight = 1000;
+    GameOverMenu.DefaultWidth = 1000;
+    GameOverMenu.DefaultHeight = 1000;
     
     InitializeGUI(&GameOverMenu);
     
@@ -59,10 +59,9 @@ if (GameOverMenu.Initialized == 0)
         SetCursorMode(&p->Input, Arrow);
         memset(&GameState->Player1, 0, sizeof(CoffeeCow));
         GameState->Menu = menu::main_menu;
-        return;
     }
     else if (Events.BtnPressID == Reset) {
-        GameState->Menu = menu::main_menu;
+        GameState->Menu = menu::game;
         InitializeGame(GameMode::Singleplayer, GameState);
     }
     
@@ -70,8 +69,10 @@ if (GameOverMenu.Initialized == 0)
     if (Controller->Escape.NewEndedDown)
         GameState->Menu = menu::game;
     
-    BeginMode2D(C);
     UpdateGUI(&GameOverMenu, p->Dimension.Width, p->Dimension.Height);
     RenderGUI(&GameOverMenu);
+    
+    BeginMode2D(C);
+    RenderPieceGroup(RenderGroup);
     EndMode2D();
 }
