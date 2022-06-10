@@ -20,41 +20,14 @@ Font Faune50 = {};
 Font Faune100 = {};
 Font Faune = {};
 
-RectBuffer RBuffer = {};
-
-
-internal void
-RenderBuffer(RectBuffer *Buffer)
+Camera C =
 {
-    // Insertion Sort Rects
-    {
-        int i = 1;
-        while (i < Buffer->Size)
-        {
-            int j = i;
-            while (j > 0 && Buffer->Buffer[j-1].Coords.z > Buffer->Buffer[j].Coords.z)
-            {
-                Rect Temp = Buffer->Buffer[j];
-                Buffer->Buffer[j] = Buffer->Buffer[j-1];
-                Buffer->Buffer[j-1] = Temp;
-                j = j - 1;
-            }
-            i++;
-        }
-    }
-    
-    // Render Rects
-    for (int i = 0; i < Buffer->Size; i++)
-    {
-        if (Buffer->Buffer[i].RMode == RectMode::Tex)
-            DrawRect(Buffer->Buffer[i].Coords, Buffer->Buffer[i].Size, 
-                     Buffer->Buffer[i].Tex,
-                     Buffer->Buffer[i].Rotation, Buffer->Buffer[i].Mode);
-        else if (Buffer->Buffer[i].RMode == RectMode::Color)
-            DrawRect(Buffer->Buffer[i].Coords, Buffer->Buffer[i].Size, Buffer->Buffer[i].Color, Buffer->Buffer[i].Rotation);
-    }
-    
-    Buffer->Clear();
+    v3(0, 0, -900),
+    v3(0, 0, 0),
+    v3(0, 1, 0),
+    0,
+    0,
+    0,
 };
 
 internal void
@@ -72,34 +45,20 @@ RenderGrid(real32 GridX, real32 GridY,
     }
 }
 
-internal bool32
-ValidDirection(int OldDirection, int NewDirection)
-{
-    // Same Direction
-    if (OldDirection == NewDirection)
-        return false;
-    // Backwards Direction
-    if (OldDirection + 2 == NewDirection || OldDirection - 2 == NewDirection)
-        return false;
-    
-    return true;
-}
-
 internal void
-DrawCoffee(Coffee *C, real32 GridX, real32 GridY, int GridSize)
+DrawCoffee(Coffee *Cof, real32 GridX, real32 GridY, int GridSize)
 {
-    v3 Coords = v3(roundf(GridX + ((C->Coords.x) * GridSize)),
-                   roundf(GridY + ((C->Coords.y) * GridSize)),
+    v3 Coords = v3(roundf(GridX + ((Cof->Coords.x) * GridSize)),
+                   roundf(GridY + ((Cof->Coords.y) * GridSize)),
                    -0.1f);
-    Push(RenderGroup, Coords, v2(GridSize, GridSize), CoffeeTex, C->Rotation,
+    Push(RenderGroup, Coords, v2(GridSize, GridSize), CoffeeTex, Cof->Rotation,
          BlendMode::gl_src_alpha);
 }
 
 internal void
 DrawCoffeeCowNodes(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
 {
-    for (int i = 0; i < Cow->Nodes.Size; i++)
-    {
+    for (int i = 0; i < Cow->Nodes.Size; i++) {
         CoffeeCowNode *Node = (CoffeeCowNode*)Cow->Nodes[i];
         v3 Coords = v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
                        roundf(GridY + ((Node->Coords.y) * GridSize)),
@@ -118,17 +77,8 @@ GetSize(v3 Left, v3 Right, real32 GridSize)
     if (Size.x == 0) Size.x = GridSize;
     if (Size.y == 0) Size.y = GridSize;
     
-    //Size.x = roundf(Size.x);
-    //Size.y = roundf(Size.y);
-    
     return Size;
 }
-
-internal real32
-GetRotation(int Direction);
-
-internal real32
-GetRotation(int StartDirection, int EndDirection, int Part);
 
 // with down being the default direction
 internal real32
@@ -165,83 +115,6 @@ GetAngleDiff(int StartDirection, int EndDirection)
     return Goal;
 }
 
-internal real32
-GetRotation(int StartDirection, int MiddleDirection, int EndDirection,
-            int Part, real32 TransitionAmt)
-{
-    real32 Goal = 0;
-    real32 BRotation = GetRotation(StartDirection);
-    real32 MRotation = GetRotation(MiddleDirection);
-    real32 ERotation = GetRotation(EndDirection);
-    Goal = GetAngleDiff(StartDirection, EndDirection);
-    
-    real32 Rot = 0;
-    
-    if (Part == 1) {
-        real32 Transition = TransitionAmt - 0.5f;
-        if (Transition < 0)
-            Transition = 0;
-        else
-            Transition *= 2;
-        Rot = (Transition * (Goal/2)) + BRotation;
-    }
-    else if (Part == 2) {
-        real32 Transition = TransitionAmt;
-        if (Transition > 0.5f) {
-            Transition = 0;
-            Rot = ERotation;
-        }
-        else {
-            Transition *= 2;
-            Rot = (Transition * (Goal/2)) + BRotation + (Goal/2);
-        }
-    }
-    else if (Part == 3) {
-        real32 Transition = TransitionAmt;
-        if (Transition > 0.5f) {
-            Transition = TransitionAmt - 0.5f;
-            Transition *= 2;
-            Goal = GetAngleDiff(MiddleDirection, EndDirection);
-            Rot = (Transition * (Goal/2)) + MRotation;
-        }
-        else {
-            Transition *= 2;
-            Goal = GetAngleDiff(StartDirection, MiddleDirection);
-            Rot = (Transition * (Goal/2)) + BRotation + (Goal/2);
-        }
-    }
-    
-    return Rot;
-}
-
-internal v2
-CoordsTransition(v2 Coords, int Direction, real32 TransitionAmt,
-                 int GridX, int GridY, int GridSize)
-{
-    v2 NewCoords = {};
-    NewCoords.x = Coords.x;
-    NewCoords.y = Coords.y;
-    
-    if (Direction == RIGHT) {
-        NewCoords.x = roundf(GridX + ((NewCoords.x + TransitionAmt)* GridSize));
-        NewCoords.y = roundf(GridY + ((NewCoords.y) * GridSize));
-    }
-    if (Direction == UP) {
-        NewCoords.x = roundf(GridX + ((NewCoords.x) * GridSize));
-        NewCoords.y = roundf(GridY + ((NewCoords.y - TransitionAmt) * GridSize));
-    }
-    if (Direction == LEFT) {
-        NewCoords.x = roundf(GridX + ((NewCoords.x - TransitionAmt) * GridSize));
-        NewCoords.y = roundf(GridY + ((NewCoords.y) * GridSize));
-    }
-    if (Direction == DOWN) {
-        NewCoords.x = roundf(GridX + ((NewCoords.x) * GridSize));
-        NewCoords.y = roundf(GridY + ((NewCoords.y + TransitionAmt) * GridSize));
-    }
-    
-    return NewCoords;
-}
-
 internal void
 DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
 {
@@ -254,12 +127,28 @@ DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
         CoffeeCowNode *Node = (CoffeeCowNode*)Cow->Nodes[i];
         real32 OutlineZ = 0.0f;
         
+        v3 Coords = v3(Node->Coords, 0.0f);
+        real32 TransitionAmt = Cow->TransitionAmt;
+        if (Node->CurrentDirection == RIGHT) {
+            Coords.x = roundf(GridX + ((Coords.x + TransitionAmt)* GridSize));
+            Coords.y = roundf(GridY + (Coords.y * GridSize));
+        }
+        else if (Node->CurrentDirection == UP) {
+            Coords.x = roundf(GridX + (Coords.x * GridSize));
+            Coords.y = roundf(GridY + ((Coords.y - TransitionAmt) * GridSize));
+        }
+        else if (Node->CurrentDirection == LEFT) {
+            Coords.x = roundf(GridX + ((Coords.x - TransitionAmt) * GridSize));
+            Coords.y = roundf(GridY + (Coords.y * GridSize));
+        }
+        else if (Node->CurrentDirection == DOWN) {
+            Coords.x = roundf(GridX + (Coords.x * GridSize));
+            Coords.y = roundf(GridY + ((Coords.y + TransitionAmt) * GridSize));
+        }
+        
         if (i == 0)
         {
-            v3 Coords = v3(CoordsTransition(v2(Node->Coords.x, Node->Coords.y), 
-                                            Node->CurrentDirection, Cow->TransitionAmt, 
-                                            (int)GridX, (int)GridY, GridSize), 
-                           2.0f);
+            Coords.z = 2.0f;
             Push(RenderGroup, Coords,
                  v2(GridSize, GridSize), SnakeHead, 
                  GetRotation(Node->CurrentDirection), 
@@ -272,10 +161,7 @@ DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
                  BlendMode::gl_one);
         }
         if (i == Cow->Nodes.Size - 1) {
-            v3 Coords = v3(CoordsTransition(v2(Node->Coords.x, Node->Coords.y), 
-                                            Node->CurrentDirection, Cow->TransitionAmt, 
-                                            (int)GridX, (int)GridY, GridSize), 
-                           0.5f);
+            Coords.z = 0.5f;
             Push(RenderGroup, Coords, v2(GridSize, GridSize), 
                  SnakeCorner, 0.0f, BlendMode::gl_one);
             Corners.Push(&Coords);
@@ -284,29 +170,24 @@ DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
             Push(RenderGroup, Coords, v2(GridSize, GridSize), 
                  CornerOutline, 0.0f, BlendMode::gl_one);
         }
-        else {
+        else if (i != Cow->Nodes.Size - 1) {
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
             if (NextNode->CurrentDirection != Node->CurrentDirection) {
-                v3 Coords = v3(roundf((int)GridX + ((Node->Coords.x) * GridSize)),
-                               roundf((int)GridY + ((Node->Coords.y) * GridSize)),
-                               0.5f);
-                Push(RenderGroup, Coords, v2(GridSize, GridSize), 
+                v3 Temp = v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
+                             roundf(GridY + ((Node->Coords.y) * GridSize)),
+                             0.5f);
+                Push(RenderGroup, Temp, v2(GridSize, GridSize), 
                      SnakeCorner, 0.0f, BlendMode::gl_one);
-                Corners.Push(&Coords);
+                Corners.Push(&Temp);
                 
-                Coords.z = OutlineZ;
-                Push(RenderGroup, Coords, v2(GridSize, GridSize), 
+                Temp.z = OutlineZ;
+                Push(RenderGroup, Temp, v2(GridSize, GridSize), 
                      CornerOutline, 0.0f, BlendMode::gl_one);
             }
         }
         
         if (Node->Streak) {
-            v3 Coords = v3(CoordsTransition(v2(Node->Coords.x,
-                                               Node->Coords.y),
-                                            Node->CurrentDirection,
-                                            Cow->TransitionAmt,
-                                            (int)GridX, (int)GridY, GridSize), 
-                           3.0f);
+            Coords.z = 3.0f;
             real32 Rotation = 0.0f;
             
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
@@ -315,21 +196,49 @@ DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
             bool32 MovingIntoCorner = (PreviousNode->CurrentDirection != Node->CurrentDirection);
             bool32 MovingOutOfCorner = (NextNode->CurrentDirection != Node->CurrentDirection);
             
-            if (MovingIntoCorner && !MovingOutOfCorner)
-                Rotation = GetRotation(Node->CurrentDirection,
-                                       -1,
-                                       PreviousNode->CurrentDirection, 
-                                       1, Cow->TransitionAmt);
-            else if (MovingOutOfCorner && !MovingIntoCorner)
-                Rotation = GetRotation(NextNode->CurrentDirection,
-                                       -1,
-                                       Node->CurrentDirection,
-                                       2, Cow->TransitionAmt);
-            else if (MovingIntoCorner && MovingOutOfCorner)
-                Rotation = GetRotation(NextNode->CurrentDirection,
-                                       Node->CurrentDirection,
-                                       PreviousNode->CurrentDirection,
-                                       3, Cow->TransitionAmt);
+            int Dir = Node->CurrentDirection;
+            int PDir = PreviousNode->CurrentDirection;
+            int NDir = NextNode->CurrentDirection;
+            
+            if (MovingIntoCorner && !MovingOutOfCorner) {
+                real32 Goal = GetAngleDiff(Dir, PDir);
+                real32 Transition = Cow->TransitionAmt - 0.5f;
+                if (Transition < 0)
+                    Transition = 0;
+                else
+                    Transition *= 2;
+                Rotation = (Transition * (Goal/2)) +
+                    GetRotation(Dir);
+            }
+            else if (MovingOutOfCorner && !MovingIntoCorner) {
+                real32 Goal = GetAngleDiff(NDir, Dir);
+                real32 Transition = Cow->TransitionAmt;
+                if (Transition > 0.5f) {
+                    Transition = 0;
+                    Rotation = GetRotation(Dir);
+                }
+                else {
+                    Transition *= 2;
+                    Rotation = (Transition * (Goal/2)) +
+                        GetRotation(NDir) + (Goal/2);
+                }
+            }
+            else if (MovingIntoCorner && MovingOutOfCorner) {
+                real32 Goal = 0;
+                real32 Transition = Cow->TransitionAmt;
+                if (Transition > 0.5f) {
+                    Transition = Cow->TransitionAmt - 0.5f;
+                    Transition *= 2;
+                    Goal = GetAngleDiff(Dir, PDir);
+                    Rotation = (Transition * (Goal/2)) + GetRotation(Dir);
+                }
+                else {
+                    Transition *= 2;
+                    Goal = GetAngleDiff(NDir, Dir);
+                    Rotation = (Transition * (Goal/2)) +
+                        GetRotation(NDir) + (Goal/2);
+                }
+            }
             else
                 Rotation = GetRotation(Node->CurrentDirection);
             
@@ -397,94 +306,34 @@ DrawCoffeeCow(CoffeeCow *Cow, real32 GridX, real32 GridY, int GridSize)
 }
 
 internal void
-AddInput(CoffeeCow *Cow, int Input)
+AddInput(CoffeeCow *Cow, int NewDirection)
 {
-    if (Cow->Inputs.Size < 3)
-    {
-        int LastDirection = 0;
-        if (Cow->Inputs.Size == 0)
-            LastDirection = Cow->Direction;
-        else 
-            LastDirection = *(int*)Cow->Inputs[Cow->Inputs.Size - 1];
-        
-        if (ValidDirection(LastDirection, Input))
-        {
-            Cow->Inputs.Push((void*)&Input);
-        }
-    }
+    if (Cow->Inputs.Size >= 3)
+        return;
+    
+    int OldDirection = 0;
+    if (Cow->Inputs.Size == 0)
+        OldDirection = Cow->Direction;
+    else 
+        OldDirection = *(int*)Cow->Inputs[Cow->Inputs.Size - 1];
+    
+    if (!(OldDirection == NewDirection) && // Same Direction
+        !(OldDirection + 2 == NewDirection) && // Backwards Direction
+        !(OldDirection - 2 == NewDirection))
+        Cow->Inputs.Push((void*)&NewDirection);
 }
 
-internal bool32
-CheckMove(v2 Coords, int Direction, v2 GridDim)
+internal void
+MoveInDirection(v2 *Coords, int Direction)
 {
-    if (Direction == LEFT && Coords.x <= 0)
-        return false;
-    if (Direction == RIGHT && Coords.x >= GridDim.x - 1)
-        return false;
-    if (Direction == UP && Coords.y <= 0)
-        return false;
-    if (Direction == DOWN && Coords.y >= GridDim.y - 1)
-        return false;
-    
-    return true;
-}
-
-internal bool32
-DetermineNextDirectionCoffeeCow(CoffeeCow *Cow)
-{
-    for (int i = 0; i < Cow->Nodes.Size; i++)
-    {
-        CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
-        if (Node->CurrentDirection == RIGHT)
-            Node->Coords.x += 1;
-        if (Node->CurrentDirection == UP)
-            Node->Coords.y -= 1;
-        if (Node->CurrentDirection == LEFT)
-            Node->Coords.x -= 1;
-        if (Node->CurrentDirection == DOWN)
-            Node->Coords.y += 1;
-        
-        if (i == 0 && Cow->Inputs.Size != 0) {
-            Cow->Direction = *(int*)Cow->Inputs[0];
-            Node->CurrentDirection = Cow->Direction;
-            Cow->Inputs.PopFront();
-        }
-        else if (i != 0) {
-            Node->CurrentDirection = Node->NextDirection;
-            CoffeeCowNode* PreviousNode = (CoffeeCowNode*)Cow->Nodes[i - 1];
-            Node->NextDirection = PreviousNode->CurrentDirection;
-        }
-        
-        //if (i == 0 && !CheckMove(Node->Coords.x, Node->Coords.y, Cow->Direction)) return false;
-    }
-    
-    return true;
-}
-
-internal bool32
-CheckCollision(CoffeeCow *Cow)
-{
-    CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
-    
-    int HeadX = (int)Head->Coords.x;
-    int HeadY = (int)Head->Coords.y;
-    if (Head->CurrentDirection == RIGHT)
-        HeadX += 1;
-    if (Head->CurrentDirection == UP)
-        HeadY -= 1;
-    if (Head->CurrentDirection == LEFT)
-        HeadX -= 1;
-    if (Head->CurrentDirection == DOWN)
-        HeadY += 1;
-    
-    for (int i = 1; i < Cow->Nodes.Size; i++) {
-        CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
-        if (HeadX == Node->Coords.x &&
-            HeadY == Node->Coords.y)
-            return false;
-    }
-    
-    return true;
+    if (Direction == RIGHT)
+        Coords->x += 1;
+    else if (Direction == UP)
+        Coords->y -= 1;
+    else if (Direction == LEFT)
+        Coords->x -= 1;
+    else if (Direction == DOWN)
+        Coords->y += 1;
 }
 
 internal bool32
@@ -492,20 +341,55 @@ MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
 {
     real32 Dm = (Cow->Speed * SecondsElapsed);
     real32 TransitionAmt = Cow->TransitionAmt + Dm;
+    CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
     
-    CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[0];
-    if (!CheckMove(v2(Node->Coords.x, Node->Coords.y), Cow->Direction, GridDim)) 
-        return false;
-    if (!CheckCollision(Cow)) return false;
-    if (TransitionAmt > 1) {
-        if (!DetermineNextDirectionCoffeeCow(Cow))
+    // Check collision with wall
+    {
+        v2 Coords = Head->Coords;
+        int Direction = Cow->Direction;
+        if ((Direction == LEFT && Coords.x <= 0) ||
+            (Direction == RIGHT && Coords.x >= GridDim.x - 1) ||
+            (Direction == UP && Coords.y <= 0) ||
+            (Direction == DOWN && Coords.y >= GridDim.y - 1))
             return false;
+    }
+    
+    // Check collision with self
+    {
+        v2 HeadCoords = v2(Head->Coords);
+        MoveInDirection(&HeadCoords, Head->CurrentDirection);
+        
+        for (int i = 1; i < Cow->Nodes.Size; i++) {
+            CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
+            if (HeadCoords.x == Node->Coords.x &&
+                HeadCoords.y == Node->Coords.y)
+                return false;
+        }
+    }
+    
+    if (TransitionAmt > 1) {
+        for (int i = 0; i < Cow->Nodes.Size; i++)
+        {
+            CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
+            MoveInDirection(&Node->Coords, Node->CurrentDirection);
+            
+            if (i == 0 && Cow->Inputs.Size != 0) {
+                Cow->Direction = *(int*)Cow->Inputs[0];
+                Node->CurrentDirection = Cow->Direction;
+                Cow->Inputs.PopFront();
+            }
+            else if (i != 0) {
+                Node->CurrentDirection = Node->NextDirection;
+                CoffeeCowNode* PreviousNode = (CoffeeCowNode*)Cow->Nodes[i-1];
+                Node->NextDirection = PreviousNode->CurrentDirection;
+            }
+        }
+        
         Dm = TransitionAmt - 1;
         Cow->TransitionAmt = Dm;
     } 
-    else {
+    else
         Cow->TransitionAmt += Dm;
-    }
     
     return true;
 }
@@ -528,16 +412,6 @@ AddCoffeeCowNode(CoffeeCow *Cow, int X, int Y, int CDirection, int NDirection)
     
     Cow->Nodes.Push((void*)&NewNode);
 }
-
-Camera C =
-{
-    v3(0, 0, -900),
-    v3(0, 0, 0),
-    v3(0, 1, 0),
-    0,
-    0,
-    0,
-};
 
 internal void
 InitializeGame(GameMode Mode, game_state *GameState)

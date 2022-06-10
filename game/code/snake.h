@@ -126,54 +126,6 @@ RectMode
     Tex,
 };
 
-struct Rect
-{
-    v3 Coords;
-    v2 Size;
-    Texture Tex;
-    uint32 Color;
-    real32 Rotation;
-    
-    BlendMode Mode;
-    RectMode RMode = RectMode::Tex;
-    
-    inline Rect() : Coords(v3(0, 0, 0)), Size(v2(0, 0)), Tex(), 
-    Rotation(0), Mode(BlendMode::gl_src_alpha) {}
-    
-    inline Rect(v3 _Coords, 
-                v2 _Size, 
-                Texture _Tex, 
-                real32 _Rotation, 
-                BlendMode _Mode) :
-    Coords(_Coords), 
-    Size(_Size), 
-    Tex(_Tex), 
-    Rotation(_Rotation), 
-    Mode(_Mode) {}
-    
-    inline Rect(v3 _Coords, v2 _Size, uint32 _Color, real32 _Rotation) :
-    Coords(_Coords), Size(_Size), Color(_Color), Rotation(_Rotation) {}
-};
-
-struct RectBuffer
-{
-    Rect Buffer[1000];
-    int Size = 0;
-    int MaxSize = 1000;
-    
-    void Push(Rect NewRect)
-    {
-        Buffer[Size] = NewRect;
-        Size++;
-    }
-    
-    void Clear()
-    {
-        memset(Buffer, 0, MaxSize * sizeof(Rect));
-        Size = 0;
-    }
-};
-
 struct Coffee
 {
     v2 Coords;
