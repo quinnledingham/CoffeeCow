@@ -523,7 +523,7 @@ void UpdateRender(platform* p)
     if (p->Input.dt != 0)
     {
         FPS = 1 / p->Input.WorkSecondsElapsed;
-        PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
+        //PrintqDebug(S() + "FPS: " + (int)FPS + "\n");
     }
     
     real32 HalfGridX = (real32)((GameState->GridWidth * GameState->GridSize) / 2);
@@ -539,8 +539,8 @@ void UpdateRender(platform* p)
             InitializeGame(GameMode::Singleplayer, GameState);
         
         platform_controller_input *Controller = &p->Input.Controllers[0];
-        
-        if (Controller->Escape.NewEndedDown)
+        platform_keyboard_input *Keyboard = &p->Input.Keyboard;
+        if (Keyboard->Escape.NewEndedDown)
             GameState->Menu = menu::pause_menu;
         
         if(Controller->MoveLeft.NewEndedDown)
@@ -617,8 +617,7 @@ void UpdateRender(platform* p)
         Strinq Score = S() + CowPlayer->Score;
         PrintOnScreen(&Faune50, 
                       GetData(Score), 
-                      -p->Dimension.Width/2 + 10,
-                      -p->Dimension.Height/2 + 10,
+                      v2(-p->Dimension.Width/2 + 10, -p->Dimension.Height/2 + 10),
                       0xFFFFFFFF);
         
         BeginMode2D(C);

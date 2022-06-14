@@ -18,8 +18,6 @@ if (MainMenu.Initialized == 0) {
     
     btn = 
     {
-        0,
-        0,
         "Singleplayer",    // Text
         Faune100,   // Font
         GameStart,       // ID
@@ -32,8 +30,6 @@ if (MainMenu.Initialized == 0) {
     
     btn = 
     {
-        0,
-        0,
         "Multiplayer",    // Text
         Faune100,   // Font
         Multiplayer,       // ID
@@ -46,8 +42,6 @@ if (MainMenu.Initialized == 0) {
     
     btn = 
     {
-        0,
-        0,
         "Quit",    // Text
         Faune100,   // Font
         Quit,       // ID
@@ -58,8 +52,7 @@ if (MainMenu.Initialized == 0) {
     };
     AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
     
-    MainMenu.DefaultWidth = 1000;
-    MainMenu.DefaultHeight = 1000;
+    MainMenu.DefaultDim = v2(1000, 1000);
     InitializeGUI(&MainMenu);
     
     MainMenu.Initialized = 1;

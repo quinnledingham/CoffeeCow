@@ -21,10 +21,8 @@ if (MultiplayerMenu.Initialized == 0) {
     
     tb =
     {
-        0,
-        0,
         "",
-        &Faune50,
+        Faune50,
         IP,
         0,
         0xFFb3b3b3,
@@ -43,10 +41,8 @@ if (MultiplayerMenu.Initialized == 0) {
     
     tb =
     {
-        0,
-        0,
         "",
-        &Faune50,
+        Faune50,
         PORT,
         0,
         0xFFb3b3b3,
@@ -56,9 +52,7 @@ if (MultiplayerMenu.Initialized == 0) {
     
     btn = 
     {
-        0,
-        0,
-        "JOIN",    // Text
+        "Join",    // Text
         Faune100,   // Font
         Btn4,       // ID
         0,          // Color (CurrentColor)
@@ -70,8 +64,6 @@ if (MultiplayerMenu.Initialized == 0) {
     
     btn = 
     {
-        0,
-        0,
         "Back",    // Text
         Faune100,   // Font
         Btn2,       // ID
@@ -82,8 +74,7 @@ if (MultiplayerMenu.Initialized == 0) {
     };
     AddButton(&MultiplayerMenu, 0, Y++, 250, 100, &btn);
     
-    MultiplayerMenu.DefaultWidth = 1000;
-    MultiplayerMenu.DefaultHeight = 1000;
+    MultiplayerMenu.DefaultDim = v2(1000, 1000);
     InitializeGUI(&MultiplayerMenu);
     
     MultiplayerMenu.Initialized = 1;
@@ -96,6 +87,7 @@ if (MultiplayerMenu.Initialized == 0) {
         SetCursorMode(&p->Input, Arrow);
         GameState->Menu = menu::main_menu;
     }
+    
     
     UpdateGUI(&MultiplayerMenu, p->Dimension.Width, p->Dimension.Height);
     RenderGUI(&MultiplayerMenu);

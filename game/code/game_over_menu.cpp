@@ -19,8 +19,6 @@ if (GameOverMenu.Initialized == 0)
     
     btn = 
     {
-        0,
-        0,
         "Play Again",    // Text
         Faune100,   // Font
         Reset,       // ID
@@ -33,8 +31,6 @@ if (GameOverMenu.Initialized == 0)
     
     btn = 
     {
-        0,
-        0,
         "Main Menu",    // Text
         Faune100,   // Font
         Menu,       // ID
@@ -45,9 +41,7 @@ if (GameOverMenu.Initialized == 0)
     };
     AddButton(&GameOverMenu, 0, Y++, 600, 150, &btn);
     
-    GameOverMenu.DefaultWidth = 1000;
-    GameOverMenu.DefaultHeight = 1000;
-    
+    GameOverMenu.DefaultDim = v2(1000, 1000);
     InitializeGUI(&GameOverMenu);
     
     GameOverMenu.Initialized = 1;
@@ -65,8 +59,8 @@ if (GameOverMenu.Initialized == 0)
         InitializeGame(GameMode::Singleplayer, GameState);
     }
     
-    platform_controller_input *Controller = &p->Input.Controllers[0];
-    if (Controller->Escape.NewEndedDown)
+    platform_keyboard_input *Keyboard = &p->Input.Keyboard;
+    if (Keyboard->Escape.NewEndedDown)
         GameState->Menu = menu::game;
     
     UpdateGUI(&GameOverMenu, p->Dimension.Width, p->Dimension.Height);

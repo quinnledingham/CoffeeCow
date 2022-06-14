@@ -19,8 +19,6 @@ if (PauseMenu.Initialized == 0)
     
     btn = 
     {
-        0,
-        0,
         "Reset",    // Text
         Faune100,   // Font
         Reset,       // ID
@@ -33,8 +31,6 @@ if (PauseMenu.Initialized == 0)
     
     btn = 
     {
-        0,
-        0,
         "Menu",    // Text
         Faune100,   // Font
         Menu,       // ID
@@ -45,9 +41,7 @@ if (PauseMenu.Initialized == 0)
     };
     AddButton(&PauseMenu, 0, Y++, 300, 100, &btn);
     
-    PauseMenu.DefaultWidth = 1000;
-    PauseMenu.DefaultHeight = 1000;
-    
+    PauseMenu.DefaultDim = v2(1000, 1000);
     InitializeGUI(&PauseMenu);
     
     PauseMenu.Initialized = 1;
@@ -66,7 +60,7 @@ if (PauseMenu.Initialized == 0)
         InitializeGame(GameMode::Singleplayer, GameState);
     }
     
-    platform_controller_input *Controller = &p->Input.Controllers[0];
+    platform_keyboard_input *Controller = &p->Input.Keyboard;
     if (Controller->Escape.NewEndedDown)
         GameState->Menu = menu::game;
     
