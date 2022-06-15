@@ -1,65 +1,64 @@
-global_variable GUI MainMenu = {};
+GUI *MainMenu = &GameState->GUIs[0];
 
-if (MainMenu.Initialized == 0) {
-    MainMenu.Padding = 10;
-    MainMenu.DefaultPadding = 10;
+if (MainMenu->Initialized == 0) {
+    MainMenu->Padding = 10;
+    MainMenu->DefaultPadding = 10;
+    MainMenu->Components.Init(100, sizeof(GUIComponent));
+    MainMenu->DefaultDim = v2(1000, 1000);
+    MainMenu->Initialized = 1;
     
     int Y = 0;
+    uint32 RegularColor = 0xFF32a89b;
+    uint32 HoverColor = 0xFFeba434;
+    uint32 TextColor = 0xFFFFFFFF;
+    v2 BtnDim = v2(600, 150);
     
-    Text TXT = {};
-    Button btn = {};
-    TextBox tb = {};
-    
-    TXT.Text = "COFFEE COW";
-    TXT.ID = Btn1;
-    TXT.FontType = Faune100;
-    TXT.TextColor = 0xFF000000;
-    AddText(&MainMenu, 0, Y++,  &TXT);
-    
-    btn = 
     {
-        "Singleplayer",    // Text
-        Faune100,   // Font
-        GameStart,       // ID
-        0,          // Color (CurrentColor)
-        0xFF32a89b, // RegularColor
-        0xFFeba434, // HoverColor
-        0xFFFFFFFF, // TextColor
-    };
-    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
-    
-    btn = 
-    {
-        "Multiplayer",    // Text
-        Faune100,   // Font
-        Multiplayer,       // ID
-        0,          // Color (CurrentColor)
-        0xFF32a89b, // RegularColor
-        0xFFeba434, // HoverColor
-        0xFFFFFFFF, // TextColor
-    };
-    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
-    
-    btn = 
-    {
-        "Quit",    // Text
-        Faune100,   // Font
-        Quit,       // ID
-        0,          // Color (CurrentColor)
-        0xFF32a89b, // RegularColor
-        0xFFeba434, // HoverColor
-        0xFFFFFFFF, // TextColor
-    };
-    AddButton(&MainMenu, 0, Y++, 600, 150, &btn);
-    
-    MainMenu.DefaultDim = v2(1000, 1000);
-    InitializeGUI(&MainMenu);
-    
-    MainMenu.Initialized = 1;
+        Text TXT = {};
+        TXT.Text = "COFFEE COW";
+        TXT.ID = Btn1;
+        TXT.FontType = &GameState->Faune100;
+        TXT.TextColor = 0xFF000000;
+        v2 GridCoords = v2(0, Y++);
+        AddText(MainMenu, GridCoords, TXT);
+    }{
+        Button BTN = {};
+        BTN.Text = "Singleplayer";
+        BTN.FontType = &GameState->Faune100;
+        BTN.ID = GameStart;
+        BTN.RegularColor = RegularColor;
+        BTN.HoverColor = HoverColor;
+        BTN.TextColor = TextColor;
+        v2 GridCoords = v2(0, Y++);
+        v2 Dim = BtnDim;
+        AddButton(MainMenu, GridCoords, Dim, BTN);
+    }{
+        Button BTN = {};
+        BTN.Text = "Multiplayer";
+        BTN.FontType = &GameState->Faune100;
+        BTN.ID = Multiplayer;
+        BTN.RegularColor = RegularColor;
+        BTN.HoverColor = HoverColor;
+        BTN.TextColor = TextColor;
+        v2 GridCoords = v2(0, Y++);
+        v2 Dim = BtnDim;
+        AddButton(MainMenu, GridCoords, Dim, BTN);
+    }{
+        Button BTN = {};
+        BTN.Text = "Quit";
+        BTN.FontType = &GameState->Faune100;
+        BTN.ID = Quit;
+        BTN.RegularColor = RegularColor;
+        BTN.HoverColor = HoverColor;
+        BTN.TextColor = TextColor;
+        v2 GridCoords = v2(0, Y++);
+        v2 Dim = BtnDim;
+        AddButton(MainMenu, GridCoords, Dim, BTN);
+    }
 }
 
 {
-    GUIEvents Events = HandleGUIEvents(&MainMenu, &p->Input);
+    GUIEvents Events = HandleGUIEvents(MainMenu, &p->Input);
     
     if (Events.BtnPressID == GameStart) {
         SetCursorMode(&p->Input, Arrow);
@@ -75,10 +74,10 @@ if (MainMenu.Initialized == 0) {
     else if (Events.BtnPressID == Quit)
         p->Input.Quit = 1;
     
-    UpdateGUI(&MainMenu, p->Dimension.Width, p->Dimension.Height);
-    RenderGUI(&MainMenu);
+    UpdateGUI(MainMenu, v2(p->Dimension.Width, p->Dimension.Height));
+    RenderGUI(MainMenu);
     
-    BeginMode2D(C);
+    BeginMode2D(GameState->C);
     RenderPieceGroup(RenderGroup);
     EndMode2D();
 }

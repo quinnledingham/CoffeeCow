@@ -44,57 +44,6 @@ enum ComponentIDs
     Multiplayer
 };
 
-struct Arr
-{
-    void *Data;
-    int Size;
-    int MaxSize;
-    int TypeSize;
-    
-    // Number of indices. Size of indices.
-    void Init(int ms, int ts)
-    {
-        MaxSize = ms;
-        TypeSize = ts;
-        
-        Data = qalloc(ms * ts);
-    }
-    
-    void Del()
-    {
-        dalloc(Data);
-    }
-    
-    void Push(void *NewData)
-    {
-        char *Cursor = (char*)Data;
-        Cursor += (Size * TypeSize);
-        memcpy(Cursor, NewData, TypeSize);
-        Size++;
-    }
-    
-    void PopFront()
-    {
-        char *Cursor = (char*)Data;
-        Cursor += TypeSize;
-        memcpy(Data, Cursor, Size * TypeSize);
-        Size--;
-    }
-    
-    void Clear()
-    {
-        memset(Data, 0, MaxSize * TypeSize);
-        Size = 0;
-    }
-    
-    void* operator[](int i)
-    {
-        char *Cursor = (char*)Data;
-        Cursor += (i * TypeSize);
-        return (void*)Cursor;
-    }
-};
-
 struct CoffeeCowNode
 {
     v2 Coords;
@@ -116,6 +65,14 @@ struct CoffeeCow
     bool Moving = true;
     Arr Inputs; // int
     
+    Texture *Head;
+    Texture *Straight;
+    Texture *Corner;
+    Texture *CoffeeStreak;
+    Texture *HeadOutline;
+    Texture *StraightOutline;
+    Texture *CornerOutline;
+    
     bool32 Initialized = false;
 };
 
@@ -130,6 +87,8 @@ struct Coffee
 {
     v2 Coords;
     real32 Rotation;
+    Texture *CoffeeTex;
+    
     bool32 Initialized;
 };
 
@@ -153,10 +112,25 @@ GameMode
 struct game_state
 {
     menu Menu;
+    GUI GUIs[10];
+    
+    Arr Textures;
+    //Texture Textures[100];
+    //Font Fonts[100];
+    
+    Texture *Background;
+    Texture *Grid;
+    Texture *Rocks;
+    
+    Font Faune50 = {};
+    Font Faune100 = {};
+    Font Faune = {};
+    
     int ToneHz;
     int GridSize;
     int GridHeight;
     int GridWidth;
+    Camera C;
     
     CoffeeCow Player1;
     Coffee Collect;
