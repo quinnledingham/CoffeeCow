@@ -36,7 +36,7 @@ if (MultiplayerMenu->Initialized == 0) {
     }{
         Text TXT = {};
         TXT.Text = "PORT:";
-        TXT.ID = Btn1;
+        TXT.ID = Btn2;
         TXT.FontType = &GameState->Faune50;
         TXT.TextColor = TbTextColor;
         v2 GridCoords = v2(0, Y);
@@ -82,6 +82,14 @@ if (MultiplayerMenu->Initialized == 0) {
     if (Events.BtnPressID == Btn2) {
         SetCursorMode(&p->Input, Arrow);
         GameState->Menu = menu::main_menu;
+    }
+    else if (Events.BtnPressID == Btn4) {
+        SetCursorMode(&p->Input, Arrow);
+        GameState->Menu = menu::game;
+        GameState->Mode = GameMode::Multiplayer;
+        GameState->IP = GetTextBoxText(MultiplayerMenu, IP);
+        GameState->Port = GetTextBoxText(MultiplayerMenu, PORT);
+        
     }
     
     UpdateGUI(MultiplayerMenu, v2(p->Dimension.Width, p->Dimension.Height));

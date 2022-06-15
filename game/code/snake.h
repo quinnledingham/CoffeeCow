@@ -59,7 +59,6 @@ struct CoffeeCow
     real32 TransitionAmt = 0;
     real32 Speed;
     int Direction;
-    int CLength;
     int Score;
     
     bool Moving = true;
@@ -112,6 +111,7 @@ GameMode
 struct game_state
 {
     menu Menu;
+    GameMode Mode;
     GUI GUIs[10];
     
     Arr Textures;
@@ -126,13 +126,18 @@ struct game_state
     Font Faune100 = {};
     Font Faune = {};
     
+    const char* IP;
+    const char* Port;
+    
     int ToneHz;
     int GridSize;
     int GridHeight;
     int GridWidth;
     Camera C;
     
+    Client client;
     CoffeeCow Player1;
+    CoffeeCow Player2;
     Coffee Collect;
 };
 
