@@ -52,10 +52,23 @@ DWORD WINAPI ServerFunction(LPVOID lpParam)
     }
     
     while(1) {
-        char Buffer[10000];
-        memset(Buffer, 0, 10000);
-        GameState->server.recvq(Buffer, 10000);
-        ServerCoffeeCow *Cow = (ServerCoffeeCow*)Buffer;
+        ServerCoffeeCow *Cow = 0;
+        switch(WaitForSingleObject(GameState->serverMutex, INFINITE))
+        {
+            case WAIT_OBJECT_0:
+            _try {
+                char Buffer[10000];
+                memset(Buffer, 0, 10000);
+                GameState->server.recvq(Player - 1, Buffer, 10000);
+                Cow = (ServerCoffeeCow*)Buffer;
+            }
+            _finally {
+                if (!ReleaseMutex(GameState->serverMutex)) {}
+            }
+            break;
+            case WAIT_ABANDONED:
+            return false;
+        }
         
         if (Player == 1) {
             switch(WaitForSingleObject(GameState->Player1Mutex, INFINITE))
@@ -79,7 +92,20 @@ DWORD WINAPI ServerFunction(LPVOID lpParam)
                     char Buffer[10000];
                     memset(Buffer, 0, 10000);
                     memcpy(Buffer, &GameState->Player2, sizeof(ServerCoffeeCow));
-                    GameState->server.sendq(Buffer, 9000);
+                    
+                    switch(WaitForSingleObject(GameState->serverMutex, INFINITE))
+                    {
+                        case WAIT_OBJECT_0:
+                        _try {
+                            GameState->server.sendq(Player - 1, Buffer, 9000);
+                        }
+                        _finally {
+                            if (!ReleaseMutex(GameState->serverMutex)) {}
+                        }
+                        break;
+                        case WAIT_ABANDONED:
+                        return false;
+                    }
                 }
                 _finally {
                     if (!ReleaseMutex(GameState->Player2Mutex)) {}
@@ -111,7 +137,20 @@ DWORD WINAPI ServerFunction(LPVOID lpParam)
                     char Buffer[10000];
                     memset(Buffer, 0, 10000);
                     memcpy(Buffer, &GameState->Player1, sizeof(ServerCoffeeCow));
-                    GameState->server.sendq(Buffer, 9000);
+                    
+                    switch(WaitForSingleObject(GameState->serverMutex, INFINITE))
+                    {
+                        case WAIT_OBJECT_0:
+                        _try {
+                            GameState->server.sendq(Player - 1, Buffer, 9000);
+                        }
+                        _finally {
+                            if (!ReleaseMutex(GameState->serverMutex)) {}
+                        }
+                        break;
+                        case WAIT_ABANDONED:
+                        return false;
+                    }
                 }
                 _finally {
                     if (!ReleaseMutex(GameState->Player1Mutex)) {}

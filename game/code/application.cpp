@@ -655,13 +655,24 @@ void UpdateRender(platform* p)
                 InitializeGame(GameMode::Multiplayer, GameState);
                 CowPlayer->Initialized = true;
             }
-            
             //Sleep(1);
             
             platform_controller_input *Controller = &p->Input.Controllers[0];
             platform_keyboard_input *Keyboard = &p->Input.Keyboard;
             if (Keyboard->Escape.NewEndedDown)
                 GameState->Menu = menu::pause_menu;
+            
+            if(Controller->MoveLeft.NewEndedDown)
+                AddInput(CowPlayer, LEFT);
+            if(Controller->MoveRight.NewEndedDown)
+                AddInput(CowPlayer, RIGHT);
+            if(Controller->MoveDown.NewEndedDown)
+                AddInput(CowPlayer, DOWN);
+            if(Controller->MoveUp.NewEndedDown)
+                AddInput(CowPlayer, UP);
+            
+            if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, v2(GameState->GridWidth, GameState->GridHeight)))
+                int i = 0;
             
             ServerCoffeeCow Send = {};
             Send.TransitionAmt = CowPlayer->TransitionAmt;
