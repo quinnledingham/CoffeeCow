@@ -16,14 +16,14 @@ if (PauseMenu->Initialized == 0)
     
     TXT.Text = "Paused";
     TXT.ID = Btn1;
-    TXT.FontType = &GameState->Faune100;
+    TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);
     TXT.TextColor = 0xFF000000;
     AddText(PauseMenu, v2(0, Y++), TXT);
     
     btn = 
     {
         "Reset",    // Text
-        &GameState->Faune100,   // Font
+        GetFont(&GameState->Assets, FI_Faune100),   // Font
         Reset,       // ID
         0,          // Color (CurrentColor)
         0xFF32a89b, // RegularColor
@@ -35,7 +35,7 @@ if (PauseMenu->Initialized == 0)
     btn = 
     {
         "Menu",    // Text
-        &GameState->Faune100,   // Font
+        GetFont(&GameState->Assets, FI_Faune100),   // Font
         Menu,       // ID
         0,          // Color (CurrentColor)
         0xFF32a89b, // RegularColor
@@ -46,20 +46,38 @@ if (PauseMenu->Initialized == 0)
 }
 
 {
+    game_packet Send = {};
+    
     GUIEvents Events = HandleGUIEvents(PauseMenu, &p->Input);
     if (Events.BtnPressID == Menu) {
+        if (GameState->PreviousMode == game_mode::multiplayer)
+            Send.Disconnect = true;
+        
         SetCursorMode(&p->Input, Arrow);
-        GameState->Player1.Initialized = false;
+        GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;
     }
     else if (Events.BtnPressID == Reset) {
-        GameState->Menu = menu::game;
-        InitializeGame(GameMode::Singleplayer, GameState);
+        GameState->ResetGame = true;
+        GameState->Mode = game_mode::singleplayer;
+        GameState->Menu = menu::not_in_menu;
     }
     
     platform_keyboard_input *Controller = &p->Input.Keyboard;
     if (Controller->Escape.NewEndedDown)
-        GameState->Menu = menu::game;
+        GameState->Mode = game_mode::singleplayer;
+    
+    if (GameState->PreviousMode == game_mode::multiplayer) {
+        char Buffer[10000];
+        memset(Buffer, 0, 10000);
+        memcpy(Buffer, &Send, sizeof(game_packet)); 
+        GameState->client.sendq(Buffer, 9000);
+        
+        if (!Send.Disconnect) {
+            memset(Buffer, 0, 10000);
+            GameState->client.recvq(Buffer, 10000);
+        }
+    }
     
     UpdateGUI(PauseMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(PauseMenu);

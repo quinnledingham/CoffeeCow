@@ -17,14 +17,14 @@ if (MainMenu->Initialized == 0) {
         Text TXT = {};
         TXT.Text = "COFFEE COW";
         TXT.ID = Btn1;
-        TXT.FontType = &GameState->Faune100;
+        TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);
         TXT.TextColor = 0xFF000000;
         v2 GridCoords = v2(0, Y++);
         AddText(MainMenu, GridCoords, TXT);
     }{
         Button BTN = {};
         BTN.Text = "Singleplayer";
-        BTN.FontType = &GameState->Faune100;
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
         BTN.ID = GameStart;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
@@ -35,7 +35,7 @@ if (MainMenu->Initialized == 0) {
     }{
         Button BTN = {};
         BTN.Text = "Multiplayer";
-        BTN.FontType = &GameState->Faune100;
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
         BTN.ID = Multiplayer;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
@@ -46,7 +46,7 @@ if (MainMenu->Initialized == 0) {
     }{
         Button BTN = {};
         BTN.Text = "Quit";
-        BTN.FontType = &GameState->Faune100;
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
         BTN.ID = Quit;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
@@ -62,7 +62,9 @@ if (MainMenu->Initialized == 0) {
     
     if (Events.BtnPressID == GameStart) {
         SetCursorMode(&p->Input, Arrow);
-        GameState->Menu = menu::game;
+        GameState->ResetGame = true;
+        GameState->Menu = menu::not_in_menu;
+        GameState->Mode = game_mode::singleplayer;
     }
     else if (Events.BtnPressID == Multiplayer) {
         SetCursorMode(&p->Input, Arrow);

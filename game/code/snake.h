@@ -61,40 +61,62 @@ struct CoffeeCow
     int Direction;
     int Score;
     
-    bool Moving = true;
     Arr Inputs; // int
-    
-    Texture *Head;
-    Texture *Straight;
-    Texture *Corner;
-    Texture *CoffeeStreak;
-    Texture *HeadOutline;
-    Texture *StraightOutline;
-    Texture *CornerOutline;
-    
-    bool32 Initialized = false;
-};
-
-enum struct
-RectMode
-{
-    Color,
-    Tex,
 };
 
 struct Coffee
 {
     v2 Coords;
     real32 Rotation;
-    Texture *CoffeeTex;
     
-    bool32 Initialized;
+    bool32 NewLocation;
 };
+
+enum game_asset_id
+{
+    GAI_Background,
+    GAI_Rocks,
+    GAI_Grid,
+    GAI_CoffeeTex,
+    GAI_Head,
+    GAI_Straight,
+    GAI_Corner,
+    GAI_CoffeeStreak,
+    GAI_HeadOutline,
+    GAI_StraightOutline,
+    GAI_CornerOutline,
+    
+    GAI_Count
+};
+
+enum font_id
+{
+    FI_Faune50,
+    FI_Faune100,
+    
+    FI_COUNT
+};
+
+struct game_assets
+{
+    Texture *Textures[GAI_Count];
+    Font *Fonts[FI_COUNT];
+};
+inline Texture *GetTexture(game_assets *Assets, game_asset_id ID)
+{
+    Texture *Result = Assets->Textures[ID];
+    return Result;
+}
+inline Font *GetFont(game_assets *Assets, font_id ID)
+{
+    Font *Result = Assets->Fonts[ID];
+    return Result;
+}
 
 enum struct
 menu
 {
-    game,
+    not_in_menu,
     main_menu,
     multiplayer_menu,
     pause_menu,
@@ -102,37 +124,31 @@ menu
 };
 
 enum struct
-GameMode
+game_mode
 {
-    Singleplayer,
-    Multiplayer,
+    not_in_game,
+    singleplayer,
+    multiplayer,
 };
 
 struct game_state
 {
+    game_mode Mode;
+    game_mode PreviousMode;
     menu Menu;
-    GameMode Mode;
+    
     GUI GUIs[10];
     
-    Arr Textures;
-    //Texture Textures[100];
-    //Font Fonts[100];
+    bool32 ShowFPS = false;
+    bool32 ResetGame = true;
     
-    Texture *Background;
-    Texture *Grid;
-    Texture *Rocks;
-    
-    Font Faune50 = {};
-    Font Faune100 = {};
-    Font Faune = {};
+    game_assets Assets;
     
     const char* IP;
     const char* Port;
     
-    int ToneHz;
-    int GridSize;
-    int GridHeight;
-    int GridWidth;
+    real32 GridSize;
+    v2 GridDim;
     Camera C;
     
     Client client;

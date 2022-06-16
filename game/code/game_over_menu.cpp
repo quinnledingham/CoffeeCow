@@ -16,14 +16,14 @@ if (GameOverMenu.Initialized == 0)
     
     TXT.Text = "Game Over";
     TXT.ID = Btn1;
-    TXT.FontType = &GameState->Faune100;
+    TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);
     TXT.TextColor = 0xFF000000;
     AddText(&GameOverMenu, v2(0, Y++),  TXT);
     
     btn = 
     {
         "Play Again",    // Text
-        &GameState->Faune100,   // Font
+        GetFont(&GameState->Assets, FI_Faune100),   // Font
         Reset,       // ID
         0,          // Color (CurrentColor)
         0xFF32a89b, // RegularColor
@@ -35,7 +35,7 @@ if (GameOverMenu.Initialized == 0)
     btn = 
     {
         "Main Menu",    // Text
-        &GameState->Faune100,   // Font
+        GetFont(&GameState->Assets, FI_Faune100),   // Font
         Menu,       // ID
         0,          // Color (CurrentColor)
         0xFF32a89b, // RegularColor
@@ -49,18 +49,20 @@ if (GameOverMenu.Initialized == 0)
     GUIEvents Events = HandleGUIEvents(&GameOverMenu, &p->Input);
     if (Events.BtnPressID == Menu) {
         SetCursorMode(&p->Input, Arrow);
+        GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;
-        GameState->Player1.Initialized = false;
     }
     else if (Events.BtnPressID == Reset) {
-        GameState->Menu = menu::game;
-        InitializeGame(GameMode::Singleplayer, GameState);
+        GameState->ResetGame = true;
+        GameState->Mode = game_mode::singleplayer;
+        GameState->Menu = menu::not_in_menu;
     }
     
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
-    if (Keyboard->Escape.NewEndedDown)
-        GameState->Menu = menu::game;
-    
+    if (Keyboard->Escape.NewEndedDown) {
+        GameState->Mode = game_mode::singleplayer;
+        GameState->Menu = menu::not_in_menu;
+    }
     UpdateGUI(&GameOverMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(&GameOverMenu);
     

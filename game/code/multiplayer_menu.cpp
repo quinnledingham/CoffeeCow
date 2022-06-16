@@ -19,14 +19,14 @@ if (MultiplayerMenu->Initialized == 0) {
         Text TXT = {};
         TXT.Text = "IP:";
         TXT.ID = Btn1;
-        TXT.FontType = &GameState->Faune50;
+        TXT.FontType = GetFont(&GameState->Assets, FI_Faune50);
         TXT.TextColor = 0xFF000000;
         v2 GridCoords = v2(0, Y);
         AddText(MultiplayerMenu, GridCoords, TXT);
     }{
         TextBox TB = {};
         TB.Text = "";
-        TB.FontType = &GameState->Faune50;
+        TB.FontType = GetFont(&GameState->Assets, FI_Faune50);
         TB.ID = IP;
         TB.Color = TbColor;
         TB.TextColor = 0xFF000000;
@@ -37,14 +37,14 @@ if (MultiplayerMenu->Initialized == 0) {
         Text TXT = {};
         TXT.Text = "PORT:";
         TXT.ID = Btn2;
-        TXT.FontType = &GameState->Faune50;
+        TXT.FontType = GetFont(&GameState->Assets, FI_Faune50);
         TXT.TextColor = TbTextColor;
         v2 GridCoords = v2(0, Y);
         AddText(MultiplayerMenu, GridCoords, TXT);
     }{
         TextBox TB = {};
         TB.Text = "";
-        TB.FontType = &GameState->Faune50;
+        TB.FontType = GetFont(&GameState->Assets, FI_Faune50);
         TB.ID = PORT;
         TB.Color = TbColor;
         TB.TextColor = TbTextColor;
@@ -54,7 +54,7 @@ if (MultiplayerMenu->Initialized == 0) {
     }{
         Button BTN = {};
         BTN.Text = "Join";
-        BTN.FontType = &GameState->Faune100;
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
         BTN.ID = Btn4;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
@@ -65,7 +65,7 @@ if (MultiplayerMenu->Initialized == 0) {
     }{
         Button BTN = {};
         BTN.Text = "Back";
-        BTN.FontType = &GameState->Faune100;
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
         BTN.ID = Btn2;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
@@ -81,12 +81,14 @@ if (MultiplayerMenu->Initialized == 0) {
     
     if (Events.BtnPressID == Btn2) {
         SetCursorMode(&p->Input, Arrow);
+        GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;
     }
     else if (Events.BtnPressID == Btn4) {
         SetCursorMode(&p->Input, Arrow);
-        GameState->Menu = menu::game;
-        GameState->Mode = GameMode::Multiplayer;
+        GameState->ResetGame = true;
+        GameState->Mode = game_mode::multiplayer;
+        GameState->Menu = menu::not_in_menu;
         GameState->IP = GetTextBoxText(MultiplayerMenu, IP);
         GameState->Port = GetTextBoxText(MultiplayerMenu, PORT);
         

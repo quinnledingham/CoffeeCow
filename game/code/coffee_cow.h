@@ -11,18 +11,23 @@ struct ServerCoffeeCowNode
 {
     v2 Coords;
     int CurrentDirection;
-    int NextDirection;
     bool32 Streak;
 };
 
 struct ServerCoffeeCow
 {
+    int ID;
+    
     ServerCoffeeCowNode Nodes[289];
     int NumOfNodes;
     real32 TransitionAmt = 0;
-    real32 Speed;
-    int Direction;
     int Score;
+};
+
+struct game_packet
+{
+    ServerCoffeeCow Cow;
+    bool32 Disconnect;
 };
 
 void SendCoffeeCow(ServerCoffeeCow *Cow, Server *server)
