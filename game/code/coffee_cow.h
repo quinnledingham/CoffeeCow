@@ -16,8 +16,6 @@ struct ServerCoffeeCowNode
 
 struct ServerCoffeeCow
 {
-    int ID;
-    
     ServerCoffeeCowNode Nodes[289];
     int NumOfNodes;
     real32 TransitionAmt = 0;
