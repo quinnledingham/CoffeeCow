@@ -77,6 +77,9 @@ if (PauseMenu->Initialized == 0)
             memset(Buffer, 0, 10000);
             GameState->client.recvq(Buffer, 10000);
         }
+        else {
+            GameState->client.disconnect();
+        }
     }
     
     UpdateGUI(PauseMenu, v2(p->Dimension.Width, p->Dimension.Height));

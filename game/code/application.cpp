@@ -1,6 +1,6 @@
 #include "qlib/qlib.cpp"
-#include "snake.h"
 #include "coffee_cow.h"
+#include "snake.h"
 
 internal void
 RenderGrid(game_assets *Assets, v2 Grid, v2 GridDim, real32 GridSize)
@@ -600,30 +600,30 @@ void UpdateRender(platform* p)
         for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
             CoffeeCowNode* N = (CoffeeCowNode*)CowPlayer->Nodes[i];
             ServerCoffeeCowNode Node = {};
-            Node.Coords = N->Coords;
-            Node.CurrentDirection = N->CurrentDirection;
-            Node.Streak = N->Streak;
+            Node.Coords = iv2(N->Coords);
+            Node.CurrentDirection = (int8)N->CurrentDirection;
+            Node.Streak = (int8)N->Streak;
             Send.Cow.Nodes[i] = Node;
             Send.Cow.NumOfNodes++;
         }
         Send.Disconnect = false;
         
-        char Buffer[10000];
-        memset(Buffer, 0, 10000);
-        memcpy(Buffer, &Send, sizeof(game_packet)); 
-        GameState->client.sendq(Buffer, 9000);
+        
+        memset(GameState->Buffer, 0, BUFFER_SIZE);
+        memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
+        GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
         
         // Receive other snake
-        memset(Buffer, 0, 10000);
-        GameState->client.recvq(Buffer, 10000);
-        game_packet *Recv = (game_packet*)Buffer; 
+        memset(GameState->Buffer, 0, BUFFER_SIZE);
+        GameState->client.recvq(GameState->Buffer, BUFFER_SIZE);
+        game_packet *Recv = (game_packet*)GameState->Buffer; 
         ServerCoffeeCow *Cow = &Recv->Cow;
         CowPlayer2->TransitionAmt = Cow->TransitionAmt;
         CowPlayer2->Score = Cow->Score;
         CowPlayer2->Nodes.Clear();
         for (int i = 0; i < Cow->NumOfNodes; i++) {
             CoffeeCowNode Node = {};
-            Node.Coords = Cow->Nodes[i].Coords;
+            Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
             Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
             Node.Streak = Cow->Nodes[i].Streak;
             CowPlayer2->Nodes.Push(&Node);

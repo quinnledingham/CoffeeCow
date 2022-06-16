@@ -9,28 +9,30 @@ struct ServerCoffee
 
 struct ServerCoffeeCowNode
 {
-    v2 Coords;
-    int CurrentDirection;
-    bool32 Streak;
+    iv2 Coords;
+    int8  CurrentDirection;
+    int8 Streak;
 };
 
 struct ServerCoffeeCow
 {
-    ServerCoffeeCowNode Nodes[289];
-    int NumOfNodes;
+    ServerCoffeeCowNode Nodes[10];
+    int8 NumOfNodes;
     real32 TransitionAmt = 0;
-    int Score;
+    int32 Score;
 };
 
 struct game_packet
 {
     ServerCoffeeCow Cow;
-    bool32 Disconnect;
+    int8 Disconnect;
 };
 
 void SendCoffeeCow(ServerCoffeeCow *Cow, Server *server)
 {
     
 }
+#define BUFFER_SIZE sizeof(game_packet) + HEADER_BUFFER_SIZE
+#define SEND_BUFFER_SIZE sizeof(game_packet)
 
 #endif //COFFEE_COW_H

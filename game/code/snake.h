@@ -152,6 +152,8 @@ struct game_state
     Camera C;
     
     Client client;
+    char Buffer[BUFFER_SIZE];
+    
     CoffeeCow Player1;
     CoffeeCow Player2;
     Coffee Collect;
