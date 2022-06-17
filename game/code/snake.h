@@ -131,6 +131,20 @@ game_mode
     multiplayer,
 };
 
+#define MAX_THREADS 2
+struct thread
+{
+    DWORD dwThreadIdArray[MAX_THREADS];
+    HANDLE hThreadArray[MAX_THREADS]; 
+};
+
+struct thread_param
+{
+    Client *client;
+    CoffeeCow *Cow;
+    HANDLE *p2Mutex;
+};
+
 struct game_state
 {
     game_mode Mode;
@@ -153,9 +167,13 @@ struct game_state
     
     char Buffer[BUF_SIZE];
     Client client;
+    thread_param ThreadParams;
+    thread Thread;
     
     CoffeeCow Player1;
     CoffeeCow Player2;
+    HANDLE p2Mutex;
+    
     Coffee Collect;
 };
 

@@ -2,6 +2,51 @@
 #include "coffee_cow.h"
 #include "snake.h"
 
+DWORD WINAPI
+RecvPlayers(LPVOID lpParam)
+{
+    thread_param *tp = (thread_param*)lpParam;
+    Client *client = tp->client;
+    CoffeeCow* CowPlayer2 = tp->Cow;
+    HANDLE *p2Mutex = tp->p2Mutex;
+    
+    // Receive other snake
+    char Buffer[1000];
+    while(1) {
+        memset(Buffer, 0, BUF_SIZE);
+        client->recvq(Buffer, BUF_SIZE);
+        game_packet *Recv = (game_packet*)Buffer; 
+        ServerCoffeeCow *Cow = &Recv->Cow;
+        
+        switch(WaitForSingleObject(p2Mutex, INFINITE))
+        {
+            case WAIT_OBJECT_0: _try 
+            {
+                CowPlayer2->TransitionAmt = Cow->TransitionAmt;
+                CowPlayer2->Score = Cow->Score;
+                CowPlayer2->Nodes.Clear();
+            }
+            _finally{if(!ReleaseMutex(p2Mutex)){}}break;case WAIT_ABANDONED:return false;
+        }
+        
+        for (int i = 0; i < Cow->NumOfNodes; i++) {
+            CoffeeCowNode Node = {};
+            Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
+            Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
+            Node.Streak = Cow->Nodes[i].Streak;
+            
+            switch(WaitForSingleObject(p2Mutex, INFINITE))
+            {
+                case WAIT_OBJECT_0: _try 
+                {
+                    CowPlayer2->Nodes.Push(&Node);
+                }
+                _finally{if(!ReleaseMutex(p2Mutex)){}}break;case WAIT_ABANDONED:return false;
+            }
+        }
+    }
+}
+
 internal void
 RenderGrid(game_assets *Assets, v2 Grid, v2 GridDim, real32 GridSize)
 {
@@ -571,6 +616,13 @@ void UpdateRender(platform* p)
             CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
             GameState->client.create(GameState->IP, GameState->Port, TCP);
             
+            GameState->p2Mutex = CreateMutex(NULL, FALSE, NULL);
+            thread_param *tp = &GameState->ThreadParams;
+            tp->client = &GameState->client;
+            tp->Cow = CowPlayer2;
+            tp->p2Mutex = &GameState->p2Mutex;
+            GameState->Thread.hThreadArray[0] = CreateThread(NULL, 0, RecvPlayers, tp, 0, &GameState->Thread.dwThreadIdArray[0]);
+            
             GameState->ResetGame = false;
         }
         //Sleep(1);
@@ -612,22 +664,6 @@ void UpdateRender(platform* p)
         memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
         GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
         
-        // Receive other snake
-        memset(GameState->Buffer, 0, BUF_SIZE);
-        GameState->client.recvq(GameState->Buffer, BUF_SIZE);
-        game_packet *Recv = (game_packet*)GameState->Buffer; 
-        ServerCoffeeCow *Cow = &Recv->Cow;
-        CowPlayer2->TransitionAmt = Cow->TransitionAmt;
-        CowPlayer2->Score = Cow->Score;
-        CowPlayer2->Nodes.Clear();
-        for (int i = 0; i < Cow->NumOfNodes; i++) {
-            CoffeeCowNode Node = {};
-            Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
-            Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
-            Node.Streak = Cow->Nodes[i].Streak;
-            CowPlayer2->Nodes.Push(&Node);
-        }
-        
         PrintqDebug(S() + (int)CowPlayer2->TransitionAmt + "\n");
         
         v2 HalfGrid = v2((GameState->GridDim.x * GameState->GridSize)/2, (GameState->GridDim.y * GameState->GridSize)/2);
@@ -646,7 +682,15 @@ void UpdateRender(platform* p)
         
         RenderGrid(&GameState->Assets, HalfGrid, GameState->GridDim, GameState->GridSize);
         DrawCoffeeCow(&GameState->Assets, CowPlayer, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
-        DrawCoffeeCow(&GameState->Assets, CowPlayer2, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
+        
+        switch(WaitForSingleObject(GameState->p2Mutex, INFINITE))
+        {
+            case WAIT_OBJECT_0: _try 
+            {
+                DrawCoffeeCow(&GameState->Assets, CowPlayer2, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
+            }
+            _finally{if(!ReleaseMutex(GameState->p2Mutex)){}}break;case WAIT_ABANDONED:0;
+        }
         
         BeginMode2D(*C);
         RenderPieceGroup(RenderGroup);
