@@ -479,19 +479,21 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
     
     char Buffer[BUF_SIZE];
     memset(Buffer, 0, BUF_SIZE);
-    GameState->client.recvq(Buffer, BUF_SIZE);
-    game_packet *Recv = (game_packet*)Buffer; 
-    ServerCoffeeCow *Cow = &Recv->Cow;
-    CowPlayer2->TransitionAmt = Cow->TransitionAmt;
-    CowPlayer2->Score = Cow->Score;
-    CowPlayer2->Nodes.Clear();
-    for (int i = 0; i < Cow->NumOfNodes; i++) {
-        CoffeeCowNode Node = {};
-        Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
-        Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
-        Node.Streak = Cow->Nodes[i].Streak;
-        CowPlayer2->Nodes.Push(&Node);
-    }
+    int bytes = GameState->client.recvq(Buffer, BUF_SIZE);
+    if (bytes > 0) {
+        game_packet *Recv = (game_packet*)Buffer; 
+        ServerCoffeeCow *Cow = &Recv->Cow;
+        CowPlayer2->TransitionAmt = Cow->TransitionAmt;
+        CowPlayer2->Score = Cow->Score;
+        CowPlayer2->Nodes.Clear();
+        for (int i = 0; i < Cow->NumOfNodes; i++) {
+            CoffeeCowNode Node = {};
+            Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
+            Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
+            Node.Streak = Cow->Nodes[i].Streak;
+            CowPlayer2->Nodes.Push(&Node);
+        }
+    } // bytes > 0
 }
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
