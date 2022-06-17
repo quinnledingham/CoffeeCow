@@ -55,6 +55,8 @@ struct server_state
     int MaxPlayerCount = 4;
     player Players[4];
     
+    int NewPlayer = 0;
+    
     platform_work_queue Queue;
 };
 

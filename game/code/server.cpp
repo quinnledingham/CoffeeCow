@@ -100,6 +100,15 @@ Win32CompleteAllWork(platform_work_queue *Queue)
 }
 
 internal void
+Win32WaitForAllWork(platform_work_queue *Queue)
+{
+    while(Queue->CompletionGoal != Queue->CompletionCount){}
+    
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
+}
+
+internal void
 Win32CancelAllWork(platform_work_queue *Queue)
 {
     Queue->CompletionGoal = 0;
@@ -152,13 +161,41 @@ GetConnected(player *Player)
     return c;
 }
 internal int
-FlipConnected(player *Player)
+SetConnected(player *Player, int8 i)
 {
     switch(WaitForSingleObject(Player->cMutex, INFINITE))
     {
         case WAIT_OBJECT_0: _try 
         {
-            Player->Connected = !Player->Connected;
+            Player->Connected = i;
+        }
+        _finally{if(!ReleaseMutex(Player->cMutex)){}}break;case WAIT_ABANDONED:return false;
+    }
+    return true;
+}
+
+internal int
+GetSock(player *Player)
+{
+    int c = 0;
+    switch(WaitForSingleObject(Player->cMutex, INFINITE))
+    {
+        case WAIT_OBJECT_0: _try 
+        {
+            c = Player->Sock;
+        }
+        _finally{if(!ReleaseMutex(Player->cMutex)){}}break;case WAIT_ABANDONED:return false;
+    }
+    return c;
+}
+internal int
+SetSock(player *Player, int Sock)
+{
+    switch(WaitForSingleObject(Player->cMutex, INFINITE))
+    {
+        case WAIT_OBJECT_0: _try 
+        {
+            Player->Sock = Sock;
         }
         _finally{if(!ReleaseMutex(Player->cMutex)){}}break;case WAIT_ABANDONED:return false;
     }
@@ -176,7 +213,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
         
         for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
             player *OtherPlayer = &ServerState.Players[i];
-            if (GetConnected(OtherPlayer) && OtherPlayer->Sock != Player->Sock) {
+            if (GetConnected(OtherPlayer) && GetSock(OtherPlayer) != GetSock(Player)) {
                 Packet.Cow = OtherPlayer->Cow;
             }
         }
@@ -195,7 +232,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
     if (GetConnected(Player)) {
         char Buffer[BUF_SIZE];
         memset(Buffer, 0, BUF_SIZE);
-        ServerState.server.recvq(Player->Sock, Buffer, BUF_SIZE);
+        ServerState.server.recvq(GetSock(Player), Buffer, BUF_SIZE);
         game_packet *Recv = (game_packet*)Buffer;
         
         /*
@@ -206,18 +243,32 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
         printf("%f\n", Recv->Cow.TransitionAmt);
         
         if (Recv->Disconnect == 1) {
-            FlipConnected(Player);
-            closesocket(Player->Sock);
+            SetConnected(Player, 0);
+            closesocket(GetSock(Player));
         }
         else if (!Recv->Disconnect) {
             for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
                 player *OtherPlayer = &ServerState.Players[i];
-                if (OtherPlayer->Connected && OtherPlayer->Sock == Player->Sock) {
+                if (OtherPlayer->Connected && GetSock(OtherPlayer) == GetSock(Player)) {
                     OtherPlayer->Cow = Recv->Cow; 
                 }
             }
         } 
     } // Player->Connected
+}
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(AddPlayer)
+{
+    int i = 0;
+    player *Player = 0;
+    while(Player == 0) {
+        if (!GetConnected(&ServerState.Players[i]))
+            Player = &ServerState.Players[i];
+        i++;
+    }
+    SetConnected(Player, 1);
+    SetSock(Player, ServerState.NewPlayer);
+    ServerState.NewPlayer = 0;
 }
 
 DWORD WINAPI SendRecvFunction(LPVOID lpParam)
@@ -230,7 +281,10 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
                 Win32AddEntry(&ServerState.Queue, RecvData, Player);
             }
         }
-        Win32CompleteAllWork(&ServerState.Queue);
+        Win32WaitForAllWork(&ServerState.Queue);
+        if (ServerState.NewPlayer)
+            Win32AddEntry(&ServerState.Queue, AddPlayer, 0);
+        Win32WaitForAllWork(&ServerState.Queue);
     }
 }
 
@@ -262,17 +316,8 @@ int main(int argc, const char** argv)
         Player->cMutex = CreateMutex(NULL, FALSE, NULL);
     }
     
+    int NewSock = 0;
     while (1) {
-        int NewSock = ServerState.server.waitForConnection();
-        
-        int i = 0;
-        player *Player = 0;
-        while(Player == 0) {
-            if (ServerState.Players[i].Connected == false)
-                Player = &ServerState.Players[i];
-            i++;
-        }
-        Player->Connected = true;
-        Player->Sock = NewSock;
+        ServerState.NewPlayer = ServerState.server.waitForConnection();
     }
 }
