@@ -52,7 +52,7 @@ if (PauseMenu->Initialized == 0)
         if (GameState->PreviousMode == game_mode::multiplayer) {
             GameState->Disconnect = 1;
             Win32AddEntry(&p->Queue, SendData, GameState);
-            Win32CancelAllWork(&p->Queue);
+            Win32CompleteAllWork(&p->Queue);
         }
         SetCursorMode(&p->Input, Arrow);
         GameState->Mode = game_mode::not_in_game;

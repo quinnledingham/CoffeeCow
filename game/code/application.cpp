@@ -705,8 +705,6 @@ void UpdateRender(platform* p)
         Win32AddEntry(&p->Queue, RecvData, GameState);
         Win32AddEntry(&p->Queue, SendData, GameState);
         
-        PrintqDebug(S() + (int)CowPlayer2->TransitionAmt + "\n");
-        
         v2 HalfGrid = v2((GameState->GridDim.x * GameState->GridSize)/2, (GameState->GridDim.y * GameState->GridSize)/2);
         
         v3 RockCoords = v3(-HalfGrid.x - (GameState->GridSize * GameState->GridDim.x*1/6),
@@ -729,6 +727,8 @@ void UpdateRender(platform* p)
         BeginMode2D(*C);
         RenderPieceGroup(RenderGroup);
         EndMode2D();
+        
+        Win32CompleteAllWork(&p->Queue);
     }
     else if (GameState->Menu == menu::main_menu) {
 #include "main_menu.cpp" 

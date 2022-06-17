@@ -240,7 +240,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
         wsprintf(Buffer2, "%f\n", Recv->Cow.TransitionAmt);
         OutputDebugStringA(Buffer);
         */
-        printf("%f\n", Recv->Cow.TransitionAmt);
+        //printf("%f\n", Recv->Cow.TransitionAmt);
         
         if (Recv->Disconnect == 1) {
             SetConnected(Player, 0);
@@ -259,16 +259,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(AddPlayer)
 {
-    int i = 0;
-    player *Player = 0;
-    while(Player == 0) {
-        if (!GetConnected(&ServerState.Players[i]))
-            Player = &ServerState.Players[i];
-        i++;
-    }
-    SetConnected(Player, 1);
-    SetSock(Player, ServerState.NewPlayer);
-    ServerState.NewPlayer = 0;
+    
 }
 
 DWORD WINAPI SendRecvFunction(LPVOID lpParam)
@@ -281,10 +272,19 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
                 Win32AddEntry(&ServerState.Queue, RecvData, Player);
             }
         }
-        Win32WaitForAllWork(&ServerState.Queue);
-        if (ServerState.NewPlayer)
-            Win32AddEntry(&ServerState.Queue, AddPlayer, 0);
-        Win32WaitForAllWork(&ServerState.Queue);
+        Win32CompleteAllWork(&ServerState.Queue);
+        if (ServerState.NewPlayer) {
+            int i = 0;
+            player *Player = 0;
+            while(Player == 0) {
+                if (!GetConnected(&ServerState.Players[i]))
+                    Player = &ServerState.Players[i];
+                i++;
+            }
+            SetConnected(Player, 1);
+            SetSock(Player, ServerState.NewPlayer);
+            ServerState.NewPlayer = 0;
+        }
     }
 }
 
