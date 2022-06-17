@@ -28,13 +28,42 @@ struct game_packet
     int8 Disconnect;
 };
 
-void SendCoffeeCow(ServerCoffeeCow *Cow, Server *server)
+enum connection_type
 {
+    sender,
+    receiver,
+};
+struct packet
+{
+    int ConnectionType;
+    int ID;
+};
+
+struct player
+{
+    int ID;
     
-}
+    HANDLE SenderThread; // Thread that sends updated data of players
+    int SenderSock;
+    
+    HANDLE ReceiverThread; // Thread that gets data from player
+    int ReceiverSock;
+    
+    ServerCoffeeCow *Cow;
+    bool32 Connected;
+};
+
+struct server_state
+{
+    Server server;
+    
+    int MaxPlayerCount = 4;
+    player Players[4];
+    
+    int ThreadCount = 0;
+};
 
 #define SEND_BUFFER_SIZE sizeof(game_packet) + 100
 #define BUF_SIZE SEND_BUFFER_SIZE + HEADER_BUFFER_SIZE
-
 
 #endif //COFFEE_COW_H

@@ -2,19 +2,29 @@
 #include "coffee_cow.h"
 #include "snake.h"
 
+/*
 DWORD WINAPI
 RecvPlayers(LPVOID lpParam)
 {
     thread_param *tp = (thread_param*)lpParam;
-    Client *client = tp->client;
     CoffeeCow* CowPlayer2 = tp->Cow;
     HANDLE *p2Mutex = tp->p2Mutex;
     
-    // Receive other snake
     char Buffer[1000];
+    
+    Client client = {};
+    client.create(tp->IP, tp->Port, TCP);
+    packet Packet = {};
+    Packet.Type = connection_type::receiver;
+    memset(Buffer, 0, BUF_SIZE);
+    memcpy(Buffer, &Packet, sizeof(packet)); 
+    client.sendq(Buffer, SEND_BUFFER_SIZE);
+    
+    // Receive other snake
+    
     while(1) {
         memset(Buffer, 0, BUF_SIZE);
-        client->recvq(Buffer, BUF_SIZE);
+        client.recvq(Buffer, BUF_SIZE);
         game_packet *Recv = (game_packet*)Buffer; 
         ServerCoffeeCow *Cow = &Recv->Cow;
         
@@ -46,7 +56,7 @@ RecvPlayers(LPVOID lpParam)
         }
     }
 }
-
+*/
 internal void
 RenderGrid(game_assets *Assets, v2 Grid, v2 GridDim, real32 GridSize)
 {
@@ -614,14 +624,33 @@ void UpdateRender(platform* p)
         if (GameState->ResetGame) {
             InitializeCow(CowPlayer, GameState->GridDim);
             CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
-            GameState->client.create(GameState->IP, GameState->Port, TCP);
             
+            GameState->client.create(GameState->IP, GameState->Port, TCP);
+            /*
             GameState->p2Mutex = CreateMutex(NULL, FALSE, NULL);
+            
             thread_param *tp = &GameState->ThreadParams;
-            tp->client = &GameState->client;
             tp->Cow = CowPlayer2;
             tp->p2Mutex = &GameState->p2Mutex;
+            tp->IP = GameState->IP;
+            tp->Port = GameState->Port;
+            
             GameState->Thread.hThreadArray[0] = CreateThread(NULL, 0, RecvPlayers, tp, 0, &GameState->Thread.dwThreadIdArray[0]);
+            */
+            packet Packet = {};
+            Packet.ConnectionType = receiver;
+            Packet.ID = 5;
+            memset(GameState->Buffer, 0, BUF_SIZE);
+            memcpy(GameState->Buffer, &Packet, sizeof(packet)); 
+            GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
+            
+            Client client2 = {};
+            client2.create(GameState->IP, GameState->Port, TCP);
+            Packet.ConnectionType = sender;
+            Packet.ID = 5;
+            memset(GameState->Buffer, 0, BUF_SIZE);
+            memcpy(GameState->Buffer, &Packet, sizeof(packet)); 
+            client2.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
             
             GameState->ResetGame = false;
         }
@@ -646,6 +675,14 @@ void UpdateRender(platform* p)
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
             int i = 0;
         
+        
+        memset(GameState->Buffer, 0, BUF_SIZE);
+        GameState->client.recvq(GameState->Buffer, BUF_SIZE);
+        game_packet *Recv = (game_packet*)GameState->Buffer; 
+        ServerCoffeeCow *Cow = &Recv->Cow;
+        PrintqDebug(S() + (int)Recv->Disconnect + "\n");
+        
+        /*
         game_packet Send = {};
         Send.Cow.TransitionAmt = CowPlayer->TransitionAmt;
         Send.Cow.Score = CowPlayer->Score;
@@ -663,6 +700,7 @@ void UpdateRender(platform* p)
         memset(GameState->Buffer, 0, BUF_SIZE);
         memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
         GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
+        */
         
         PrintqDebug(S() + (int)CowPlayer2->TransitionAmt + "\n");
         

@@ -140,9 +140,10 @@ struct thread
 
 struct thread_param
 {
-    Client *client;
     CoffeeCow *Cow;
     HANDLE *p2Mutex;
+    const char* IP;
+    const char* Port;
 };
 
 struct game_state
