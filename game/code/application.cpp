@@ -678,6 +678,7 @@ void UpdateRender(platform* p)
             
             GameState->client.create(GameState->IP, GameState->Port, TCP);
             GameState->ResetGame = false;
+            GameState->Disconnect = 0;
         }
         
         platform_controller_input *Controller = &p->Input.Controllers[0];
@@ -721,15 +722,7 @@ void UpdateRender(platform* p)
         
         RenderGrid(&GameState->Assets, HalfGrid, GameState->GridDim, GameState->GridSize);
         DrawCoffeeCow(&GameState->Assets, CowPlayer, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
-        
-        switch(WaitForSingleObject(GameState->p2Mutex, INFINITE))
-        {
-            case WAIT_OBJECT_0: _try 
-            {
-                DrawCoffeeCow(&GameState->Assets, CowPlayer2, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
-            }
-            _finally{if(!ReleaseMutex(GameState->p2Mutex)){}}break;case WAIT_ABANDONED:0;
-        }
+        DrawCoffeeCow(&GameState->Assets, CowPlayer2, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
         
         BeginMode2D(*C);
         RenderPieceGroup(RenderGroup);

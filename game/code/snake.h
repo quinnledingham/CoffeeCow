@@ -172,7 +172,6 @@ struct game_state
     
     CoffeeCow Player1;
     CoffeeCow Player2;
-    HANDLE p2Mutex;
     
     Coffee Collect;
 };

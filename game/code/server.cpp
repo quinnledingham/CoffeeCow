@@ -198,9 +198,12 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
         ServerState.server.recvq(Player->Sock, Buffer, BUF_SIZE);
         game_packet *Recv = (game_packet*)Buffer;
         
+        /*
         char Buffer2[256];
         wsprintf(Buffer2, "%f\n", Recv->Cow.TransitionAmt);
         OutputDebugStringA(Buffer);
+        */
+        printf("%f\n", Recv->Cow.TransitionAmt);
         
         if (Recv->Disconnect == 1) {
             FlipConnected(Player);
@@ -253,6 +256,11 @@ int main(int argc, const char** argv)
     CloseHandle(ThreadHandle);
     
     ServerState.server.create("44575", TCP);
+    
+    for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
+        player *Player = &ServerState.Players[i];
+        Player->cMutex = CreateMutex(NULL, FALSE, NULL);
+    }
     
     while (1) {
         int NewSock = ServerState.server.waitForConnection();
