@@ -10,7 +10,6 @@
 #include "coffee_cow.h"
 
 #define MAX_THREADS 4
-#define BUF_SIZE 255
 
 struct player
 {
@@ -82,22 +81,23 @@ DecrementPlayersConnected()
     return true;
 }
 
+
 DWORD WINAPI ServerFunction(LPVOID lpParam)
 {
     player *Player = (player*)lpParam;
-    char Buffer[BUFFER_SIZE];
-    printf("%d\n", Player->sockClient);
+    //printf("%d\n", Player->sockClient);
     
+    char Buffer[BUF_SIZE];
     while(1) {
         game_packet *Recv = 0;
         ServerCoffeeCow *Cow = 0;
-        memset(Buffer, 0, BUFFER_SIZE);
+        memset(Buffer, 0, BUF_SIZE);
         
         switch(WaitForSingleObject(GameState.serverMutex, INFINITE))
         {
             case WAIT_OBJECT_0: _try 
             {
-                GameState.server.recvq(Player->sockClient, Buffer, BUFFER_SIZE);
+                GameState.server.recvq(Player->sockClient, Buffer, BUF_SIZE);
             }
             _finally{if(!ReleaseMutex(GameState.serverMutex)){}}break;case WAIT_ABANDONED:return false;
         }
@@ -128,7 +128,7 @@ DWORD WINAPI ServerFunction(LPVOID lpParam)
             _finally{if(!ReleaseMutex(Player->CowMutex)){}}break;case WAIT_ABANDONED:return false;
         }
         
-        memset(Buffer, 0, BUFFER_SIZE);
+        memset(Buffer, 0, BUF_SIZE);
         game_packet Send = {};
         int pc = GetPlayersConnected();
         for (int i = 0; i < pc; i++) {
@@ -137,7 +137,7 @@ DWORD WINAPI ServerFunction(LPVOID lpParam)
                 case WAIT_OBJECT_0: _try 
                 {
                     if (GameState.Players[i].ID != Player->ID) {
-                        printf("pc: %d\n",GameState.Players[i].Cow.NumOfNodes);
+                        //printf("pc: %d\n",GameState.Players[i].Cow.NumOfNodes);
                         Send.Cow = GameState.Players[i].Cow;
                     }
                 }
@@ -162,8 +162,6 @@ int main(int argc, const char** argv)
 {
     DWORD dwThreadIdArray[MAX_THREADS];
     HANDLE hThreadArray[MAX_THREADS]; 
-    
-    int i = sizeof(bool);
     
     GameState.serverMutex = CreateMutex(NULL, FALSE, NULL);
     GameState.CollectMutex = CreateMutex(NULL, FALSE, NULL);
@@ -203,6 +201,7 @@ int main(int argc, const char** argv)
         }
         
         hThreadArray[PlyrsCncted] = CreateThread(NULL, 0, ServerFunction, Player, 0, &dwThreadIdArray[PlyrsCncted]);
+        //ServerFunction((LPVOID)Player);
         IncrementPlayersConnected();
     }
 }

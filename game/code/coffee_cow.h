@@ -32,7 +32,9 @@ void SendCoffeeCow(ServerCoffeeCow *Cow, Server *server)
 {
     
 }
-#define BUFFER_SIZE sizeof(game_packet) + HEADER_BUFFER_SIZE
-#define SEND_BUFFER_SIZE sizeof(game_packet)
+
+#define SEND_BUFFER_SIZE sizeof(game_packet) + 100
+#define BUF_SIZE SEND_BUFFER_SIZE + HEADER_BUFFER_SIZE
+
 
 #endif //COFFEE_COW_H

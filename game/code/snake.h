@@ -151,8 +151,8 @@ struct game_state
     v2 GridDim;
     Camera C;
     
+    char Buffer[BUF_SIZE];
     Client client;
-    char Buffer[BUFFER_SIZE];
     
     CoffeeCow Player1;
     CoffeeCow Player2;

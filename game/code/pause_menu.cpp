@@ -68,14 +68,13 @@ if (PauseMenu->Initialized == 0)
         GameState->Mode = game_mode::singleplayer;
     
     if (GameState->PreviousMode == game_mode::multiplayer) {
-        char Buffer[10000];
-        memset(Buffer, 0, 10000);
-        memcpy(Buffer, &Send, sizeof(game_packet)); 
-        GameState->client.sendq(Buffer, 9000);
+        memset(GameState->Buffer, 0, BUF_SIZE);
+        memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
+        GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
         
         if (!Send.Disconnect) {
-            memset(Buffer, 0, 10000);
-            GameState->client.recvq(Buffer, 10000);
+            memset(GameState->Buffer, 0, BUF_SIZE);
+            GameState->client.recvq(GameState->Buffer, BUF_SIZE);
         }
         else {
             GameState->client.disconnect();

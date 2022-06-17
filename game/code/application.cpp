@@ -608,14 +608,13 @@ void UpdateRender(platform* p)
         }
         Send.Disconnect = false;
         
-        
-        memset(GameState->Buffer, 0, BUFFER_SIZE);
+        memset(GameState->Buffer, 0, BUF_SIZE);
         memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
         GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
         
         // Receive other snake
-        memset(GameState->Buffer, 0, BUFFER_SIZE);
-        GameState->client.recvq(GameState->Buffer, BUFFER_SIZE);
+        memset(GameState->Buffer, 0, BUF_SIZE);
+        GameState->client.recvq(GameState->Buffer, BUF_SIZE);
         game_packet *Recv = (game_packet*)GameState->Buffer; 
         ServerCoffeeCow *Cow = &Recv->Cow;
         CowPlayer2->TransitionAmt = Cow->TransitionAmt;
