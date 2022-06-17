@@ -472,6 +472,57 @@ LoadAssets(game_assets *Assets)
     Assets->Fonts[FI_Faune100] = LoadFont("Rubik-Medium.ttf", 100);
 }
 
+internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
+{
+    game_state *GameState = (game_state*)Data;
+    CoffeeCow *CowPlayer2 = &GameState->Player2;
+    
+    char Buffer[BUF_SIZE];
+    memset(Buffer, 0, BUF_SIZE);
+    GameState->client.recvq(Buffer, BUF_SIZE);
+    game_packet *Recv = (game_packet*)Buffer; 
+    ServerCoffeeCow *Cow = &Recv->Cow;
+    CowPlayer2->TransitionAmt = Cow->TransitionAmt;
+    CowPlayer2->Score = Cow->Score;
+    CowPlayer2->Nodes.Clear();
+    for (int i = 0; i < Cow->NumOfNodes; i++) {
+        CoffeeCowNode Node = {};
+        Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
+        Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
+        Node.Streak = Cow->Nodes[i].Streak;
+        CowPlayer2->Nodes.Push(&Node);
+    }
+}
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
+{
+    game_state *GameState = (game_state*)Data;
+    CoffeeCow *CowPlayer = &GameState->Player1;
+    
+    
+    game_packet Send = {};
+    Send.Cow.TransitionAmt = CowPlayer->TransitionAmt;
+    Send.Cow.Score = CowPlayer->Score;
+    for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
+        CoffeeCowNode* N = (CoffeeCowNode*)CowPlayer->Nodes[i];
+        ServerCoffeeCowNode Node = {};
+        Node.Coords = iv2(N->Coords);
+        Node.CurrentDirection = (int8)N->CurrentDirection;
+        Node.Streak = (int8)N->Streak;
+        Send.Cow.Nodes[i] = Node;
+        Send.Cow.NumOfNodes++;
+    }
+    Send.Disconnect = GameState->Disconnect;
+    
+    char Buffer[BUF_SIZE];
+    memset(Buffer, 0, BUF_SIZE);
+    memcpy(Buffer, &Send, sizeof(game_packet)); 
+    GameState->client.sendq(Buffer, SEND_BUFFER_SIZE);
+    
+    if (Send.Disconnect == 1)
+        GameState->client.disconnect();
+}
+
 void UpdateRender(platform* p)
 {
     game_state *GameState = (game_state*)p->Memory.TransientStorage;
@@ -626,35 +677,8 @@ void UpdateRender(platform* p)
             CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
             
             GameState->client.create(GameState->IP, GameState->Port, TCP);
-            /*
-            GameState->p2Mutex = CreateMutex(NULL, FALSE, NULL);
-            
-            thread_param *tp = &GameState->ThreadParams;
-            tp->Cow = CowPlayer2;
-            tp->p2Mutex = &GameState->p2Mutex;
-            tp->IP = GameState->IP;
-            tp->Port = GameState->Port;
-            
-            GameState->Thread.hThreadArray[0] = CreateThread(NULL, 0, RecvPlayers, tp, 0, &GameState->Thread.dwThreadIdArray[0]);
-            */
-            packet Packet = {};
-            Packet.ConnectionType = receiver;
-            Packet.ID = 5;
-            memset(GameState->Buffer, 0, BUF_SIZE);
-            memcpy(GameState->Buffer, &Packet, sizeof(packet)); 
-            GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
-            
-            Client client2 = {};
-            client2.create(GameState->IP, GameState->Port, TCP);
-            Packet.ConnectionType = sender;
-            Packet.ID = 5;
-            memset(GameState->Buffer, 0, BUF_SIZE);
-            memcpy(GameState->Buffer, &Packet, sizeof(packet)); 
-            client2.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
-            
             GameState->ResetGame = false;
         }
-        //Sleep(1);
         
         platform_controller_input *Controller = &p->Input.Controllers[0];
         if (Keyboard->Escape.NewEndedDown) {
@@ -675,32 +699,8 @@ void UpdateRender(platform* p)
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
             int i = 0;
         
-        
-        memset(GameState->Buffer, 0, BUF_SIZE);
-        GameState->client.recvq(GameState->Buffer, BUF_SIZE);
-        game_packet *Recv = (game_packet*)GameState->Buffer; 
-        ServerCoffeeCow *Cow = &Recv->Cow;
-        PrintqDebug(S() + (int)Recv->Disconnect + "\n");
-        
-        /*
-        game_packet Send = {};
-        Send.Cow.TransitionAmt = CowPlayer->TransitionAmt;
-        Send.Cow.Score = CowPlayer->Score;
-        for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
-            CoffeeCowNode* N = (CoffeeCowNode*)CowPlayer->Nodes[i];
-            ServerCoffeeCowNode Node = {};
-            Node.Coords = iv2(N->Coords);
-            Node.CurrentDirection = (int8)N->CurrentDirection;
-            Node.Streak = (int8)N->Streak;
-            Send.Cow.Nodes[i] = Node;
-            Send.Cow.NumOfNodes++;
-        }
-        Send.Disconnect = false;
-        
-        memset(GameState->Buffer, 0, BUF_SIZE);
-        memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
-        GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
-        */
+        Win32AddEntry(&p->Queue, RecvData, GameState);
+        Win32AddEntry(&p->Queue, SendData, GameState);
         
         PrintqDebug(S() + (int)CowPlayer2->TransitionAmt + "\n");
         
@@ -709,7 +709,8 @@ void UpdateRender(platform* p)
         v3 RockCoords = v3(-HalfGrid.x - (GameState->GridSize * GameState->GridDim.x*1/6),
                            -HalfGrid.y - (GameState->GridSize * GameState->GridDim.y*1/6), 
                            1.0f);
-        v2 RockDim = v2((GameState->GridDim.x * GameState->GridSize) * 4/3 - 1, (GameState->GridDim.y * GameState->GridSize) * 4/3 - 1);
+        v2 RockDim = v2((GameState->GridDim.x * GameState->GridSize) * 4/3 - 1, 
+                        (GameState->GridDim.y * GameState->GridSize) * 4/3 - 1);
         Push(RenderGroup, RockCoords, RockDim, GetTexture(&GameState->Assets, GAI_Rocks), 0, BlendMode::gl_src_alpha);
         
         v3 BackgroundCoords = v3(-((real32)p->Dimension.Width)/2 - 5, 

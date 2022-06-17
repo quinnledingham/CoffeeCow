@@ -141,9 +141,7 @@ struct thread
 struct thread_param
 {
     CoffeeCow *Cow;
-    HANDLE *p2Mutex;
-    const char* IP;
-    const char* Port;
+    Client *client;
 };
 
 struct game_state
@@ -170,6 +168,7 @@ struct game_state
     Client client;
     thread_param ThreadParams;
     thread Thread;
+    int8 Disconnect = 0;
     
     CoffeeCow Player1;
     CoffeeCow Player2;

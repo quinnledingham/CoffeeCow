@@ -41,26 +41,21 @@ struct packet
 
 struct player
 {
-    int ID;
-    
-    HANDLE SenderThread; // Thread that sends updated data of players
-    int SenderSock;
-    
-    HANDLE ReceiverThread; // Thread that gets data from player
-    int ReceiverSock;
-    
-    ServerCoffeeCow *Cow;
+    int Sock;
+    ServerCoffeeCow Cow;
     bool32 Connected;
+    HANDLE cMutex;
 };
 
 struct server_state
 {
     Server server;
     
+    int PlayersConnected = 0;
     int MaxPlayerCount = 4;
     player Players[4];
     
-    int ThreadCount = 0;
+    platform_work_queue Queue;
 };
 
 #define SEND_BUFFER_SIZE sizeof(game_packet) + 100

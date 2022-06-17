@@ -46,13 +46,14 @@ if (PauseMenu->Initialized == 0)
 }
 
 {
-    game_packet Send = {};
-    
+    GameState->Disconnect = 0;
     GUIEvents Events = HandleGUIEvents(PauseMenu, &p->Input);
     if (Events.BtnPressID == Menu) {
-        if (GameState->PreviousMode == game_mode::multiplayer)
-            Send.Disconnect = true;
-        
+        if (GameState->PreviousMode == game_mode::multiplayer) {
+            GameState->Disconnect = 1;
+            Win32AddEntry(&p->Queue, SendData, GameState);
+            Win32CancelAllWork(&p->Queue);
+        }
         SetCursorMode(&p->Input, Arrow);
         GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;
@@ -67,19 +68,6 @@ if (PauseMenu->Initialized == 0)
     if (Controller->Escape.NewEndedDown)
         GameState->Mode = game_mode::singleplayer;
     
-    if (GameState->PreviousMode == game_mode::multiplayer) {
-        memset(GameState->Buffer, 0, BUF_SIZE);
-        memcpy(GameState->Buffer, &Send, sizeof(game_packet)); 
-        GameState->client.sendq(GameState->Buffer, SEND_BUFFER_SIZE);
-        
-        if (!Send.Disconnect) {
-            memset(GameState->Buffer, 0, BUF_SIZE);
-            GameState->client.recvq(GameState->Buffer, BUF_SIZE);
-        }
-        else {
-            GameState->client.disconnect();
-        }
-    }
     
     UpdateGUI(PauseMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(PauseMenu);

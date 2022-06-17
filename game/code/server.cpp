@@ -1,345 +1,270 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
+
 #include <windows.h>
 #include <iostream>
 #include <stdio.h>
+#include <intrin.h>
 
 #include "qlib/types.h"
+//#include "qlib/win32_application.cpp"
 #include "qlib/socketq.cpp"
 #include "qlib/data_structures.h"
+
+#pragma comment(linker, "/subsystem:console")
+#define MAX_THREADS 8
+
+// Multithreading
+struct platform_work_queue;
+#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
+typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
+
+typedef void platform_add_entry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data);
+typedef void platform_complete_all_work(platform_work_queue *Queue);
+
+struct platform_work_queue_entry
+{
+    platform_work_queue_callback *Callback;
+    void *Data;
+};
+
+struct platform_work_queue
+{
+    uint32 volatile CompletionGoal;
+    uint32 volatile CompletionCount;
+    
+    uint32 volatile NextEntryToWrite;
+    uint32 volatile NextEntryToRead;
+    HANDLE SemaphoreHandle;
+    
+    platform_work_queue_entry Entries[256];
+};
+
 #include "coffee_cow.h"
 
-#define MAX_THREADS 8
-/*
-struct player
+internal void
+Win32AddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data)
 {
-    int ID;
-    bool32 Connected;
+    // TODO(casey): Switch to InterlockedCompareExchange eventually
+    // so that any thread can add?
+    uint32 NewNextEntryToWrite = (Queue->NextEntryToWrite + 1) % ArrayCount(Queue->Entries);
+    Assert(NewNextEntryToWrite != Queue->NextEntryToRead);
+    platform_work_queue_entry *Entry = Queue->Entries + Queue->NextEntryToWrite;
+    Entry->Callback = Callback;
+    Entry->Data = Data;
+    ++Queue->CompletionGoal;
+    _WriteBarrier();
+    _mm_sfence();
+    Queue->NextEntryToWrite = NewNextEntryToWrite;
+    ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
+}
+
+internal bool32
+Win32DoNextWorkQueueEntry(platform_work_queue *Queue)
+{
+    bool32 WeShouldSleep = false;
     
-    HANDLE SenderThread;
-    HANDLE ReceiverThread;
+    uint32 OriginalNextEntryToRead = Queue->NextEntryToRead;
+    uint32 NewNextEntryToRead = (OriginalNextEntryToRead + 1) % ArrayCount(Queue->Entries);
+    if(OriginalNextEntryToRead != Queue->NextEntryToWrite)
+    {
+        uint32 Index = InterlockedCompareExchange((LONG volatile *)&Queue->NextEntryToRead,
+                                                  NewNextEntryToRead,
+                                                  OriginalNextEntryToRead);
+        if(Index == OriginalNextEntryToRead)
+        {        
+            platform_work_queue_entry Entry = Queue->Entries[Index];
+            Entry.Callback(Queue, Entry.Data);
+            InterlockedIncrement((LONG volatile *)&Queue->CompletionCount);
+        }
+    }
+    else
+    {
+        WeShouldSleep = true;
+    }
     
-    int sockClient;
-    ServerCoffeeCow Cow;
-    HANDLE CowMutex;
+    return(WeShouldSleep);
+}
+
+internal void
+Win32CompleteAllWork(platform_work_queue *Queue)
+{
+    while(Queue->CompletionGoal != Queue->CompletionCount)
+    {
+        Win32DoNextWorkQueueEntry(Queue);
+    }
+    
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
+}
+
+internal void
+Win32CancelAllWork(platform_work_queue *Queue)
+{
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
+}
+
+struct win32_thread_info
+{
+    int LogicalThreadIndex;
+    platform_work_queue *Queue;
 };
-
-struct game_state
+DWORD WINAPI
+ThreadProc(LPVOID lpParameter)
 {
-    Server SendServer;
-    Server RecvServer;
+    win32_thread_info *ThreadInfo = (win32_thread_info *)lpParameter;
     
-    int PlayersConnected = 0;
-    HANDLE pcMutex;
-    
-    int MaxPlayers = 4;
-    player Players[4];
-    
-    ServerCoffee Collect;
-    HANDLE CollectMutex;
-};
-
-global_variable game_state GameState = {};
-
-internal int
-GetPlayersConnected()
-{
-    int r = 0;
-    switch(WaitForSingleObject(GameState.pcMutex, INFINITE))
+    for(;;)
     {
-        case WAIT_OBJECT_0: _try 
+        if(Win32DoNextWorkQueueEntry(ThreadInfo->Queue))
         {
-            r = GameState.PlayersConnected;
+            WaitForSingleObjectEx(ThreadInfo->Queue->SemaphoreHandle, INFINITE, FALSE);
         }
-        _finally{if(!ReleaseMutex(GameState.pcMutex)){}}break;case WAIT_ABANDONED:return false;
     }
-    return r;
+    
+    //    return(0);
 }
 
-internal DWORD
-IncrementPlayersConnected()
+internal PLATFORM_WORK_QUEUE_CALLBACK(DoWorkerWork)
 {
-    switch(WaitForSingleObject(GameState.pcMutex, INFINITE))
-    {
-        case WAIT_OBJECT_0: _try 
-        {
-            GameState.PlayersConnected++;
-        }
-        _finally{if(!ReleaseMutex(GameState.pcMutex)){}}break;case WAIT_ABANDONED:return false;
-    }
-    return true;
+    char Buffer[256];
+    wsprintf(Buffer, "Thread %u: %s\n", GetCurrentThreadId(), (char *)Data);
+    OutputDebugStringA(Buffer);
 }
-
-internal DWORD
-DecrementPlayersConnected()
-{
-    switch(WaitForSingleObject(GameState.pcMutex, INFINITE))
-    {
-        case WAIT_OBJECT_0: _try 
-        {
-            GameState.PlayersConnected--;
-        }
-        _finally{if(!ReleaseMutex(GameState.pcMutex)){}}break;case WAIT_ABANDONED:return false;
-    }
-    return true;
-}
-*/
-/*
-DWORD WINAPI ServerFunction(LPVOID lpParam)
-{
-    player *Player = (player*)lpParam;
-    //printf("%d\n", Player->sockClient);
-    
-    char Buffer[BUF_SIZE];
-    while(1) {
-        game_packet *Recv = 0;
-        ServerCoffeeCow *Cow = 0;
-        memset(Buffer, 0, BUF_SIZE);
-        
-        switch(WaitForSingleObject(GameState.serverMutex, INFINITE))
-        {
-            case WAIT_OBJECT_0: _try 
-            {
-                GameState.server.recvq(Player->sockClient, Buffer, BUF_SIZE);
-            }
-            _finally{if(!ReleaseMutex(GameState.serverMutex)){}}break;case WAIT_ABANDONED:return false;
-        }
-        
-        Recv = (game_packet*)Buffer;
-        if (Recv->Disconnect) {
-            switch(WaitForSingleObject(Player->CowMutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    Player->Connected = false;
-                    //CloseHandle(Player->CowMutex);
-                    closesocket(Player->sockClient);
-                }
-                _finally{if(!ReleaseMutex(Player->CowMutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-            DecrementPlayersConnected();
-            return true;
-        }
-        Cow = &Recv->Cow;
-        
-        switch(WaitForSingleObject(Player->CowMutex, INFINITE))
-        {
-            case WAIT_OBJECT_0: _try 
-            {
-                Player->Cow = *Cow;
-            }
-            _finally{if(!ReleaseMutex(Player->CowMutex)){}}break;case WAIT_ABANDONED:return false;
-        }
-        
-        memset(Buffer, 0, BUF_SIZE);
-        game_packet Send = {};
-        int pc = GetPlayersConnected();
-        for (int i = 0; i < pc; i++) {
-            switch(WaitForSingleObject(GameState.Players[i].CowMutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    if (GameState.Players[i].ID != Player->ID) {
-                        //printf("pc: %d\n",GameState.Players[i].Cow.NumOfNodes);
-                        Send.Cow = GameState.Players[i].Cow;
-                    }
-                }
-                _finally{if(!ReleaseMutex(GameState.Players[i].CowMutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-        }
-        
-        memcpy(Buffer, &Send, sizeof(game_packet));
-        
-        switch(WaitForSingleObject(GameState.serverMutex, INFINITE))
-        {
-            case WAIT_OBJECT_0: _try 
-            {
-                GameState.server.sendq(Player->sockClient, Buffer, SEND_BUFFER_SIZE);
-            }
-            _finally{if(!ReleaseMutex(GameState.serverMutex)){}}break;case WAIT_ABANDONED:return false;
-        }
-    } // while 1
-}
-*/
-
-/*
-DWORD WINAPI ReceiverFunction(LPVOID lpParam)
-{
-    player *Player = (player*)lpParam;
-    
-    char Buffer[BUF_SIZE];
-    while (1) {
-        game_packet *Recv = 0;
-        ServerCoffeeCow *Cow = 0;
-        memset(Buffer, 0, BUF_SIZE);
-        GameState.server.recvq(Player->sockClient, Buffer, BUF_SIZE);
-        Cow = &Recv->Cow;
-        
-        Recv = (game_packet*)Buffer;
-        if (Recv->Disconnect) {
-            switch(WaitForSingleObject(Player->CowMutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    Player->Connected = false;
-                    //CloseHandle(Player->CowMutex);
-                    closesocket(Player->sockClient);
-                }
-                _finally{if(!ReleaseMutex(Player->CowMutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-            DecrementPlayersConnected();
-            return true;
-        }
-    }
-}
-*/
-/*
-int main(int argc, const char** argv)
-{
-    //DWORD dwThreadIdArray[MAX_THREADS];
-    //HANDLE hThreadArray[MAX_THREADS]; 
-    
-    //GameState.serverMutex = CreateMutex(NULL, FALSE, NULL);
-    //GameState.CollectMutex = CreateMutex(NULL, FALSE, NULL);
-    GameState.pcMutex = CreateMutex(NULL, FALSE, NULL);
-    
-    for (int i = 0; i < GameState.MaxPlayers; i++) {
-        GameState.Players[i].ID = i;
-        GameState.Players[i].CowMutex = CreateMutex(NULL, FALSE, NULL);
-        GameState.Players[i].Connected = false;
-    }
-    
-    IncrementPlayersConnected();
-    //hThreadArray[0] = CreateThread(NULL, 0, SenderFunction, 0, 0, &dwThreadIdArray[0]);
-    
-    GameState.SendServer.create("44575", UDP);
-    char Buffer[BUF_SIZE];
-    while(1) {
-        memset(Buffer, 0, BUF_SIZE);
-        game_packet Send = {};
-        Send.Disconnect = true;
-        int pc = GetPlayersConnected();
-        for (int i = 0; i < pc; i++) {
-            switch(WaitForSingleObject(GameState.Players[i].CowMutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    Send.Cow = GameState.Players[i].Cow;
-                }
-                _finally{if(!ReleaseMutex(GameState.Players[i].CowMutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-        }
-        memcpy(Buffer, &Send, sizeof(game_packet));
-        GameState.SendServer.sendq(0, Buffer, SEND_BUFFER_SIZE);
-    }
-    
-    //WaitForMultipleObjects(1, hThreadArray, TRUE, INFINITE);
-    
-    //GameState.server.create("44575", TCP);
-    
-    /*
-    while (1) {
-        while(GameState.PlayersConnected >= MAX_THREADS) {}
-        
-        //int sock = GameState.server.waitForConnection();
-        
-        int PlyrsCncted = GetPlayersConnected();
-        player *Player = 0;
-        
-        int i = 0;
-        while(Player == 0) {
-            switch(WaitForSingleObject(GameState.Players[i].CowMutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    if (!GameState.Players[i].Connected) {
-                        Player = &GameState.Players[i];
-                        Player->sockClient = sock;
-                        Player->Connected = true;
-                    }
-                }
-                _finally{if(!ReleaseMutex(GameState.Players[i].CowMutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-            i++;
-        }
-        
-        hThreadArray[PlyrsCncted] = CreateThread(NULL, 0, SenderFunction, Player, 0, &dwThreadIdArray[PlyrsCncted]);
-        IncrementPlayersConnected();
-    }
-
-}
-*/
+// End of Multithreading
 
 global_variable server_state ServerState = {};
 
-DWORD WINAPI SenderFunction(LPVOID lpParam)
+internal bool32
+GetConnected(player *Player)
 {
-    player *Player = (player*)lpParam;
+    bool32 c = 0;
+    switch(WaitForSingleObject(Player->cMutex, INFINITE))
+    {
+        case WAIT_OBJECT_0: _try 
+        {
+            c = Player->Connected;
+        }
+        _finally{if(!ReleaseMutex(Player->cMutex)){}}break;case WAIT_ABANDONED:return false;
+    }
+    return c;
+}
+internal int
+FlipConnected(player *Player)
+{
+    switch(WaitForSingleObject(Player->cMutex, INFINITE))
+    {
+        case WAIT_OBJECT_0: _try 
+        {
+            Player->Connected = !Player->Connected;
+        }
+        _finally{if(!ReleaseMutex(Player->cMutex)){}}break;case WAIT_ABANDONED:return false;
+    }
+    return true;
+}
+
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
+{
+    player *Player = (player*)Data;
     
-    char Buffer[BUF_SIZE];
-    while(1) {
+    if (GetConnected(Player)) {
         game_packet Packet = {};
-        Packet.Disconnect = 1;
+        Packet.Disconnect = 0;
+        
+        for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
+            player *OtherPlayer = &ServerState.Players[i];
+            if (GetConnected(OtherPlayer) && OtherPlayer->Sock != Player->Sock) {
+                Packet.Cow = OtherPlayer->Cow;
+            }
+        }
+        
+        char Buffer[BUF_SIZE];
         memset(Buffer, 0, BUF_SIZE);
         memcpy(Buffer, &Packet, sizeof(game_packet));
-        ServerState.server.sendq(Player->ReceiverSock, Buffer, SEND_BUFFER_SIZE);
-        //printf("%d\n", Player->ID);
+        ServerState.server.sendq(Player->Sock, Buffer, SEND_BUFFER_SIZE);
     }
 }
 
-DWORD WINAPI ReceiverFunction(LPVOID lpParam)
+internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
 {
-    player *Player = (player*)lpParam;
-    while(1) {
-        printf("%d\n", Player->ID);
-    }
+    player *Player = (player*)Data;
+    
+    if (GetConnected(Player)) {
+        char Buffer[BUF_SIZE];
+        memset(Buffer, 0, BUF_SIZE);
+        ServerState.server.recvq(Player->Sock, Buffer, BUF_SIZE);
+        game_packet *Recv = (game_packet*)Buffer;
+        
+        char Buffer2[256];
+        wsprintf(Buffer2, "%f\n", Recv->Cow.TransitionAmt);
+        OutputDebugStringA(Buffer);
+        
+        if (Recv->Disconnect == 1) {
+            FlipConnected(Player);
+            closesocket(Player->Sock);
+        }
+        else if (!Recv->Disconnect) {
+            for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
+                player *OtherPlayer = &ServerState.Players[i];
+                if (OtherPlayer->Connected && OtherPlayer->Sock == Player->Sock) {
+                    OtherPlayer->Cow = Recv->Cow; 
+                }
+            }
+        } 
+    } // Player->Connected
 }
 
+DWORD WINAPI SendRecvFunction(LPVOID lpParam)
+{
+    while(1) {
+        for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
+            player *Player = &ServerState.Players[i];
+            if (GetConnected(Player)) {
+                Win32AddEntry(&ServerState.Queue, SendData, Player);
+                Win32AddEntry(&ServerState.Queue, RecvData, Player);
+            }
+        }
+        Win32CompleteAllWork(&ServerState.Queue);
+    }
+}
 
 int main(int argc, const char** argv)
 {
-    DWORD dwThreadIdArray[MAX_THREADS];
-    //HANDLE hThreadArray[MAX_THREADS]; 
+    win32_thread_info ThreadInfo[7];
+    
+    uint32 InitialCount = 0;
+    uint32 ThreadCount = ArrayCount(ThreadInfo);
+    ServerState.Queue.SemaphoreHandle = CreateSemaphoreEx(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+    for(uint32 ThreadIndex = 0; ThreadIndex < ThreadCount; ++ThreadIndex) {
+        win32_thread_info *Info = ThreadInfo + ThreadIndex;
+        Info->Queue = &ServerState.Queue;
+        Info->LogicalThreadIndex = ThreadIndex;
+        
+        DWORD ThreadID;
+        HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Info, 0, &ThreadID);
+        CloseHandle(ThreadHandle);
+    }
+    
+    DWORD ThreadID;
+    HANDLE ThreadHandle = CreateThread(0, 0, SendRecvFunction, 0, 0, &ThreadID);
+    CloseHandle(ThreadHandle);
     
     ServerState.server.create("44575", TCP);
     
-    char Buffer[BUF_SIZE];
     while (1) {
         int NewSock = ServerState.server.waitForConnection();
-        memset(Buffer, 0, BUF_SIZE);
-        ServerState.server.recvq(NewSock, Buffer, BUF_SIZE);
         
-        packet *Packet = (packet*)Buffer; // First thing sent after connection is what type of thread to open
-        player *NewPlayer = 0;
-        
-        // Look to see if player is already connected in some way
-        for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
-            if (ServerState.Players[i].Connected) {
-                if (ServerState.Players[i].ID == Packet->ID) {
-                    NewPlayer = &ServerState.Players[i];
-                }
-            }
-        }
         int i = 0;
-        while (NewPlayer == 0) {
-            if (!ServerState.Players[i].Connected) {
-                NewPlayer = &ServerState.Players[i];
-                NewPlayer->ID = Packet->ID;
-                NewPlayer->Connected = true;
-            }
+        player *Player = 0;
+        while(Player == 0) {
+            if (ServerState.Players[i].Connected == false)
+                Player = &ServerState.Players[i];
             i++;
         }
-        
-        if (Packet->ConnectionType == sender) {
-            NewPlayer->SenderSock = NewSock;
-            NewPlayer->ReceiverThread = CreateThread(NULL, 0, ReceiverFunction, NewPlayer, 
-                                                     0, &dwThreadIdArray[ServerState.ThreadCount]);
-        }
-        else if (Packet->ConnectionType == receiver) {
-            NewPlayer->ReceiverSock = NewSock;
-            NewPlayer->SenderThread = CreateThread(NULL, 0, SenderFunction, NewPlayer, 
-                                                   0, &dwThreadIdArray[ServerState.ThreadCount]);
-        }
+        Player->Connected = true;
+        Player->Sock = NewSock;
     }
 }
