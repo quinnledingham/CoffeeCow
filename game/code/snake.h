@@ -141,7 +141,7 @@ struct thread
 struct thread_param
 {
     CoffeeCow *Cow;
-    Client *client;
+    client *Client;
 };
 
 struct game_state
@@ -165,7 +165,7 @@ struct game_state
     Camera C;
     
     char Buffer[BUF_SIZE];
-    Client client;
+    client Client;
     thread_param ThreadParams;
     thread Thread;
     int8 Disconnect = 0;

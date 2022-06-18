@@ -8,142 +8,16 @@
 #include <intrin.h>
 
 #include "qlib/types.h"
-//#include "qlib/win32_application.cpp"
-#include "qlib/socketq.cpp"
+#include "qlib/platform.h"
+#include "qlib/application.h"
+#include "qlib/win32_application.cpp"
 #include "qlib/data_structures.h"
-
-#pragma comment(linker, "/subsystem:console")
-#define MAX_THREADS 8
-
-// Multithreading
-struct platform_work_queue;
-#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
-typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
-
-typedef void platform_add_entry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data);
-typedef void platform_complete_all_work(platform_work_queue *Queue);
-
-struct platform_work_queue_entry
-{
-    platform_work_queue_callback *Callback;
-    void *Data;
-};
-
-struct platform_work_queue
-{
-    uint32 volatile CompletionGoal;
-    uint32 volatile CompletionCount;
-    
-    uint32 volatile NextEntryToWrite;
-    uint32 volatile NextEntryToRead;
-    HANDLE SemaphoreHandle;
-    
-    platform_work_queue_entry Entries[256];
-};
+#include "qlib/strinq.h"
+#include "qlib/strinq.cpp"
+#include "qlib/socketq.h"
+#include "qlib/win32_thread.h"
 
 #include "coffee_cow.h"
-
-internal void
-Win32AddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data)
-{
-    // TODO(casey): Switch to InterlockedCompareExchange eventually
-    // so that any thread can add?
-    uint32 NewNextEntryToWrite = (Queue->NextEntryToWrite + 1) % ArrayCount(Queue->Entries);
-    Assert(NewNextEntryToWrite != Queue->NextEntryToRead);
-    platform_work_queue_entry *Entry = Queue->Entries + Queue->NextEntryToWrite;
-    Entry->Callback = Callback;
-    Entry->Data = Data;
-    ++Queue->CompletionGoal;
-    _WriteBarrier();
-    _mm_sfence();
-    Queue->NextEntryToWrite = NewNextEntryToWrite;
-    ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
-}
-
-internal bool32
-Win32DoNextWorkQueueEntry(platform_work_queue *Queue)
-{
-    bool32 WeShouldSleep = false;
-    //Sleep(1);
-    
-    uint32 OriginalNextEntryToRead = Queue->NextEntryToRead;
-    uint32 NewNextEntryToRead = (OriginalNextEntryToRead + 1) % ArrayCount(Queue->Entries);
-    if(OriginalNextEntryToRead != Queue->NextEntryToWrite)
-    {
-        uint32 Index = InterlockedCompareExchange((LONG volatile *)&Queue->NextEntryToRead,
-                                                  NewNextEntryToRead,
-                                                  OriginalNextEntryToRead);
-        if(Index == OriginalNextEntryToRead)
-        {        
-            platform_work_queue_entry Entry = Queue->Entries[Index];
-            Entry.Callback(Queue, Entry.Data);
-            InterlockedIncrement((LONG volatile *)&Queue->CompletionCount);
-        }
-    }
-    else
-    {
-        WeShouldSleep = true;
-    }
-    
-    return(WeShouldSleep);
-}
-
-internal void
-Win32CompleteAllWork(platform_work_queue *Queue)
-{
-    while(Queue->CompletionGoal != Queue->CompletionCount)
-    {
-        Win32DoNextWorkQueueEntry(Queue);
-    }
-    
-    Queue->CompletionGoal = 0;
-    Queue->CompletionCount = 0;
-}
-
-internal void
-Win32WaitForAllWork(platform_work_queue *Queue)
-{
-    while(Queue->CompletionGoal != Queue->CompletionCount){}
-    
-    Queue->CompletionGoal = 0;
-    Queue->CompletionCount = 0;
-}
-
-internal void
-Win32CancelAllWork(platform_work_queue *Queue)
-{
-    Queue->CompletionGoal = 0;
-    Queue->CompletionCount = 0;
-}
-
-struct win32_thread_info
-{
-    int LogicalThreadIndex;
-    platform_work_queue *Queue;
-};
-DWORD WINAPI
-ThreadProc(LPVOID lpParameter)
-{
-    win32_thread_info *ThreadInfo = (win32_thread_info *)lpParameter;
-    
-    for(;;)
-    {
-        if(Win32DoNextWorkQueueEntry(ThreadInfo->Queue))
-        {
-            WaitForSingleObjectEx(ThreadInfo->Queue->SemaphoreHandle, INFINITE, FALSE);
-        }
-    }
-    
-    //    return(0);
-}
-
-internal PLATFORM_WORK_QUEUE_CALLBACK(DoWorkerWork)
-{
-    char Buffer[256];
-    wsprintf(Buffer, "Thread %u: %s\n", GetCurrentThreadId(), (char *)Data);
-    OutputDebugStringA(Buffer);
-}
-// End of Multithreading
 
 global_variable server_state ServerState = {};
 
@@ -223,7 +97,8 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
         char Buffer[BUF_SIZE];
         memset(Buffer, 0, BUF_SIZE);
         memcpy(Buffer, &Packet, sizeof(game_packet));
-        ServerState.server.sendq(Player->Sock, Buffer, SEND_BUFFER_SIZE);
+        //ServerState.Server.sendq(Player->Sock, Buffer, SEND_BUFFER_SIZE);
+        SocketqSend(&ServerState.Server, Player->Sock, Buffer, SEND_BUFFER_SIZE);
     }
     //fprintf(stderr, "End SendData");
 }
@@ -235,26 +110,27 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
     if (GetConnected(Player)) {
         char Buffer[BUF_SIZE];
         memset(Buffer, 0, BUF_SIZE);
-        ServerState.server.recvq(GetSock(Player), Buffer, BUF_SIZE);
-        game_packet *Recv = (game_packet*)Buffer;
+        //ServerState.server.recvq(GetSock(Player), Buffer, BUF_SIZE);
+        SocketqRecv(&ServerState.Server, GetSock(Player), Buffer, BUF_SIZE);
+        game_packet *PacketRecv = (game_packet*)Buffer;
         
         /*
         char Buffer2[256];
         wsprintf(Buffer2, "%f\n", Recv->Cow.TransitionAmt);
         OutputDebugStringA(Buffer);
         */
-        //printf("%f\n", Recv->Cow.TransitionAmt);
+        printf("%f\n", PacketRecv->Cow.TransitionAmt);
         
         //fprintf(stderr, "Start RecvData\n");
-        if (Recv->Disconnect == 1) {
+        if (PacketRecv->Disconnect == 1) {
             Player->ToBeDisconnected = 1;
             
         }
-        else if (Recv->Disconnect == 0) {
+        else if (PacketRecv->Disconnect == 0) {
             for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
                 player *OtherPlayer = &ServerState.Players[i];
                 if (OtherPlayer->Connected && GetSock(OtherPlayer) == GetSock(Player)) {
-                    OtherPlayer->Cow = Recv->Cow; 
+                    OtherPlayer->Cow = PacketRecv->Cow; 
                 }
             }
         } 
@@ -297,10 +173,18 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
                 Player->ToBeDisconnected = 0;
             }
         }
+        
+        char CharBuffer[OUTPUTBUFFER_SIZE];
+        _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+        OutputDebugStringA(CharBuffer);
+        
+        GlobalDebugBuffer = {};
+        memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+        GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
     }
 }
 
-int main(int argc, const char** argv)
+void Update(platform *p)
 {
     win32_thread_info ThreadInfo[7];
     
@@ -321,7 +205,8 @@ int main(int argc, const char** argv)
     HANDLE ThreadHandle = CreateThread(0, 0, SendRecvFunction, 0, 0, &ThreadID);
     CloseHandle(ThreadHandle);
     
-    ServerState.server.create("44575", TCP);
+    //ServerState.server.create("44575", TCP);
+    SocketqInit(&ServerState.Server, "44575", TCP);
     
     for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
         player *Player = &ServerState.Players[i];
@@ -330,6 +215,6 @@ int main(int argc, const char** argv)
     
     int NewSock = 0;
     while (1) {
-        ServerState.NewPlayer = ServerState.server.waitForConnection();
+        ServerState.NewPlayer = SocketqWaitForConnection(&ServerState.Server);
     }
 }

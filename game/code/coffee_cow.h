@@ -50,7 +50,7 @@ struct player
 
 struct server_state
 {
-    Server server;
+    server Server;
     
     int PlayersConnected = 0;
     int MaxPlayerCount = 4;
@@ -62,6 +62,6 @@ struct server_state
 };
 
 #define SEND_BUFFER_SIZE sizeof(game_packet) + 100
-#define BUF_SIZE SEND_BUFFER_SIZE + HEADER_BUFFER_SIZE
+#define BUF_SIZE SEND_BUFFER_SIZE + HEADER_SIZE
 
 #endif //COFFEE_COW_H

@@ -479,10 +479,10 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
     
     char Buffer[BUF_SIZE];
     memset(Buffer, 0, BUF_SIZE);
-    int bytes = GameState->client.recvq(Buffer, BUF_SIZE);
+    int bytes = SocketqRecv(&GameState->Client, Buffer, BUF_SIZE);
     if (bytes > 0) {
-        game_packet *Recv = (game_packet*)Buffer; 
-        ServerCoffeeCow *Cow = &Recv->Cow;
+        game_packet *PacketRecv = (game_packet*)Buffer; 
+        ServerCoffeeCow *Cow = &PacketRecv->Cow;
         CowPlayer2->TransitionAmt = Cow->TransitionAmt;
         CowPlayer2->Score = Cow->Score;
         CowPlayer2->Nodes.Clear();
@@ -501,26 +501,24 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
     game_state *GameState = (game_state*)Data;
     CoffeeCow *CowPlayer = &GameState->Player1;
     
-    
-    game_packet Send = {};
-    Send.Cow.TransitionAmt = CowPlayer->TransitionAmt;
-    Send.Cow.Score = CowPlayer->Score;
+    game_packet PacketSend = {};
+    PacketSend.Cow.TransitionAmt = CowPlayer->TransitionAmt;
+    PacketSend.Cow.Score = CowPlayer->Score;
     for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
         CoffeeCowNode* N = (CoffeeCowNode*)CowPlayer->Nodes[i];
         ServerCoffeeCowNode Node = {};
         Node.Coords = iv2(N->Coords);
         Node.CurrentDirection = (int8)N->CurrentDirection;
         Node.Streak = (int8)N->Streak;
-        Send.Cow.Nodes[i] = Node;
-        Send.Cow.NumOfNodes++;
+        PacketSend.Cow.Nodes[i] = Node;
+        PacketSend.Cow.NumOfNodes++;
     }
-    Send.Disconnect = GameState->Disconnect;
+    PacketSend.Disconnect = GameState->Disconnect;
     
     char Buffer[BUF_SIZE];
     memset(Buffer, 0, BUF_SIZE);
-    memcpy(Buffer, &Send, sizeof(game_packet)); 
-    GameState->client.sendq(Buffer, SEND_BUFFER_SIZE);
-    
+    memcpy(Buffer, &PacketSend, sizeof(game_packet)); 
+    SocketqSend(&GameState->Client, Buffer, SEND_BUFFER_SIZE);
 }
 
 void UpdateRender(platform* p)
@@ -676,7 +674,7 @@ void UpdateRender(platform* p)
             InitializeCow(CowPlayer, GameState->GridDim);
             CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
             
-            GameState->client.create(GameState->IP, GameState->Port, TCP);
+            SocketqInit(&GameState->Client, GameState->IP, GameState->Port, TCP);
             GameState->ResetGame = false;
             GameState->Disconnect = 0;
         }
