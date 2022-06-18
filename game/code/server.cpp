@@ -64,6 +64,7 @@ internal bool32
 Win32DoNextWorkQueueEntry(platform_work_queue *Queue)
 {
     bool32 WeShouldSleep = false;
+    //Sleep(1);
     
     uint32 OriginalNextEntryToRead = Queue->NextEntryToRead;
     uint32 NewNextEntryToRead = (OriginalNextEntryToRead + 1) % ArrayCount(Queue->Entries);
@@ -205,6 +206,7 @@ SetSock(player *Player, int Sock)
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
 {
+    //fprintf(stderr, "Start SendData");
     player *Player = (player*)Data;
     
     if (GetConnected(Player)) {
@@ -223,6 +225,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
         memcpy(Buffer, &Packet, sizeof(game_packet));
         ServerState.server.sendq(Player->Sock, Buffer, SEND_BUFFER_SIZE);
     }
+    //fprintf(stderr, "End SendData");
 }
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
@@ -240,13 +243,14 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
         wsprintf(Buffer2, "%f\n", Recv->Cow.TransitionAmt);
         OutputDebugStringA(Buffer);
         */
-        printf("%f\n", Recv->Cow.TransitionAmt);
+        //printf("%f\n", Recv->Cow.TransitionAmt);
         
+        //fprintf(stderr, "Start RecvData\n");
         if (Recv->Disconnect == 1) {
             Player->ToBeDisconnected = 1;
             
         }
-        else if (!Recv->Disconnect) {
+        else if (Recv->Disconnect == 0) {
             for (int i = 0; i < ServerState.MaxPlayerCount; i++) {
                 player *OtherPlayer = &ServerState.Players[i];
                 if (OtherPlayer->Connected && GetSock(OtherPlayer) == GetSock(Player)) {
@@ -254,6 +258,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
                 }
             }
         } 
+        //fprintf(stderr, "End RecvData\n");
     } // Player->Connected
 }
 
@@ -267,6 +272,7 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
                 Win32AddEntry(&ServerState.Queue, RecvData, Player);
             }
         }
+        Sleep(1);
         Win32CompleteAllWork(&ServerState.Queue);
         
         if (ServerState.NewPlayer) {

@@ -47,13 +47,17 @@ if (PauseMenu->Initialized == 0)
 
 {
     GameState->Disconnect = 0;
+    if (GameState->PreviousMode == game_mode::multiplayer) {
+        GameState->Disconnect = 1;
+        Win32AddEntry(&p->Queue, SendData, GameState);
+        Win32CompleteAllWork(&p->Queue);
+        GameState->PreviousMode = game_mode::not_in_game;
+        //GameState->client.disconnect();
+    }
+    
+    
     GUIEvents Events = HandleGUIEvents(PauseMenu, &p->Input);
     if (Events.BtnPressID == Menu) {
-        if (GameState->PreviousMode == game_mode::multiplayer) {
-            GameState->Disconnect = 1;
-            Win32AddEntry(&p->Queue, SendData, GameState);
-            Win32CompleteAllWork(&p->Queue);
-        }
         SetCursorMode(&p->Input, Arrow);
         GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;

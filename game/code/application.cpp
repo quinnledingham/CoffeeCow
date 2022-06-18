@@ -521,8 +521,6 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
     memcpy(Buffer, &Send, sizeof(game_packet)); 
     GameState->client.sendq(Buffer, SEND_BUFFER_SIZE);
     
-    if (Send.Disconnect == 1)
-        GameState->client.disconnect();
 }
 
 void UpdateRender(platform* p)
@@ -721,6 +719,7 @@ void UpdateRender(platform* p)
         Push(RenderGroup, BackgroundCoords, BackgroundDim, GetTexture(&GameState->Assets, GAI_Background), 0, BlendMode::gl_src_alpha);
         
         RenderGrid(&GameState->Assets, HalfGrid, GameState->GridDim, GameState->GridSize);
+        Win32CompleteAllWork(&p->Queue);
         DrawCoffeeCow(&GameState->Assets, CowPlayer, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
         DrawCoffeeCow(&GameState->Assets, CowPlayer2, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
         
@@ -728,7 +727,7 @@ void UpdateRender(platform* p)
         RenderPieceGroup(RenderGroup);
         EndMode2D();
         
-        Win32CompleteAllWork(&p->Queue);
+        
     }
     else if (GameState->Menu == menu::main_menu) {
 #include "main_menu.cpp" 

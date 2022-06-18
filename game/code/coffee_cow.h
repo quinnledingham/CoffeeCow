@@ -54,7 +54,7 @@ struct server_state
     
     int PlayersConnected = 0;
     int MaxPlayerCount = 4;
-    player Players[4];
+    player Players[5];
     
     int NewPlayer = 0;
     
