@@ -44,6 +44,7 @@ struct player
     int Sock;
     ServerCoffeeCow Cow;
     bool32 Connected;
+    int8 ToBeDisconnected;
     HANDLE cMutex;
 };
 
