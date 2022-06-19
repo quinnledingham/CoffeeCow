@@ -43,14 +43,15 @@ struct player
 {
     int Sock;
     ServerCoffeeCow Cow;
-    bool32 Connected;
-    int8 ToBeDisconnected;
+    bool Connected;
+    bool ToBeDisconnected;
     HANDLE cMutex;
 };
 
 struct server_state
 {
     server Server;
+    bool Initialized = false;
     
     int PlayersConnected = 0;
     int MaxPlayerCount = 4;

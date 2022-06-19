@@ -1,62 +1,14 @@
-#include "qlib/qlib.cpp"
+#define QLIB_WINDOW_APPLICATION
+#include "qlib/application.h"
+
+#include "qlib/random.h"
+#include "qlib/socketq.h"
+#include "qlib/gui.h"
+#include "qlib/gui.cpp"
+
 #include "coffee_cow.h"
 #include "snake.h"
 
-/*
-DWORD WINAPI
-RecvPlayers(LPVOID lpParam)
-{
-    thread_param *tp = (thread_param*)lpParam;
-    CoffeeCow* CowPlayer2 = tp->Cow;
-    HANDLE *p2Mutex = tp->p2Mutex;
-    
-    char Buffer[1000];
-    
-    Client client = {};
-    client.create(tp->IP, tp->Port, TCP);
-    packet Packet = {};
-    Packet.Type = connection_type::receiver;
-    memset(Buffer, 0, BUF_SIZE);
-    memcpy(Buffer, &Packet, sizeof(packet)); 
-    client.sendq(Buffer, SEND_BUFFER_SIZE);
-    
-    // Receive other snake
-    
-    while(1) {
-        memset(Buffer, 0, BUF_SIZE);
-        client.recvq(Buffer, BUF_SIZE);
-        game_packet *Recv = (game_packet*)Buffer; 
-        ServerCoffeeCow *Cow = &Recv->Cow;
-        
-        switch(WaitForSingleObject(p2Mutex, INFINITE))
-        {
-            case WAIT_OBJECT_0: _try 
-            {
-                CowPlayer2->TransitionAmt = Cow->TransitionAmt;
-                CowPlayer2->Score = Cow->Score;
-                CowPlayer2->Nodes.Clear();
-            }
-            _finally{if(!ReleaseMutex(p2Mutex)){}}break;case WAIT_ABANDONED:return false;
-        }
-        
-        for (int i = 0; i < Cow->NumOfNodes; i++) {
-            CoffeeCowNode Node = {};
-            Node.Coords = v2(Cow->Nodes[i].Coords.x, Cow->Nodes[i].Coords.y);
-            Node.CurrentDirection = Cow->Nodes[i].CurrentDirection;
-            Node.Streak = Cow->Nodes[i].Streak;
-            
-            switch(WaitForSingleObject(p2Mutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    CowPlayer2->Nodes.Push(&Node);
-                }
-                _finally{if(!ReleaseMutex(p2Mutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-        }
-    }
-}
-*/
 internal void
 RenderGrid(game_assets *Assets, v2 Grid, v2 GridDim, real32 GridSize)
 {
@@ -560,9 +512,9 @@ void UpdateRender(platform* p)
         real32 fps = 0;
         if (p->Input.WorkSecondsElapsed != 0) {
             fps= 1 / p->Input.WorkSecondsElapsed;
-            Strinq FPS = S() + (int)fps;
-            v2 SDim = GetStringDimensions(GetFont(&GameState->Assets, FI_Faune50), GetData(FPS));
-            PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), GetData(FPS), v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10), 0xFF000000);
+            strinq FPS = S() + (int)fps;
+            v2 SDim = GetStringDimensions(GetFont(&GameState->Assets, FI_Faune50), FPS.Data);
+            PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), FPS.Data, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10), 0xFF000000);
         }
     }
     
@@ -658,8 +610,8 @@ void UpdateRender(platform* p)
             Collect->Rotation -= 360;
         DrawCoffee(&GameState->Assets, Collect, HalfGrid, GameState->GridSize);
         
-        Strinq Score = S() + CowPlayer->Score;
-        PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), GetData(Score), v2(-p->Dimension.Width/2 + 10, -p->Dimension.Height/2 + 10), 0xFFFFFFFF);
+        strinq Score = S() + CowPlayer->Score;
+        PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), Score.Data, v2(-p->Dimension.Width/2 + 10, -p->Dimension.Height/2 + 10), 0xFFFFFFFF);
         
         BeginMode2D(*C);
         RenderPieceGroup(RenderGroup);
