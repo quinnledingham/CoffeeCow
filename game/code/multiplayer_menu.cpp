@@ -77,14 +77,14 @@ if (MultiplayerMenu->Initialized == 0) {
 }
 
 {
-    GUIEvents Events = HandleGUIEvents(MultiplayerMenu, &p->Input);
+    GUIEvents *Events = HandleGUIEvents(MultiplayerMenu, &p->Input);
     
-    if (Events.BtnPressID == Btn2) {
+    if (Events->BtnPressID == Btn2) {
         SetCursorMode(&p->Input, Arrow);
         GameState->Mode = game_mode::not_in_game;
         GameState->Menu = menu::main_menu;
     }
-    else if (Events.BtnPressID == Btn4) {
+    else if (Events->BtnPressID == Btn4) {
         SetCursorMode(&p->Input, Arrow);
         GameState->ResetGame = true;
         GameState->Mode = game_mode::multiplayer;

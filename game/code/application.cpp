@@ -3,8 +3,8 @@
 
 #include "qlib/random.h"
 #include "qlib/socketq.h"
+#include "qlib/text.h"
 #include "qlib/gui.h"
-#include "qlib/gui.cpp"
 
 #include "coffee_cow.h"
 #include "snake.h"
@@ -21,10 +21,24 @@ RenderGrid(game_assets *Assets, v2 Grid, v2 GridDim, real32 GridSize)
 }
 
 internal void
-DrawCoffee(game_assets *Assets, Coffee *Cof, v2 HalfGrid, real32 GridSize)
+DrawCoffee(game_assets *Assets, Coffee *Cof, real32 Seconds, v2 HalfGrid, real32 GridSize)
 {
-    v3 Coords = v3(roundf(-HalfGrid.x + ((Cof->Coords.x) * GridSize)), roundf(-HalfGrid.y + ((Cof->Coords.y) * GridSize)), -0.1f);
-    Push(RenderGroup, Coords, v2(GridSize, GridSize), GetTexture(Assets, GAI_CoffeeTex), Cof->Rotation, BlendMode::gl_src_alpha);
+    Cof->Rotation += (Seconds * 100);
+    if (Cof->Rotation > 360) Cof->Rotation -= 360;
+    
+    if (Cof->IncreasingHeight) {
+        Cof->Height += (Seconds * 10);
+        if (Cof->Height > (GridSize/2.5f)) Cof->IncreasingHeight = false;
+    }
+    else if (!Cof->IncreasingHeight) {
+        Cof->Height -= (Seconds * 10);
+        if (Cof->Height < (-GridSize/8)) Cof->IncreasingHeight = true;
+    }
+    
+    v3 Coords = v3(-HalfGrid.x + (Cof->Coords.x * GridSize) - (Cof->Height/2),
+                   -HalfGrid.y + (Cof->Coords.y * GridSize) - (Cof->Height/2),
+                   -0.1f);
+    Push(RenderGroup, Coords, v2(GridSize + Cof->Height), GetTexture(Assets, GAI_CoffeeTex), Cof->Rotation, BlendMode::gl_src_alpha);
 }
 
 internal void
@@ -53,17 +67,11 @@ GetSize(v3 Left, v3 Right, real32 GridSize)
 internal real32
 GetRotation(int Direction)
 {
-    real32 Rotation = 0;
-    if (Direction == LEFT)
-        Rotation = 90.0f;
-    if (Direction == RIGHT)
-        Rotation = 270.0f;
-    if (Direction == UP)
-        Rotation = 180.0f;
-    if (Direction == DOWN)
-        Rotation = 0.0f;
-    
-    return Rotation;
+    if (Direction == LEFT) return 90.0f;
+    else if (Direction == RIGHT) return 270.0f;
+    else if (Direction == UP) return 180.0f;
+    else if (Direction == DOWN) return 0.0f;
+    else return 0.0f;
 }
 
 internal real32
@@ -225,29 +233,20 @@ DrawCoffeeCow(game_assets *Assets, CoffeeCow *Cow, real32 GridX, real32 GridY, r
             Right = Node;
         }
         
-        v3 Coords = v3(Left->x, Left->y, 0.5f);
-        
         real32 OutlineFactor = 0.96f;
         real32 Outline = (real32)(GridSize - (GridSize * OutlineFactor));
         
-        if (Left->y == Right->y) {
-            Coords.x += (GridSize/2);
-            Coords.y += Outline;
-        }
-        if (Left->x == Right->x) {
-            Coords.y += (GridSize/2);
-            Coords.x += Outline;
-        }
+        v3 Coords = v3(Left->x, Left->y, 0.5f);
+        if (Left->y == Right->y) Coords = Coords + v3(GridSize/2, Outline, 0);
+        if (Left->x == Right->x) Coords = Coords + v3(Outline, GridSize/2, 0);
         
         if (Left->y != Right->y || Left->x != Right->x) {
             Push(RenderGroup, Coords, GetSize(*Left, *Right, GridSize - (Outline*2)), 0xFFFFFFFF, 0.0f);
             
-            if (Left->y == Right->y)
-                Coords.y -= Outline;
-            if (Left->x == Right->x) 
-                Coords.x -= Outline;
-            
+            if (Left->y == Right->y) Coords.y -= Outline;
+            if (Left->x == Right->x) Coords.x -= Outline;
             Coords.z = 0.0f;
+            
             Push(RenderGroup, Coords, GetSize(*Left, *Right, (real32)GridSize), GetTexture(Assets, GAI_StraightOutline), 0.0f, BlendMode::gl_one);
         }
     }
@@ -308,7 +307,6 @@ MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
     {
         v2 HeadCoords = v2(Head->Coords);
         MoveInDirection(&HeadCoords, Head->CurrentDirection);
-        
         for (int i = 1; i < Cow->Nodes.Size; i++) {
             CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
             if (HeadCoords.x == Node->Coords.x &&
@@ -380,20 +378,14 @@ InitializeCow(CoffeeCow *Cow, v2 GridDim)
     int Direction = 0;
     int HalfWidth = (int)(GridDim.x/2);
     int HalfHeight = (int)(GridDim.y/2);
-    if (Startx < HalfWidth)
-        Direction = RIGHT;
-    else if (Startx >= HalfWidth)
-        Direction = LEFT;
+    if (Startx < HalfWidth) Direction = RIGHT;
+    else if (Startx >= HalfWidth) Direction = LEFT;
     
-    if (Direction == RIGHT)
-        incx = -1;
-    else if (Direction == LEFT)
-        incx = 1;
+    if (Direction == RIGHT) incx = -1;
+    else if (Direction == LEFT) incx = 1;
     
-    if (Startx < 4)
-        Startx = 4;
-    else if (Startx > (int)GridDim.x - 4)
-        Startx =  (int)GridDim.y - 4;
+    if (Startx < 4) Startx = 4;
+    else if (Startx > (int)GridDim.x - 4) Startx =  (int)GridDim.y - 4;
     
     for (int i = 0; i < 4; i++) {
         AddCoffeeCowNode(Cow, Startx, Starty, Direction, Direction);
@@ -430,8 +422,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
     CoffeeCow *CowPlayer2 = &GameState->Player2;
     
     char Buffer[BUF_SIZE];
-    memset(Buffer, 0, BUF_SIZE);
-    int bytes = SocketqRecv(&GameState->Client, Buffer, BUF_SIZE);
+    int bytes = SocketqRecv(&GameState->Client, BufferC(Buffer, BUF_SIZE), BUF_SIZE);
     if (bytes > 0) {
         game_packet *PacketRecv = (game_packet*)Buffer; 
         ServerCoffeeCow *Cow = &PacketRecv->Cow;
@@ -445,7 +436,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
             Node.Streak = Cow->Nodes[i].Streak;
             CowPlayer2->Nodes.Push(&Node);
         }
-    } // bytes > 0
+    }
 }
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
@@ -468,9 +459,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
     PacketSend.Disconnect = GameState->Disconnect;
     
     char Buffer[BUF_SIZE];
-    memset(Buffer, 0, BUF_SIZE);
-    memcpy(Buffer, &PacketSend, sizeof(game_packet)); 
-    SocketqSend(&GameState->Client, Buffer, SEND_BUFFER_SIZE);
+    SocketqSend(&GameState->Client, BufferCC(Buffer, BUF_SIZE, &PacketSend, sizeof(game_packet)), SEND_BUFFER_SIZE);
 }
 
 void UpdateRender(platform* p)
@@ -536,14 +525,10 @@ void UpdateRender(platform* p)
             GameState->Menu = menu::pause_menu;
         }
         
-        if(Controller->MoveLeft.NewEndedDown)
-            AddInput(CowPlayer, LEFT);
-        if(Controller->MoveRight.NewEndedDown)
-            AddInput(CowPlayer, RIGHT);
-        if(Controller->MoveDown.NewEndedDown)
-            AddInput(CowPlayer, DOWN);
-        if(Controller->MoveUp.NewEndedDown)
-            AddInput(CowPlayer, UP);
+        if(Controller->MoveLeft.NewEndedDown) AddInput(CowPlayer, LEFT);
+        if(Controller->MoveRight.NewEndedDown)AddInput(CowPlayer, RIGHT);
+        if(Controller->MoveDown.NewEndedDown) AddInput(CowPlayer, DOWN);
+        if(Controller->MoveUp.NewEndedDown) AddInput(CowPlayer, UP);
         
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim)) {
             GameState->Mode = game_mode::not_in_game;
@@ -560,14 +545,10 @@ void UpdateRender(platform* p)
             int NewX = (int)Tail->Coords.x;
             int NewY = (int)Tail->Coords.y;
             
-            if (Tail->CurrentDirection == UP)
-                NewY++;
-            else if (Tail->CurrentDirection == LEFT)
-                NewX++;
-            else if (Tail->CurrentDirection == DOWN)
-                NewY--;
-            else if (Tail->CurrentDirection == RIGHT)
-                NewX--;
+            if (Tail->CurrentDirection == UP) NewY++;
+            else if (Tail->CurrentDirection == LEFT) NewX++;
+            else if (Tail->CurrentDirection == DOWN) NewY--;
+            else if (Tail->CurrentDirection == RIGHT) NewX--;
             
             AddCoffeeCowNode(CowPlayer, NewX, NewY, Tail->CurrentDirection, Tail->CurrentDirection);
         }
@@ -575,9 +556,10 @@ void UpdateRender(platform* p)
         if (Collect->NewLocation) {
             bool32 ValidLocation = false;
             while (!ValidLocation) {
-                Collect->Coords = v2((real32)Random(0, (int)GameState->GridDim.x - 1),
-                                     (real32)Random(0, (int)GameState->GridDim.y - 1));
+                Collect->Coords = v2(Random(0, (int)GameState->GridDim.x - 1), Random(0, (int)GameState->GridDim.y - 1));
                 ValidLocation = true;
+                Collect->IncreasingHeight = true;
+                Collect->Height = 0;
                 for (int i = 0; i < CowPlayer->Nodes.Size; i++) {
                     CoffeeCowNode* Node = (CoffeeCowNode*)CowPlayer->Nodes[i];
                     if (Node->Coords.x == Collect->Coords.x &&
@@ -588,27 +570,18 @@ void UpdateRender(platform* p)
             Collect->NewLocation = false;
         }
         
-        v2 HalfGrid = v2((GameState->GridDim.x * GameState->GridSize)/2, (GameState->GridDim.y * GameState->GridSize)/2);
-        
-        v3 RockCoords = v3(-HalfGrid.x - (GameState->GridSize * GameState->GridDim.x*1/6),
-                           -HalfGrid.y - (GameState->GridSize * GameState->GridDim.y*1/6), 
-                           1.0f);
-        v2 RockDim = v2((GameState->GridDim.x * GameState->GridSize) * 4/3 - 1, (GameState->GridDim.y * GameState->GridSize) * 4/3 - 1);
-        Push(RenderGroup, RockCoords, RockDim, GetTexture(&GameState->Assets, GAI_Rocks), 0, BlendMode::gl_src_alpha);
-        
-        v3 BackgroundCoords = v3(-((real32)p->Dimension.Width)/2 - 5, 
-                                 -((real32)p->Dimension.Height)/2 - 5,
-                                 -1.0f);
+        v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
+        v2 HalfGrid = v2(RealGridDim.x/2, RealGridDim.y/2);
+        v3 RockCoords = v3(-HalfGrid.x - (RealGridDim.x*1/6), -HalfGrid.y - (RealGridDim.y*1/6), 1.0f);
+        v2 RockDim = v2(RealGridDim.x * 4/3 - 1, RealGridDim.y * 4/3 - 1);
+        v3 BackgroundCoords = v3(-((real32)p->Dimension.Width)/2 - 5, -((real32)p->Dimension.Height)/2 - 5, -1.0f);
         v2 BackgroundDim = v2(p->Dimension.Width + 5, p->Dimension.Height + 5);
+        Push(RenderGroup, RockCoords, RockDim, GetTexture(&GameState->Assets, GAI_Rocks), 0, BlendMode::gl_src_alpha);
         Push(RenderGroup, BackgroundCoords, BackgroundDim, GetTexture(&GameState->Assets, GAI_Background), 0, BlendMode::gl_src_alpha);
         
         RenderGrid(&GameState->Assets, HalfGrid, GameState->GridDim, GameState->GridSize);
         DrawCoffeeCow(&GameState->Assets, CowPlayer, -HalfGrid.x, -HalfGrid.y, GameState->GridSize);
-        
-        Collect->Rotation += (p->Input.WorkSecondsElapsed * 100);
-        if (Collect->Rotation > 360)
-            Collect->Rotation -= 360;
-        DrawCoffee(&GameState->Assets, Collect, HalfGrid, GameState->GridSize);
+        DrawCoffee(&GameState->Assets, Collect, p->Input.WorkSecondsElapsed, HalfGrid, GameState->GridSize);
         
         strinq Score = S() + CowPlayer->Score;
         PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), Score.Data, v2(-p->Dimension.Width/2 + 10, -p->Dimension.Height/2 + 10), 0xFFFFFFFF);
@@ -638,14 +611,10 @@ void UpdateRender(platform* p)
             GameState->Menu = menu::pause_menu;
         }
         
-        if(Controller->MoveLeft.NewEndedDown)
-            AddInput(CowPlayer, LEFT);
-        if(Controller->MoveRight.NewEndedDown)
-            AddInput(CowPlayer, RIGHT);
-        if(Controller->MoveDown.NewEndedDown)
-            AddInput(CowPlayer, DOWN);
-        if(Controller->MoveUp.NewEndedDown)
-            AddInput(CowPlayer, UP);
+        if(Controller->MoveLeft.NewEndedDown) AddInput(CowPlayer, LEFT);
+        if(Controller->MoveRight.NewEndedDown) AddInput(CowPlayer, RIGHT);
+        if(Controller->MoveDown.NewEndedDown) AddInput(CowPlayer, DOWN);
+        if(Controller->MoveUp.NewEndedDown) AddInput(CowPlayer, UP);
         
         if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
             int i = 0;

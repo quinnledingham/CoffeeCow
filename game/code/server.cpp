@@ -1,6 +1,7 @@
 #define QLIB_CONSOLE_APPLICATION
 #include "qlib/application.h"
 
+#include "qlib/memorymanager.h"
 #include "qlib/data_structures.h"
 #include "qlib/socketq.h"
 

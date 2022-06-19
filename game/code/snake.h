@@ -69,6 +69,9 @@ struct Coffee
     v2 Coords;
     real32 Rotation;
     
+    bool IncreasingHeight;
+    real32 Height;
+    
     bool32 NewLocation;
 };
 

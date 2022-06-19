@@ -58,22 +58,22 @@ if (MainMenu->Initialized == 0) {
 }
 
 {
-    GUIEvents Events = HandleGUIEvents(MainMenu, &p->Input);
+    GUIEvents *Events = HandleGUIEvents(MainMenu, &p->Input);
     
-    if (Events.BtnPressID == GameStart) {
+    if (Events->BtnPressID == GameStart) {
         SetCursorMode(&p->Input, Arrow);
         GameState->ResetGame = true;
         GameState->Menu = menu::not_in_menu;
         GameState->Mode = game_mode::singleplayer;
     }
-    else if (Events.BtnPressID == Multiplayer) {
+    else if (Events->BtnPressID == Multiplayer) {
         SetCursorMode(&p->Input, Arrow);
         GameState->Menu = menu::multiplayer_menu;
     }
-    else if (Events.BtnPressID == Btn4) {
+    else if (Events->BtnPressID == Btn4) {
         //createClient(&client, GetTextBoxText(&MainMenu, IP), GetTextBoxText(&MainMenu, PORT), TCP);
     }
-    else if (Events.BtnPressID == Quit)
+    else if (Events->BtnPressID == Quit)
         p->Input.Quit = 1;
     
     UpdateGUI(MainMenu, v2(p->Dimension.Width, p->Dimension.Height));
