@@ -354,20 +354,23 @@ DrawCoffeeCow(game_assets *Assets, CoffeeCow *Cow, v2 CoffeeCoords, real32 Secon
 internal void
 AddInput(CoffeeCow *Cow, int NewDirection)
 {
-    Cow->Speed = 7; // m/s
+    Cow->Speed = 9; // m/s
     if (Cow->Inputs.Size >= 3)
         return;
     
     int OldDirection = 0;
-    if (Cow->Inputs.Size == 0)
+    if (Cow->Inputs.Size == 0) {
         OldDirection = Cow->Direction;
+    }
     else 
         OldDirection = *(int*)Cow->Inputs[Cow->Inputs.Size - 1];
     
     if (!(OldDirection == NewDirection) && // Same Direction
         !(OldDirection + 2 == NewDirection) && // Backwards Direction
-        !(OldDirection - 2 == NewDirection))
+        !(OldDirection - 2 == NewDirection)) {
         Cow->Inputs.Push((void*)&NewDirection);
+        //Cow->TransitionAmt = 1;
+    }
 }
 
 internal void
@@ -679,12 +682,12 @@ void UpdateRender(platform* p)
         GameState->Menu = menu::main_menu;
         GameState->Mode = game_mode::not_in_game;
         GameState->PreviousMode = game_mode::not_in_game;
-        GameState->GridDim = v2(10, 10);
+        GameState->GridDim = v2(17, 17);
         
         LoadAssets(&GameState->Assets);
     }
     
-    real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 5);
+    real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
     if (NewGridSize != GameState->GridSize)
         GameState->GridSize = NewGridSize;
     
@@ -807,4 +810,4 @@ void UpdateRender(platform* p)
     else if (GameState->Menu == menu::pause_menu) {
 #include "pause_menu.cpp" 
     }
-}
+}\
