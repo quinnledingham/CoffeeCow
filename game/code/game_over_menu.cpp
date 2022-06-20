@@ -17,7 +17,7 @@ if (GameOverMenu.Initialized == 0)
     TXT.Text = "Game Over";
     TXT.ID = Btn1;
     TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);
-    TXT.TextColor = 0xFF000000;
+    TXT.TextColor = 0xFFFFFFFF;
     AddText(&GameOverMenu, v2(0, Y++),  TXT);
     
     btn = 
@@ -26,11 +26,11 @@ if (GameOverMenu.Initialized == 0)
         GetFont(&GameState->Assets, FI_Faune100),   // Font
         Reset,       // ID
         0,          // Color (CurrentColor)
-        0xFF32a89b, // RegularColor
-        0xFFeba434, // HoverColor
+        0x96000000, // RegularColor
+        0xFF000000, // HoverColor
         0xFFFFFFFF, // TextColor
     };
-    AddButton(&GameOverMenu, v2(0, Y++), v2(600, 150), btn);
+    AddButton(&GameOverMenu, v2(0, Y++), v2(500, 150), btn);
     
     btn = 
     {
@@ -38,11 +38,11 @@ if (GameOverMenu.Initialized == 0)
         GetFont(&GameState->Assets, FI_Faune100),   // Font
         Menu,       // ID
         0,          // Color (CurrentColor)
-        0xFF32a89b, // RegularColor
-        0xFFeba434, // HoverColor
+        0x96000000, // RegularColor
+        0xFF000000, // HoverColor
         0xFFFFFFFF, // TextColor
     };
-    AddButton(&GameOverMenu, v2(0, Y++), v2(600, 150), btn);
+    AddButton(&GameOverMenu, v2(0, Y++), v2(500, 150), btn);
 }
 
 {
@@ -66,7 +66,7 @@ if (GameOverMenu.Initialized == 0)
     UpdateGUI(&GameOverMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(&GameOverMenu);
     
-    BeginMode2D(*C);
-    RenderPieceGroup(RenderGroup);
-    EndMode2D();
+    //BeginMode2D(*C);
+    //RenderPieceGroup(RenderGroup);
+    //EndMode2D();
 }

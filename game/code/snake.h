@@ -44,12 +44,22 @@ enum ComponentIDs
     Multiplayer
 };
 
+struct CoffeeCowTail
+{
+    v2 Coords;
+    bool ChangingDirections;
+    int OldDir;
+    int NewDir;
+};
+
 struct CoffeeCowNode
 {
     v2 Coords;
     int CurrentDirection;
     int NextDirection;
-    bool32 Streak;
+    
+    
+    int Streak;
 };
 
 struct CoffeeCow
@@ -60,6 +70,10 @@ struct CoffeeCow
     real32 Speed;
     int Direction;
     int Score;
+    
+    CoffeeCowTail Tail;
+    real32 MouthOpening = 0;
+    real32 LastTransitionAmt = 0;
     
     Arr Inputs; // int
 };
@@ -78,6 +92,7 @@ struct Coffee
 enum game_asset_id
 {
     GAI_Background,
+    GAI_Grass,
     GAI_Rocks,
     GAI_Grid,
     GAI_CoffeeTex,
@@ -88,6 +103,8 @@ enum game_asset_id
     GAI_HeadOutline,
     GAI_StraightOutline,
     GAI_CornerOutline,
+    GAI_Tail,
+    GAI_Tongue,
     
     GAI_Count
 };
@@ -103,6 +120,7 @@ enum font_id
 struct game_assets
 {
     Texture *Textures[GAI_Count];
+    Texture *Spots[4];
     Font *Fonts[FI_COUNT];
 };
 inline Texture *GetTexture(game_assets *Assets, game_asset_id ID)
@@ -177,6 +195,9 @@ struct game_state
     CoffeeCow Player2;
     
     Coffee Collect;
+    
+    platform_work_queue *Queue;
+    HANDLE ThreadHandle;
 };
 
 #endif //SNAKE_H

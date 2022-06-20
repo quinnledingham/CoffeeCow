@@ -46,11 +46,10 @@ if (PauseMenu->Initialized == 0)
 }
 
 {
-    GameState->Disconnect = 0;
     if (GameState->PreviousMode == game_mode::multiplayer) {
+        //TerminateThread(GameState->ThreadHandle, 0);
         GameState->Disconnect = 1;
-        Win32AddEntry(&p->Queue, SendData, GameState);
-        Win32CompleteAllWork(&p->Queue);
+        //Win32AddEntry(&p->Queue, SendData, GameState);
         GameState->PreviousMode = game_mode::not_in_game;
         //GameState->client.disconnect();
     }
