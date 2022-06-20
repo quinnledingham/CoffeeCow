@@ -658,6 +658,10 @@ void UpdateRender(platform* p)
     
     Camera *C = &GameState->C;
     
+    //for (int i = 0; i < 1000; i++) {
+    //PrintqDebug(S() + "WOw brug");
+    //}
+    
     if (!p->Initialized)
     {
         p->Initialized = true;
@@ -788,7 +792,7 @@ void UpdateRender(platform* p)
         RenderGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
         Push(RenderGroup, v3(GridCoords, -0.2f), RealGridDim, GetTexture(&GameState->Assets, GAI_Grass), 0, BlendMode::gl_src_alpha);
         DrawCoffeeCow(&GameState->Assets, CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-        //DrawCoffeeCow(&GameState->Assets, CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+        DrawCoffeeCow(&GameState->Assets, CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
         
         BeginMode2D(*C);
         RenderPieceGroup(RenderGroup);
