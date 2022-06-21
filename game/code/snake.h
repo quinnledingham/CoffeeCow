@@ -105,6 +105,8 @@ enum game_asset_id
     GAI_CornerOutline,
     GAI_Tail,
     GAI_Tongue,
+    GAI_Miz,
+    GAI_MainMenuBack,
     
     GAI_Count
 };
@@ -143,9 +145,22 @@ menu
     pause_menu,
     game_over_menu,
 };
+struct menu_toggle
+{
+    menu m1;
+    menu m2;
+};
+inline void  MenuToggle(menu *Current, menu Default, menu Toggle) 
+{
+    if (*Current == Toggle)
+        *Current = Default;
+    else if (*Current == Default)
+        *Current = Toggle;
+}
 
 enum struct
 game_mode
+
 {
     not_in_game,
     singleplayer,
@@ -169,6 +184,7 @@ struct game_state
 {
     game_mode Mode;
     game_mode PreviousMode;
+    
     menu Menu;
     
     GUI GUIs[10];

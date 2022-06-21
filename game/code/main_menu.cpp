@@ -8,53 +8,58 @@ if (MainMenu->Initialized == 0) {
     MainMenu->Initialized = 1;
     
     int Y = 0;
-    uint32 RegularColor = 0xFF32a89b;
-    uint32 HoverColor = 0xFFeba434;
-    uint32 TextColor = 0xFFFFFFFF;
-    v2 BtnDim = v2(600, 150);
+    uint32 RegularColor = 0xFF000000;
+    uint32 HoverColor = 0xFFDEC9B3;
+    uint32 RegularTextColor = 0xFFFFFFFF;
+    uint32 HoverTextColor = 0xFF000000;
+    v2 BtnDim = v2(550, 75);
+    Font *BtnFont = GetFont(&GameState->Assets, FI_Faune50);
     
     {
-        Text TXT = {};
-        TXT.Text = "COFFEE COW";
-        TXT.ID = Btn1;
-        TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);
-        TXT.TextColor = 0xFF000000;
+        gui_logo LOGO = {};
+        LOGO.Tex = GetTexture(&GameState->Assets, GAI_Miz);
+        v2 Dim = v2(550, 274);
         v2 GridCoords = v2(0, Y++);
-        AddText(MainMenu, GridCoords, TXT);
+        GUIAddLogo(MainMenu, GridCoords, Dim, LOGO);
     }{
         Button BTN = {};
         BTN.Text = "Singleplayer";
-        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
+        BTN.FontType = BtnFont;
         BTN.ID = GameStart;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
-        BTN.TextColor = TextColor;
+        BTN.RegularTextColor = RegularTextColor;
+        BTN.HoverTextColor = HoverTextColor;
         v2 GridCoords = v2(0, Y++);
         v2 Dim = BtnDim;
         AddButton(MainMenu, GridCoords, Dim, BTN);
     }{
         Button BTN = {};
         BTN.Text = "Multiplayer";
-        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
+        BTN.FontType = BtnFont;
         BTN.ID = Multiplayer;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
-        BTN.TextColor = TextColor;
+        BTN.RegularTextColor = RegularTextColor;
+        BTN.HoverTextColor = HoverTextColor;
         v2 GridCoords = v2(0, Y++);
         v2 Dim = BtnDim;
         AddButton(MainMenu, GridCoords, Dim, BTN);
     }{
         Button BTN = {};
         BTN.Text = "Quit";
-        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
+        BTN.FontType = BtnFont;
         BTN.ID = Quit;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
-        BTN.TextColor = TextColor;
+        BTN.RegularTextColor = RegularTextColor;
+        BTN.HoverTextColor = HoverTextColor;
         v2 GridCoords = v2(0, Y++);
         v2 Dim = BtnDim;
         AddButton(MainMenu, GridCoords, Dim, BTN);
     }
+    
+    //MainMenu->BackgroundColor = 0x96000000;
 }
 
 {
@@ -78,6 +83,8 @@ if (MainMenu->Initialized == 0) {
     
     UpdateGUI(MainMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(MainMenu);
+    
+    DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
     
     BeginMode2D(GameState->C);
     RenderPieceGroup(RenderGroup);

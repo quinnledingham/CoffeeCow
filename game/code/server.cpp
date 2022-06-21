@@ -41,7 +41,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
         SocketqRecv(&ServerState.Server, Player->Sock, Buffer, BUF_SIZE);
         game_packet *PacketRecv = (game_packet*)Buffer;
         
-        //printf("%f\n", PacketRecv->Cow.TransitionAmt);
+        printf("%f\n", PacketRecv->Cow.TransitionAmt);
         
         if (PacketRecv->Disconnect == 1) {
             Player->ToBeDisconnected = 1;

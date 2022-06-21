@@ -9,38 +9,44 @@ if (MultiplayerMenu->Initialized == 0) {
     
     int Y = 0;
     
-    uint32 RegularColor = 0xFF32a89b;
-    uint32 HoverColor = 0xFFeba434;
-    uint32 TextColor = 0xFFFFFFFF;
-    uint32 TbColor = 0xFFb3b3b3;
+    uint32 RegularColor = 0xFF000000;
+    uint32 HoverColor = 0xFFDEC9B3;
+    uint32 RegularTextColor = 0xFFFFFFFF;
+    uint32 HoverTextColor = 0xFF000000;
+    
+    uint32 TbColor = 0xFFFFFFFF;
     uint32 TbTextColor = 0xFF000000;
     
+    v2 TbDim = v2(400, 50);
+    v2 BtnDim = v2(250, 75);
+    
+    GUIComponent *T1;
     {
+        Text TXT = {};
+        TXT.Text = "PORT:";
+        TXT.ID = Btn2;
+        TXT.FontType = GetFont(&GameState->Assets, FI_Faune50);
+        TXT.TextColor = 0xFFFFFFFF;
+        v2 GridCoords = v2(0, Y + 1);
+        T1 = AddText(MultiplayerMenu, GridCoords, TXT);
+    }{
         Text TXT = {};
         TXT.Text = "IP:";
         TXT.ID = Btn1;
         TXT.FontType = GetFont(&GameState->Assets, FI_Faune50);
-        TXT.TextColor = 0xFF000000;
+        TXT.TextColor = 0xFFFFFFFF;
         v2 GridCoords = v2(0, Y);
-        AddText(MultiplayerMenu, GridCoords, TXT);
+        AddText(MultiplayerMenu, GridCoords, TXT, T1);
     }{
         TextBox TB = {};
         TB.Text = "";
         TB.FontType = GetFont(&GameState->Assets, FI_Faune50);
         TB.ID = IP;
         TB.Color = TbColor;
-        TB.TextColor = 0xFF000000;
-        v2 GridCoords = v2(1, Y++);
-        v2 Dim = v2(500, 50);
-        AddTextBox(MultiplayerMenu, GridCoords, Dim, TB);
-    }{
-        Text TXT = {};
-        TXT.Text = "PORT:";
-        TXT.ID = Btn2;
-        TXT.FontType = GetFont(&GameState->Assets, FI_Faune50);
-        TXT.TextColor = TbTextColor;
-        v2 GridCoords = v2(0, Y);
-        AddText(MultiplayerMenu, GridCoords, TXT);
+        TB.TextColor = TbTextColor;
+        v2 GridCoords = v2(1, Y);
+        v2 Dim = TbDim;
+        AddTextBox(MultiplayerMenu, GridCoords, Dim, TB, 0);
     }{
         TextBox TB = {};
         TB.Text = "";
@@ -48,30 +54,34 @@ if (MultiplayerMenu->Initialized == 0) {
         TB.ID = PORT;
         TB.Color = TbColor;
         TB.TextColor = TbTextColor;
-        v2 GridCoords = v2(1, Y++);
-        v2 Dim = v2(500, 50);
-        AddTextBox(MultiplayerMenu, GridCoords, Dim, TB);
-    }{
+        v2 GridCoords = v2(1, Y + 1);
+        v2 Dim = TbDim;
+        AddTextBox(MultiplayerMenu, GridCoords, Dim, TB, 0);
+    }
+    Y += 2;
+    {
         Button BTN = {};
         BTN.Text = "Join";
-        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune50);
         BTN.ID = Btn4;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
-        BTN.TextColor = TextColor;
+        BTN.RegularTextColor = RegularTextColor;
+        BTN.HoverTextColor = HoverTextColor;
         v2 GridCoords = v2(0, Y++);
-        v2 Dim = v2(250, 100);
+        v2 Dim = BtnDim;
         AddButton(MultiplayerMenu, GridCoords, Dim, BTN);
     }{
         Button BTN = {};
         BTN.Text = "Back";
-        BTN.FontType = GetFont(&GameState->Assets, FI_Faune100);
+        BTN.FontType = GetFont(&GameState->Assets, FI_Faune50);
         BTN.ID = Btn2;
         BTN.RegularColor = RegularColor;
         BTN.HoverColor = HoverColor;
-        BTN.TextColor = TextColor;
+        BTN.RegularTextColor = RegularTextColor;
+        BTN.HoverTextColor = HoverTextColor;
         v2 GridCoords = v2(0, Y++);
-        v2 Dim = v2(250, 100);
+        v2 Dim = BtnDim;
         AddButton(MultiplayerMenu, GridCoords, Dim, BTN);
     }
 }
@@ -96,6 +106,8 @@ if (MultiplayerMenu->Initialized == 0) {
     
     UpdateGUI(MultiplayerMenu, v2(p->Dimension.Width, p->Dimension.Height));
     RenderGUI(MultiplayerMenu);
+    
+    DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
     
     BeginMode2D(GameState->C);
     RenderPieceGroup(RenderGroup);
