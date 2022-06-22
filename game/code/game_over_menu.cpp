@@ -1,97 +1,96 @@
-global_variable GUI GameOverMenu = {};
+global_variable menu GameOverMenu = {};
 
-internal void RenderGameOverMenu(platform *p, game_state *GameState)
+internal void 
+DrawGameOverMenu(platform *p, game_state *GameState)
 {
-    if (GameOverMenu.Initialized == 0)
+    enum menu_component_id
     {
-        GameOverMenu.Padding = 10;
-        GameOverMenu.DefaultPadding = 10;
-        GameOverMenu.Components.Init(100, sizeof(GUIComponent));
-        GameOverMenu.DefaultDim = v2(1000, 1000);
-        GameOverMenu.Initialized = 1;
-        
+        MCI_Reset,
+        MCI_Menu,
+    };
+    
+    menu *Menu = &GameOverMenu;
+    
+    if (!Menu->Initialized)
+    {
         int Y = 0;
         
-        Text TXT = {};
-        Button btn = {};
-        TextBox tb = {};
+        uint32 ButtonDefaultColor = 0x96000000;
+        uint32 ButtonHoverColor = 0xFF000000;
+        uint32 ButtonDefaultTextColor = 0xFFFFFFFF;
+        uint32 ButtonHoverTextColor = 0xFFFFFFFF;
+        real32 TextPixelHeight = 100;
+        v2 ButtonDim = v2(500, 150);
         
-        uint32 RegularColor = 0x96000000;
-        uint32 HoverColor = 0xFF000000;
-        uint32 RegularTextColor = 0xFFFFFFFF;
-        uint32 HoverTextColor = 0xFFFFFFFF;
-        v2 BtnDim = v2(500, 150);
-        Font *MenuFont = GetFont(&GameState->Assets, FI_Faune100);
+        font *Rubik = GetFont(&GameState->Assets, GAFI_Rubik);
         
+        MenuInit(Menu, v2(1000, 1000), 10);
         {
-            Text TXT = {};
-            TXT.Text = "Game Over";
-            TXT.ID = Btn1;
-            TXT.FontType = MenuFont;
-            TXT.TextColor = 0xFFFFFFFF;
+            menu_text Text = {};
+            Text.FontString.Text = "Game Over";
+            Text.FontString.Font = Rubik;
+            Text.FontString.PixelHeight = TextPixelHeight;
+            Text.DefaultTextColor = 0xFFFFFFFF;
             v2 GridCoords = v2(0, Y++);
-            AddText(&GameOverMenu, GridCoords, TXT);
-        }{
-            Text TXT = {};
-            TXT.Text = "";
-            TXT.ID = Btn1;
-            TXT.FontType = GetFont(&GameState->Assets, FI_Faune100);;
-            TXT.TextColor = 0xFFFFFFFF;
+            MenuAddText(Menu, GridCoords, &Text);
+        }
+        {
+            menu_text Text = {};
+            Text.FontString.Text = "";
+            Text.FontString.Font = Rubik;
+            Text.FontString.PixelHeight = TextPixelHeight;
+            Text.DefaultTextColor = 0xFFFFFFFF;
             v2 GridCoords = v2(0, Y++);
-            AddText(&GameOverMenu, GridCoords, TXT);
-        }{
-            Button BTN = {};
-            BTN.Text = "Play Again";
-            BTN.FontType = MenuFont;
-            BTN.ID = Reset;
-            BTN.RegularColor = RegularColor;
-            BTN.HoverColor = HoverColor;
-            BTN.RegularTextColor = RegularTextColor;
-            BTN.HoverTextColor = HoverTextColor;
+            MenuAddText(Menu, GridCoords, &Text);
+        }
+        {
+            menu_button Button = {};
+            Button.DefaultColor = ButtonDefaultColor;
+            Button.HoverColor = ButtonHoverColor;
+            Button.DefaultTextColor = ButtonDefaultTextColor;
+            Button.HoverTextColor = ButtonHoverTextColor;
+            
+            Button.FontString.Text = "Play Again";
+            Button.FontString.Font = Rubik;
+            Button.FontString.PixelHeight = TextPixelHeight;
+            
             v2 GridCoords = v2(0, Y++);
-            v2 Dim = BtnDim;
-            AddButton(&GameOverMenu, GridCoords, Dim, BTN);
-        }{
-            Button BTN = {};
-            BTN.Text = "Main Menu";
-            BTN.FontType = MenuFont;
-            BTN.ID = Menu;
-            BTN.RegularColor = RegularColor;
-            BTN.HoverColor = HoverColor;
-            BTN.RegularTextColor = RegularTextColor;
-            BTN.HoverTextColor = HoverTextColor;
+            v2 Dim = ButtonDim;
+            MenuAddButton(Menu, MCI_Reset, GridCoords, Dim, &Button);
+        }
+        {
+            menu_button Button = {};
+            Button.DefaultColor = ButtonDefaultColor;
+            Button.HoverColor = ButtonHoverColor;
+            Button.DefaultTextColor = ButtonDefaultTextColor;
+            Button.HoverTextColor = ButtonHoverTextColor;
+            
+            Button.FontString.Text = "Main Menu";
+            Button.FontString.Font = Rubik;
+            Button.FontString.PixelHeight = TextPixelHeight;
+            
             v2 GridCoords = v2(0, Y++);
-            v2 Dim = BtnDim;
-            AddButton(&GameOverMenu, GridCoords, Dim, BTN);
+            v2 Dim = ButtonDim;
+            MenuAddButton(Menu, MCI_Menu, GridCoords, Dim, &Button);
         }
         
         GameOverMenu.BackgroundColor = 0x96000000;
     }
     
-    {
-        GUIEvents *Events = HandleGUIEvents(&GameOverMenu, &p->Input);
-        if (Events->BtnPressID == Menu) {
-            SetCursorMode(&p->Input, Arrow);
-            GameState->Mode = game_mode::not_in_game;
-            GameState->Menu = menu::main_menu;
-        }
-        else if (Events->BtnPressID == Reset) {
-            GameState->ResetGame = true;
-            GameState->Mode = game_mode::singleplayer;
-            GameState->Menu = menu::not_in_menu;
-        }
-        
-        platform_keyboard_input *Keyboard = &p->Input.Keyboard;
-        if (Keyboard->Escape.NewEndedDown) {
-            GameState->Mode = game_mode::singleplayer;
-            GameState->Menu = menu::not_in_menu;
-        }
-        UpdateGUI(&GameOverMenu, v2(p->Dimension.Width, p->Dimension.Height));
-        RenderGUI(&GameOverMenu);
-        
-        //BeginMode2D(*C);
-        //RenderPieceGroup(RenderGroup);
-        //EndMode2D();
+    HandleMenuEvents(Menu, &p->Input);
+    
+    if (Menu->Events.ButtonClicked == MCI_Menu) {
+        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
+        GameState->Game = game_mode::not_in_game;
+        GameState->Menu = menu_mode::main_menu;
     }
+    else if (Menu->Events.ButtonClicked == MCI_Reset) {
+        GameState->ResetGame = true;
+        GameState->Game = game_mode::singleplayer;
+        GameState->Menu = menu_mode::not_in_menu;
+    }
+    
+    UpdateMenu(Menu, GetDim(p));
+    DrawMenu(Menu, 100.0f);
 }
 

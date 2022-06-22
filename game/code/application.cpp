@@ -4,10 +4,11 @@
 #include "qlib/random.h"
 #include "qlib/socketq.h"
 #include "qlib/text.h"
-#include "qlib/gui.h"
+#include "qlib/menu.h"
 
 #include "coffee_cow.h"
 #include "snake.h"
+
 
 inline void
 DrawRock(game_assets *Assets, v2 GridCoords, v2 RealGridDim, real32 Z)
@@ -23,6 +24,7 @@ DrawBackground(Texture *Tex, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
     v2 BackgroundCoords = TopLeftCornerCoords - 5;
     v2 BackgroundDim = v2(PlatformDim.x + 5, PlatformDim.x + 5);
     BackgroundCoords.y -= ((BackgroundDim.y - (PlatformDim.y + 5)) / 2);
+    
     Push(RenderGroup, v3(BackgroundCoords, 0.0f), BackgroundDim, Tex, 0, BlendMode::gl_src_alpha);
 }
 
@@ -35,7 +37,7 @@ DrawBackground(game_assets *Assets, v2 TopLeftCornerCoords, v2 PlatformDim, real
 }
 
 inline void
-RenderGrid(game_assets *Assets, v2 GridCoords, v2 GridDim, real32 GridSize, real32 Z)
+DrawGrid(game_assets *Assets, v2 GridCoords, v2 GridDim, real32 GridSize, real32 Z)
 {
     for (int i = 0; i < (int)GridDim.x; i++) {
         for (int j = 0; j < (int)GridDim.y; j++) {
@@ -49,8 +51,12 @@ inline void
 DrawScore(game_assets *Assets, int Score, v2 TopLeftCornerCoords)
 {
     strinq ScoreStrinq = S() + "Score: " + Score;
-    PrintOnScreen(GetFont(Assets, FI_Faune50), ScoreStrinq.Data, TopLeftCornerCoords + 10, 0xFFFFFFFF);
-    v2 ScoreSize = GetStringDimensions(GetFont(Assets, FI_Faune50), ScoreStrinq.Data);
+    
+    font_string FontString = {};
+    FontStringInit(&FontString, GetFont(Assets, GAFI_Rubik), ScoreStrinq.Data, 50, 0xFFFFFFFF);
+    FontStringPrint(&FontString, TopLeftCornerCoords + 10);
+    
+    v2 ScoreSize = FontStringGetDim(&FontString);
     Push(RenderGroup, v3(TopLeftCornerCoords + 5, 50.0f), ScoreSize + 10, 0x96000000, 0.0f);
 }
 
@@ -562,32 +568,91 @@ CollectCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
     }
 }
 
-internal void
-LoadAssets(game_assets *Assets)
+struct game_asset_load
 {
-    Assets->Textures[GAI_Background] = LoadTexture("sand.png");
-    Assets->Textures[GAI_Grass] = LoadTexture("grass.png");
-    Assets->Textures[GAI_Grid] = LoadTexture("grid.png");
-    Assets->Textures[GAI_Rocks] = LoadTexture("rocks.png");
-    Assets->Textures[GAI_CoffeeTex] = LoadTexture("coffee.png");
-    Assets->Textures[GAI_Head] = LoadTexture("cowhead.png");
-    Assets->Textures[GAI_Straight] = LoadTexture("straight.png");
-    Assets->Textures[GAI_Corner] = LoadTexture("circle.png");
-    Assets->Textures[GAI_CoffeeStreak] = LoadTexture("coffeestreak.png");
-    Assets->Textures[GAI_HeadOutline] = LoadTexture("cowheadoutline.png");
-    Assets->Textures[GAI_StraightOutline] = LoadTexture("straightoutline.png");
-    Assets->Textures[GAI_CornerOutline] = LoadTexture("circleoutline.png");
-    Assets->Textures[GAI_Tail] = LoadTexture("tail.png");
-    Assets->Textures[GAI_Tongue] = LoadTexture("tongue.png");
-    Assets->Textures[GAI_Miz] = LoadTexture("logo.png");
-    Assets->Textures[GAI_MainMenuBack] = LoadTexture("mainmenuback.png");
+    game_assets *Assets;
+    const char* FileName;
+    int ID;
     
-    Assets->Spots[0] = LoadTexture("spot1.png");
-    Assets->Spots[1] = LoadTexture("spot2.png");
-    Assets->Spots[2] = LoadTexture("spot3.png");
+    Texture **Tex;
     
-    Assets->Fonts[FI_Faune50] = LoadFont("Rubik-Medium.ttf", 50);
-    Assets->Fonts[FI_Faune100] = LoadFont("Rubik-Medium.ttf", 100);
+    font **Fonts;
+    real32 FontScale;
+    
+    inline game_asset_load() : Assets(0),  FileName(0) {}
+    inline game_asset_load(const char* _FileName) : FileName(_FileName) {}
+};
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadTextureAsset)
+{
+    game_asset_load *GAL = (game_asset_load*)Data;
+    GAL->Tex[GAL->ID] = LoadTexture(GAL->FileName);
+}
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadFontAsset)
+{
+    game_asset_load *GAL = (game_asset_load*)Data;
+    GAL->Fonts[GAL->ID] = LoadFont(GAL->FileName);
+}
+
+inline void InitTexture(Texture *Tex)
+{
+    Assert(Tex != 0);
+    Tex->Init(Tex->data);
+}
+
+internal void
+LoadAssets(platform_work_queue *Queue, game_assets *Assets)
+{
+    game_asset_load GameAssetLoad[GAI_Count];
+    GameAssetLoad[GAI_Background] = game_asset_load("sand.png");
+    GameAssetLoad[GAI_Grass] = game_asset_load("grass.png");
+    GameAssetLoad[GAI_Grid] = game_asset_load("grid.png");
+    GameAssetLoad[GAI_Rocks] = game_asset_load("rocks.png");
+    GameAssetLoad[GAI_CoffeeTex] = game_asset_load("coffee.png");
+    GameAssetLoad[GAI_Head] = game_asset_load("cowhead.png");
+    GameAssetLoad[GAI_Straight] = game_asset_load("straight.png");
+    GameAssetLoad[GAI_Corner] = game_asset_load("circle.png");
+    GameAssetLoad[GAI_CoffeeStreak] = game_asset_load("coffeestreak.png");
+    GameAssetLoad[GAI_HeadOutline] = game_asset_load("cowheadoutline.png");
+    GameAssetLoad[GAI_StraightOutline] = game_asset_load("straightoutline.png");
+    GameAssetLoad[GAI_CornerOutline] = game_asset_load("circleoutline.png");
+    GameAssetLoad[GAI_Tail] = game_asset_load("tail.png");
+    GameAssetLoad[GAI_Tongue] = game_asset_load("tongue.png");
+    GameAssetLoad[GAI_Miz] = game_asset_load("logo.png");
+    GameAssetLoad[GAI_MainMenuBack] = game_asset_load("mainmenuback.png");
+    
+    for (int i = 0; i < GAI_Count; i++) {
+        GameAssetLoad[i].Assets = Assets;
+        GameAssetLoad[i].ID = i;
+        GameAssetLoad[i].Tex = Assets->Textures;
+        Win32AddEntry(Queue, LoadTextureAsset, &GameAssetLoad[i]);
+    }
+    
+    game_asset_load GameAssetSpotLoad[3];
+    GameAssetSpotLoad[0] = game_asset_load("spot1.png");
+    GameAssetSpotLoad[1] = game_asset_load("spot2.png");
+    GameAssetSpotLoad[2] = game_asset_load("spot3.png");
+    for (int i = 0; i < 3; i++) {
+        GameAssetSpotLoad[i].Assets = Assets;
+        GameAssetSpotLoad[i].ID = i;
+        GameAssetSpotLoad[i].Tex = Assets->Spots;
+        Win32AddEntry(Queue, LoadTextureAsset, &GameAssetSpotLoad[i]);
+    }
+    
+    game_asset_load GameAssetFontLoad[GAFI_Count];
+    GameAssetFontLoad[GAFI_Rubik] = game_asset_load("Rubik-Medium.ttf");
+    for (int i = 0; i < GAFI_Count; i++) {
+        GameAssetFontLoad[i].Assets = Assets;
+        GameAssetFontLoad[i].ID = i;
+        GameAssetFontLoad[i].Fonts = Assets->Fonts;
+        Win32AddEntry(Queue, LoadFontAsset, &GameAssetFontLoad[i]);
+    }
+    
+    Win32CompleteAllWork(Queue);
+    
+    for (int i = 0; i < GAI_Count; i++)
+        InitTexture(GetTexture(Assets, (game_asset_id)i));
+    for (int i = 0; i < 3; i++)
+        InitTexture(Assets->Spots[i]);
 }
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
@@ -662,8 +727,10 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
     return true;
 }
 
+#include "main_menu.cpp" 
 #include "game_over_menu.cpp"
 #include "pause_menu.cpp" 
+#include "multiplayer_menu.cpp"
 
 inline void
 CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
@@ -682,7 +749,6 @@ void UpdateRender(platform* p)
     v2 TopLeftCornerCoords = GetTopLeftCornerCoords(p);
     v2 PlatformDim = GetDim(p);
     
-    
     Camera *C = &GameState->C;
     
     if (!p->Initialized)
@@ -699,12 +765,11 @@ void UpdateRender(platform* p)
         C->FOV = 90.0f;
         C->F = 0.01f;
         
-        GameState->Menu = menu::main_menu;
-        GameState->Mode = game_mode::not_in_game;
-        GameState->PreviousMode = game_mode::not_in_game;
+        GameState->Menu = menu_mode::main_menu;
+        GameState->Game = game_mode::not_in_game;
         GameState->GridDim = v2(17, 17);
         
-        LoadAssets(&GameState->Assets);
+        LoadAssets(&p->Queue, &GameState->Assets);
     }
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
@@ -720,14 +785,17 @@ void UpdateRender(platform* p)
         if (p->Input.WorkSecondsElapsed != 0) {
             fps= 1 / p->Input.WorkSecondsElapsed;
             strinq FPS = S() + (int)fps;
-            v2 SDim = GetStringDimensions(GetFont(&GameState->Assets, FI_Faune50), &FPS);
-            PrintOnScreen(GetFont(&GameState->Assets, FI_Faune50), FPS.Data, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10), 0xFF000000);
+            
+            font_string FontString = {};
+            FontStringInit(&FontString, GetFont(&GameState->Assets, GAFI_Rubik), FPS.Data, 50, 0xFFFFFFFF);
+            v2 SDim = FontStringGetDim(&FontString);
+            FontStringPrint(&FontString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
         }
     }
     
     C->Dimension = p->Dimension;
     
-    if (GameState->Mode == game_mode::singleplayer) {
+    if (GameState->Game == game_mode::singleplayer) {
         CoffeeCow *Cow = &GameState->Player1;
         Coffee *Cof = &GameState->Collect;
         
@@ -738,36 +806,29 @@ void UpdateRender(platform* p)
         }
         
         if (Keyboard->Escape.NewEndedDown)
-            MenuToggle(&GameState->Menu, menu::not_in_menu, menu::pause_menu);
+            MenuToggle(&GameState->Menu, menu_mode::not_in_menu, menu_mode::pause_menu);
         
-        if (GameState->Menu != menu::pause_menu) {
+        if (GameState->Menu != menu_mode::pause_menu) {
             CoffeeCowProcessInput(&p->Input.Controllers[0], Cow);
-            if (!MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim)) {
-                GameState->Menu = menu::game_over_menu;
-                RenderGameOverMenu(p, GameState);
-            }
+            
+            if (!MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim)) 
+                GameState->Menu = menu_mode::game_over_menu;
+            
             CollectCoffee(Cow, Cof, GameState->GridDim);
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2;
             DrawRock(&GameState->Assets, GridCoords, RealGridDim, -0.001f);
             DrawBackground(&GameState->Assets, TopLeftCornerCoords, PlatformDim, -1.0f);
-            RenderGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
+            DrawGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
             Push(RenderGroup, v3(GridCoords, -0.2f), RealGridDim, GetTexture(&GameState->Assets, GAI_Grass), 0, BlendMode::gl_src_alpha);
             
             DrawCoffeeCow(&GameState->Assets, Cow, Cof->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffee(&GameState->Assets, Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
             DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords);
         }
-        else {
-            RenderPauseMenu(&GameState->GUIs[2], p, GameState);
-        }
-        
-        BeginMode2D(*C);
-        RenderPieceGroup(RenderGroup);
-        EndMode2D();
     }
-    else if (GameState->Mode == game_mode::multiplayer) {
+    else if (GameState->Game == game_mode::multiplayer) {
         CoffeeCow *CowPlayer = &GameState->Player1;
         CoffeeCow *CowPlayer2 = &GameState->Player2;
         Coffee *Collect = &GameState->Collect;
@@ -787,39 +848,37 @@ void UpdateRender(platform* p)
         }
         
         if (Keyboard->Escape.NewEndedDown)
-            MenuToggle(&GameState->Menu, menu::not_in_menu, menu::pause_menu);
+            MenuToggle(&GameState->Menu, menu_mode::not_in_menu, menu_mode::pause_menu);
         
-        if (GameState->Menu != menu::pause_menu) {
+        if (GameState->Menu != menu_mode::pause_menu) {
             CoffeeCowProcessInput(&p->Input.Controllers[0], CowPlayer);
-            if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim)) {
-                GameState->Menu = menu::game_over_menu;
-                RenderGameOverMenu(p, GameState);
-            }
+            
+            if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
+                GameState->Menu = menu_mode::game_over_menu;
+            
             CollectCoffee(CowPlayer, Collect, GameState->GridDim);
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2;
             DrawRock(&GameState->Assets, GridCoords, RealGridDim, -.001f);
             DrawBackground(&GameState->Assets, TopLeftCornerCoords, PlatformDim, -1.0f);
-            RenderGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
+            DrawGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
             Push(RenderGroup, v3(GridCoords, -0.2f), RealGridDim, GetTexture(&GameState->Assets, GAI_Grass), 0, BlendMode::gl_src_alpha);
             DrawCoffeeCow(&GameState->Assets, CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffeeCow(&GameState->Assets, CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
         }
-        else {
-            RenderPauseMenu(&GameState->GUIs[2], p, GameState);
-        }
-        BeginMode2D(*C);
-        RenderPieceGroup(RenderGroup);
-        EndMode2D();
     }
-    else if (GameState->Menu == menu::main_menu) {
-#include "main_menu.cpp" 
-    }
-    else if (GameState->Menu == menu::multiplayer_menu) {
-#include "multiplayer_menu.cpp"
-    }
-    else if (GameState->Menu == menu::pause_menu) {
-        
-    }
+    
+    if (GameState->Menu == menu_mode::main_menu)
+        DrawMainMenu(p, GameState);
+    else if (GameState->Menu == menu_mode::multiplayer_menu)
+        DrawMultiplayerMenu(p, GameState);
+    else if (GameState->Menu == menu_mode::pause_menu)
+        DrawPauseMenu(p, GameState);
+    else if (GameState->Menu == menu_mode::game_over_menu)
+        DrawGameOverMenu(p, GameState);
+    
+    BeginMode2D(*C);
+    RenderPieceGroup(RenderGroup);
+    EndMode2D();
 }

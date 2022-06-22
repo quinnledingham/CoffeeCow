@@ -1,7 +1,7 @@
 /*
 Todo:
 Coffee:
-Coffee can't spawn under snake
+Make Coffee not theoretically run forever
 Coffee resets with game
 
 CoffeeCow:
@@ -27,6 +27,16 @@ Make resizing a gui easier
 #define DOWN 3
 #define NODIRECTION 4
 
+enum game_direction
+{
+    Right,
+    Up,
+    Left,
+    Down,
+    
+    NoDirection
+};
+
 enum ComponentIDs
 {
     Btn1,
@@ -39,7 +49,6 @@ enum ComponentIDs
     JOIN,
     GameStart,
     Quit,
-    Menu,
     Reset,
     Multiplayer
 };
@@ -57,7 +66,6 @@ struct CoffeeCowNode
     v2 Coords;
     int CurrentDirection;
     int NextDirection;
-    
     
     int Streak;
 };
@@ -111,33 +119,33 @@ enum game_asset_id
     GAI_Count
 };
 
-enum font_id
-{
-    FI_Faune50,
-    FI_Faune100,
-    
-    FI_COUNT
-};
 
+enum game_asset_font_id
+{
+    GAFI_Rubik,
+    
+    GAFI_Count
+};
 struct game_assets
 {
     Texture *Textures[GAI_Count];
     Texture *Spots[4];
-    Font *Fonts[FI_COUNT];
+    
+    font *Fonts[GAFI_Count];
 };
 inline Texture *GetTexture(game_assets *Assets, game_asset_id ID)
 {
     Texture *Result = Assets->Textures[ID];
     return Result;
 }
-inline Font *GetFont(game_assets *Assets, font_id ID)
+inline font *GetFont(game_assets *Assets, game_asset_font_id ID)
 {
-    Font *Result = Assets->Fonts[ID];
+    font *Result = Assets->Fonts[ID];
     return Result;
 }
 
 enum struct
-menu
+menu_mode
 {
     not_in_menu,
     main_menu,
@@ -147,10 +155,10 @@ menu
 };
 struct menu_toggle
 {
-    menu m1;
-    menu m2;
+    menu_mode m1;
+    menu_mode m2;
 };
-inline void  MenuToggle(menu *Current, menu Default, menu Toggle) 
+inline void  MenuToggle(menu_mode *Current, menu_mode Default, menu_mode Toggle) 
 {
     if (*Current == Toggle)
         *Current = Default;
@@ -182,12 +190,9 @@ struct thread_param
 
 struct game_state
 {
-    game_mode Mode;
-    game_mode PreviousMode;
-    
-    menu Menu;
-    
-    GUI GUIs[10];
+    game_mode Game;
+    menu_mode Menu;
+    menu Menus[10];
     
     bool32 ShowFPS = false;
     bool32 ResetGame = true;
@@ -207,10 +212,22 @@ struct game_state
     thread Thread;
     int8 Disconnect = 0;
     
-    CoffeeCow Player1;
-    CoffeeCow Player2;
+    
+    union
+    {
+        CoffeeCow Players[4];
+        struct
+        {
+            CoffeeCow Player1;
+            CoffeeCow Player2;
+            CoffeeCow Player3;
+            CoffeeCow Player4;
+        };
+    };
     
     Coffee Collect;
+    
+    v2 OldPlatformDim;
     
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
