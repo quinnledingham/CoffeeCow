@@ -735,10 +735,10 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
 inline void
 CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
 {
-    if(Controller->MoveLeft.NewEndedDown) AddInput(Cow, LEFT);
-    if(Controller->MoveRight.NewEndedDown)AddInput(Cow, RIGHT);
-    if(Controller->MoveDown.NewEndedDown) AddInput(Cow, DOWN);
-    if(Controller->MoveUp.NewEndedDown) AddInput(Cow, UP);
+    if(Controller->MoveLeft.HalfTransitionCount) AddInput(Cow, LEFT);
+    if(Controller->MoveRight.HalfTransitionCount)AddInput(Cow, RIGHT);
+    if(Controller->MoveDown.HalfTransitionCount) AddInput(Cow, DOWN);
+    if(Controller->MoveUp.HalfTransitionCount) AddInput(Cow, UP);
 }
 
 void UpdateRender(platform* p)
@@ -809,7 +809,7 @@ void UpdateRender(platform* p)
             MenuToggle(&GameState->Menu, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(&p->Input.Controllers[0], Cow);
+            CoffeeCowProcessInput(&p->Input.Controllers[1], Cow);
             
             if (!MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim)) 
                 GameState->Menu = menu_mode::game_over_menu;

@@ -212,7 +212,6 @@ struct game_state
     thread Thread;
     int8 Disconnect = 0;
     
-    
     union
     {
         CoffeeCow Players[4];
@@ -224,6 +223,8 @@ struct game_state
             CoffeeCow Player4;
         };
     };
+    
+    platform_controller_input *ActiveInput;
     
     Coffee Collect;
     
