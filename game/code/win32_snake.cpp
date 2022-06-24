@@ -849,8 +849,7 @@ WinMain(HINSTANCE Instance,
                 GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
                 
                 char TextBuffer[256];
-                _snprintf_s(TextBuffer, sizeof(TextBuffer),
-                            "PC:%u WC:%u\n", PlayCursor, WriteCursor);
+                _snprintf_s(TextBuffer, sizeof(TextBuffer), "PC:%u WC:%u\n", PlayCursor, WriteCursor);
                 OutputDebugStringA(TextBuffer);
             }
 #endif
@@ -921,16 +920,11 @@ WinMain(HINSTANCE Instance,
                     NewInput->MouseX = MouseP.x;
                     NewInput->MouseY = MouseP.y;
                     NewInput->MouseZ = 0; // TODO(casey): Support mousewheel?
-                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0],
-                                                GetKeyState(VK_LBUTTON) & (1 << 15));
-                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1],
-                                                GetKeyState(VK_MBUTTON) & (1 << 15));
-                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[2],
-                                                GetKeyState(VK_RBUTTON) & (1 << 15));
-                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[3],
-                                                GetKeyState(VK_XBUTTON1) & (1 << 15));
-                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[4],
-                                                GetKeyState(VK_XBUTTON2) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0], GetKeyState(VK_LBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1], GetKeyState(VK_MBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[2], GetKeyState(VK_RBUTTON) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[3], GetKeyState(VK_XBUTTON1) & (1 << 15));
+                    Win32ProcessKeyboardMessage(&NewInput->MouseButtons[4], GetKeyState(VK_XBUTTON2) & (1 << 15));
                     
                     // TODO(casey): Need to not poll disconnected controllers to avoid
                     // xinput frame rate hit on older libraries...

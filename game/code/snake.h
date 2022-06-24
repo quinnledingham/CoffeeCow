@@ -152,20 +152,9 @@ menu_mode
     multiplayer_menu,
     pause_menu,
     game_over_menu,
+    
+    menu_mode_Count
 };
-struct menu_toggle
-{
-    menu_mode m1;
-    menu_mode m2;
-};
-inline void  MenuToggle(menu_mode *Current, menu_mode Default, menu_mode Toggle) 
-{
-    if (*Current == Toggle)
-        *Current = Default;
-    else if (*Current == Default)
-        *Current = Toggle;
-}
-
 enum struct
 game_mode
 
@@ -192,7 +181,7 @@ struct game_state
 {
     game_mode Game;
     menu_mode Menu;
-    menu Menus[10];
+    menu Menus[(int)menu_mode::menu_mode_Count];
     
     bool32 ShowFPS = false;
     bool32 ResetGame = true;
@@ -233,5 +222,24 @@ struct game_state
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
 };
+inline menu* GetMenu(game_state *GameState, menu_mode MenuMode)
+{
+    return &GameState->Menus[(int)MenuMode];
+}
+inline void SetMenu(game_state *GameState, menu_mode MenuMode)
+{
+    if (GameState->Menu != MenuMode) {
+        menu *Menu = GetMenu(GameState, MenuMode);
+        Menu->Reset = true;
+        GameState->Menu = MenuMode;
+    }
+}
+inline void  MenuToggle(game_state *GameState, menu_mode Default, menu_mode Toggle) 
+{
+    if (GameState->Menu == Toggle)
+        SetMenu(GameState, Default);
+    else if (GameState->Menu== Default)
+        SetMenu(GameState, Toggle);
+}
 
 #endif //SNAKE_H

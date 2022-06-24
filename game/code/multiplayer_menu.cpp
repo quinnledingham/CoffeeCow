@@ -1,5 +1,3 @@
-global_variable menu MultiplayerMenu = {};
-
 internal void
 DrawMultiplayerMenu(platform *p, game_state *GameState)
 {
@@ -11,7 +9,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         MCI_Back,
     };
     
-    menu *Menu = &MultiplayerMenu;
+    menu *Menu = GetMenu(GameState, menu_mode::multiplayer_menu);
     
     if (!Menu->Initialized)
     {
@@ -35,7 +33,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         menu_component *T1;
         {
             menu_text Text = {};
-            Text.FontString.Text = "PORT:";
+            FontStringSetText(&Text.FontString, "PORT:");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 50;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -43,7 +41,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             T1 = MenuAddText(Menu, GridCoords, &Text);
         }{
             menu_text Text = {};
-            Text.FontString.Text = "IP:";
+            FontStringSetText(&Text.FontString, "IP:");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 50;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -51,7 +49,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             MenuAddText(Menu, GridCoords, &Text, T1);
         }{
             menu_textbox TextBox = {};
-            TextBox.FontString.Text = "";
+            FontStringSetText(&TextBox.FontString, "");
             TextBox.FontString.Font = Rubik;
             TextBox.FontString.PixelHeight = 50;
             TextBox.CurrentColor = TextBoxDefaultColor;
@@ -61,7 +59,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             MenuAddTextBox(Menu, MCI_IP, GridCoords, Dim, &TextBox, 0);
         }{
             menu_textbox TextBox = {};
-            TextBox.FontString.Text = "";
+            FontStringSetText(&TextBox.FontString, "");
             TextBox.FontString.Font = Rubik;
             TextBox.FontString.PixelHeight = 50;
             TextBox.CurrentColor = TextBoxDefaultColor;
@@ -78,7 +76,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = ButtonDefaultTextColor;
             Button.HoverTextColor = ButtonHoverTextColor;
             
-            Button.FontString.Text = "Join";
+            FontStringSetText(&Button.FontString, "Join");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = 50;
             
@@ -92,7 +90,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = ButtonDefaultTextColor;
             Button.HoverTextColor = ButtonHoverTextColor;
             
-            Button.FontString.Text = "Back";
+            FontStringSetText(&Button.FontString, "Back");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = 50;
             
@@ -100,10 +98,14 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             v2 Dim = ButtonDim;
             MenuAddButton(Menu, MCI_Back, GridCoords, Dim, &Button);
         }
+        MenuSortActiveComponents(Menu);
+    }
+    else if (Menu->Reset) {
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, &p->Input);
-    
+    HandleMenuEvents(Menu, p->Input);
     if (Menu->Events.ButtonClicked == MCI_Join) {
         //PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
         //GameState->ResetGame = true;
@@ -111,13 +113,10 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         //GameState->Mode = game_mode::singleplayer;
     }
     else if (Menu->Events.ButtonClicked == MCI_Back) {
-        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
-        GameState->Menu = menu_mode::main_menu;
+        SetMenu(GameState, menu_mode::main_menu);
     }
-    
     
     UpdateMenu(Menu, GetDim(p));
     DrawMenu(Menu, 100.0f);
-    
     DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
 }

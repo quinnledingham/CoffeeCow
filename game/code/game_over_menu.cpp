@@ -1,5 +1,3 @@
-global_variable menu GameOverMenu = {};
-
 internal void 
 DrawGameOverMenu(platform *p, game_state *GameState)
 {
@@ -9,7 +7,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
         MCI_Menu,
     };
     
-    menu *Menu = &GameOverMenu;
+    menu *Menu = GetMenu(GameState, menu_mode::game_over_menu);
     
     if (!Menu->Initialized)
     {
@@ -27,7 +25,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
         MenuInit(Menu, v2(1000, 1000), 10);
         {
             menu_text Text = {};
-            Text.FontString.Text = "Game Over";
+            FontStringSetText(&Text.FontString, "Game Over");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = TextPixelHeight;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -36,7 +34,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
         }
         {
             menu_text Text = {};
-            Text.FontString.Text = "";
+            FontStringSetText(&Text.FontString, "");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = TextPixelHeight;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -50,7 +48,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = ButtonDefaultTextColor;
             Button.HoverTextColor = ButtonHoverTextColor;
             
-            Button.FontString.Text = "Play Again";
+            FontStringSetText(&Button.FontString, "Play Again");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = TextPixelHeight;
             
@@ -65,7 +63,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = ButtonDefaultTextColor;
             Button.HoverTextColor = ButtonHoverTextColor;
             
-            Button.FontString.Text = "Main Menu";
+            FontStringSetText(&Button.FontString, "Main Menu");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = TextPixelHeight;
             
@@ -74,20 +72,23 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             MenuAddButton(Menu, MCI_Menu, GridCoords, Dim, &Button);
         }
         
-        GameOverMenu.BackgroundColor = 0x96000000;
+        Menu->BackgroundColor = 0x19000000;
+        MenuSortActiveComponents(Menu);
+    }
+    else if (Menu->Reset) {
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, &p->Input);
-    
+    HandleMenuEvents(Menu, p->Input);
     if (Menu->Events.ButtonClicked == MCI_Menu) {
-        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
         GameState->Game = game_mode::not_in_game;
-        GameState->Menu = menu_mode::main_menu;
+        SetMenu(GameState, menu_mode::main_menu);
     }
     else if (Menu->Events.ButtonClicked == MCI_Reset) {
         GameState->ResetGame = true;
         GameState->Game = game_mode::singleplayer;
-        GameState->Menu = menu_mode::not_in_menu;
+        SetMenu(GameState, menu_mode::not_in_menu);
     }
     
     UpdateMenu(Menu, GetDim(p));

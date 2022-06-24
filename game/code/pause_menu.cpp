@@ -1,5 +1,3 @@
-global_variable menu PauseMenu = {};
-
 internal void
 DrawPauseMenu(platform *p, game_state *GameState)
 {
@@ -9,7 +7,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
         MCI_Menu,
     };
     
-    menu *Menu = &PauseMenu;
+    menu *Menu = GetMenu(GameState, menu_mode::pause_menu);
     
     if (!Menu->Initialized)
     {
@@ -26,7 +24,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
         MenuInit(Menu, v2(1000, 1000), 10);
         {
             menu_text Text = {};
-            Text.FontString.Text = "Paused";
+            FontStringSetText(&Text.FontString, "Paused");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 100;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -34,7 +32,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             MenuAddText(Menu, GridCoords, &Text);
         }{
             menu_text Text = {};
-            Text.FontString.Text = "";
+            FontStringSetText(&Text.FontString, "");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 100;
             Text.DefaultTextColor = 0xFFFFFFFF;
@@ -47,7 +45,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = DefaultTextColor;
             Button.HoverTextColor = HoverTextColor;
             
-            Button.FontString.Text = "Reset";
+            FontStringSetText(&Button.FontString, "Reset");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = 50;
             
@@ -61,7 +59,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = DefaultTextColor;
             Button.HoverTextColor = HoverTextColor;
             
-            Button.FontString.Text = "Main Menu";
+            FontStringSetText(&Button.FontString, "Main Menu");
             Button.FontString.Font = Rubik;
             Button.FontString.PixelHeight = 50;
             
@@ -70,23 +68,25 @@ DrawPauseMenu(platform *p, game_state *GameState)
             MenuAddButton(Menu, MCI_Menu, GridCoords, Dim, &Button);
         }
         //PauseMenu->BackgroundColor = 0x96000000;
+        MenuSortActiveComponents(Menu);
+    }
+    else if (Menu->Reset) {
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, &p->Input);
-    
+    HandleMenuEvents(Menu, p->Input);
     if (Menu->Events.ButtonClicked == MCI_Menu) {
-        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
         GameState->Game = game_mode::not_in_game;
-        GameState->Menu = menu_mode::main_menu;
+        SetMenu(GameState, menu_mode::main_menu);
     }
     else if (Menu->Events.ButtonClicked == MCI_Reset) {
         GameState->ResetGame = true;
         GameState->Game = game_mode::singleplayer;
-        GameState->Menu = menu_mode::not_in_menu;
+        SetMenu(GameState, menu_mode::not_in_menu);
     }
     
-    DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
-    
     UpdateMenu(Menu, GetDim(p));
+    DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
     DrawMenu(Menu, 100.0f);
 }

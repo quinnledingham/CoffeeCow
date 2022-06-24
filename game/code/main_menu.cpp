@@ -123,19 +123,18 @@ if (MainMenu->Initialized == 0) {
 }
 */
 
-global_variable menu MainMenu = {};
-
 internal void
 DrawMainMenu(platform *p, game_state *GameState)
 {
     enum menu_component_id
     {
+        MCI,
         MCI_Singleplayer,
         MCI_Multiplayer,
         MCI_Quit,
     };
     
-    menu *Menu = &MainMenu;
+    menu *Menu = GetMenu(GameState, menu_mode::main_menu);
     
     if (!Menu->Initialized)
     {
@@ -164,7 +163,7 @@ DrawMainMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = DefaultTextColor;
             Button.HoverTextColor = HoverTextColor;
             
-            Button.FontString.Text = "Singleplayer";
+            FontStringSetText(&Button.FontString, "Singleplayer");
             Button.FontString.Font = ButtonFont;
             Button.FontString.PixelHeight = 50;
             
@@ -179,7 +178,7 @@ DrawMainMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = DefaultTextColor;
             Button.HoverTextColor = HoverTextColor;
             
-            Button.FontString.Text = "Multiplayer";
+            FontStringSetText(&Button.FontString, "Multiplayer");
             Button.FontString.Font = ButtonFont;
             Button.FontString.PixelHeight = 50;
             
@@ -194,7 +193,7 @@ DrawMainMenu(platform *p, game_state *GameState)
             Button.DefaultTextColor = DefaultTextColor;
             Button.HoverTextColor = HoverTextColor;
             
-            Button.FontString.Text = "Quit";
+            FontStringSetText(&Button.FontString, "Quit");
             Button.FontString.Font = ButtonFont;
             Button.FontString.PixelHeight = 50;
             
@@ -202,26 +201,28 @@ DrawMainMenu(platform *p, game_state *GameState)
             v2 Dim = BtnDim;
             MenuAddButton(Menu, MCI_Quit, GridCoords, BtnDim, &Button);
         }
-        
+        MenuSortActiveComponents(Menu);
+    }
+    else if (Menu->Reset) {
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, &p->Input);
-    
+    HandleMenuEvents(Menu, p->Input);
     if (Menu->Events.ButtonClicked == MCI_Singleplayer) {
-        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        SetMenu(GameState, menu_mode::not_in_menu);
         GameState->ResetGame = true;
-        GameState->Menu = menu_mode::not_in_menu;
         GameState->Game = game_mode::singleplayer;
     }
     else if (Menu->Events.ButtonClicked == MCI_Multiplayer) {
-        PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
-        GameState->Menu = menu_mode::multiplayer_menu;
+        SetMenu(GameState, menu_mode::multiplayer_menu);
     }
     else if (Menu->Events.ButtonClicked == MCI_Quit)
-        p->Input.Quit = 1;
+        p->Input->Quit = 1;
+    
     
     UpdateMenu(Menu, GetDim(p));
     DrawMenu(Menu, 100.0f);
-    
     DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
 }

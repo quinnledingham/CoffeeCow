@@ -735,10 +735,10 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
 inline void
 CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
 {
-    if(Controller->MoveLeft.HalfTransitionCount) AddInput(Cow, LEFT);
-    if(Controller->MoveRight.HalfTransitionCount)AddInput(Cow, RIGHT);
-    if(Controller->MoveDown.HalfTransitionCount) AddInput(Cow, DOWN);
-    if(Controller->MoveUp.HalfTransitionCount) AddInput(Cow, UP);
+    if(KeyDown(&Controller->MoveLeft)) AddInput(Cow, LEFT);
+    if(KeyDown(&Controller->MoveRight))AddInput(Cow, RIGHT);
+    if(KeyDown(&Controller->MoveDown)) AddInput(Cow, DOWN);
+    if(KeyDown(&Controller->MoveUp)) AddInput(Cow, UP);
 }
 
 void UpdateRender(platform* p)
@@ -776,14 +776,14 @@ void UpdateRender(platform* p)
     if (NewGridSize != GameState->GridSize)
         GameState->GridSize = NewGridSize;
     
-    platform_keyboard_input *Keyboard = &p->Input.Keyboard;
+    platform_keyboard_input *Keyboard = &p->Input->Keyboard;
     if (Keyboard->F5.NewEndedDown)
         GameState->ShowFPS = !GameState->ShowFPS;
     
     if (GameState->ShowFPS) {
         real32 fps = 0;
-        if (p->Input.WorkSecondsElapsed != 0) {
-            fps= 1 / p->Input.WorkSecondsElapsed;
+        if (p->Input->WorkSecondsElapsed != 0) {
+            fps= 1 / p->Input->WorkSecondsElapsed;
             strinq FPS = S() + (int)fps;
             
             font_string FontString = {};
@@ -805,14 +805,14 @@ void UpdateRender(platform* p)
             GameState->ResetGame = false;
         }
         
-        if (Keyboard->Escape.NewEndedDown)
-            MenuToggle(&GameState->Menu, menu_mode::not_in_menu, menu_mode::pause_menu);
+        if (KeyDown(&p->Input->CurrentInputInfo.Controller->Start))
+            MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(&p->Input.Controllers[1], Cow);
+            CoffeeCowProcessInput(p->Input->CurrentInputInfo.Controller, Cow);
             
-            if (!MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim)) 
-                GameState->Menu = menu_mode::game_over_menu;
+            if (!MoveCoffeeCow(Cow, p->Input->WorkSecondsElapsed, GameState->GridDim)) 
+                SetMenu(GameState, menu_mode::game_over_menu);
             
             CollectCoffee(Cow, Cof, GameState->GridDim);
             
@@ -823,8 +823,8 @@ void UpdateRender(platform* p)
             DrawGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
             Push(RenderGroup, v3(GridCoords, -0.2f), RealGridDim, GetTexture(&GameState->Assets, GAI_Grass), 0, BlendMode::gl_src_alpha);
             
-            DrawCoffeeCow(&GameState->Assets, Cow, Cof->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-            DrawCoffee(&GameState->Assets, Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
+            DrawCoffeeCow(&GameState->Assets, Cow, Cof->Coords, p->Input->WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+            DrawCoffee(&GameState->Assets, Cof, p->Input->WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
             DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords);
         }
     }
@@ -848,12 +848,12 @@ void UpdateRender(platform* p)
         }
         
         if (Keyboard->Escape.NewEndedDown)
-            MenuToggle(&GameState->Menu, menu_mode::not_in_menu, menu_mode::pause_menu);
+            MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(&p->Input.Controllers[0], CowPlayer);
+            CoffeeCowProcessInput(&p->Input->Controllers[1], CowPlayer);
             
-            if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
+            if (!MoveCoffeeCow(CowPlayer, p->Input->WorkSecondsElapsed, GameState->GridDim))
                 GameState->Menu = menu_mode::game_over_menu;
             
             CollectCoffee(CowPlayer, Collect, GameState->GridDim);
@@ -864,8 +864,8 @@ void UpdateRender(platform* p)
             DrawBackground(&GameState->Assets, TopLeftCornerCoords, PlatformDim, -1.0f);
             DrawGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
             Push(RenderGroup, v3(GridCoords, -0.2f), RealGridDim, GetTexture(&GameState->Assets, GAI_Grass), 0, BlendMode::gl_src_alpha);
-            DrawCoffeeCow(&GameState->Assets, CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-            DrawCoffeeCow(&GameState->Assets, CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+            DrawCoffeeCow(&GameState->Assets, CowPlayer, Collect->Coords, p->Input->WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+            DrawCoffeeCow(&GameState->Assets, CowPlayer2, Collect->Coords, p->Input->WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
         }
     }
     
