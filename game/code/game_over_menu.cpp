@@ -24,7 +24,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
         
         MenuInit(Menu, v2(1000, 1000), 10);
         {
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "Game Over");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = TextPixelHeight;
@@ -33,7 +33,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             MenuAddText(Menu, GridCoords, &Text);
         }
         {
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = TextPixelHeight;
@@ -42,7 +42,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             MenuAddText(Menu, GridCoords, &Text);
         }
         {
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = ButtonDefaultColor;
             Button.HoverColor = ButtonHoverColor;
             Button.DefaultTextColor = ButtonDefaultTextColor;
@@ -57,7 +57,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             MenuAddButton(Menu, MCI_Reset, GridCoords, Dim, &Button);
         }
         {
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = ButtonDefaultColor;
             Button.HoverColor = ButtonHoverColor;
             Button.DefaultTextColor = ButtonDefaultTextColor;
@@ -72,7 +72,7 @@ DrawGameOverMenu(platform *p, game_state *GameState)
             MenuAddButton(Menu, MCI_Menu, GridCoords, Dim, &Button);
         }
         
-        Menu->BackgroundColor = 0x19000000;
+        Menu->BackgroundColor = 0x32000000;
         MenuSortActiveComponents(Menu);
     }
     else if (Menu->Reset) {

@@ -851,10 +851,10 @@ void UpdateRender(platform* p)
             MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(&p->Input->Controllers[1], CowPlayer);
+            CoffeeCowProcessInput(p->Input->CurrentInputInfo.Controller, CowPlayer);
             
             if (!MoveCoffeeCow(CowPlayer, p->Input->WorkSecondsElapsed, GameState->GridDim))
-                GameState->Menu = menu_mode::game_over_menu;
+                SetMenu(GameState, menu_mode::game_over_menu);
             
             CollectCoffee(CowPlayer, Collect, GameState->GridDim);
             

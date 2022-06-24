@@ -23,7 +23,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
         
         MenuInit(Menu, v2(1000, 1000), 10);
         {
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "Paused");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 100;
@@ -31,7 +31,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             v2 GridCoords = v2(0, Y++);
             MenuAddText(Menu, GridCoords, &Text);
         }{
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 100;
@@ -39,7 +39,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             v2 GridCoords = v2(0, Y++);
             MenuAddText(Menu, GridCoords, &Text);
         }{
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = DefaultColor;
             Button.HoverColor = HoverColor;
             Button.DefaultTextColor = DefaultTextColor;
@@ -53,7 +53,7 @@ DrawPauseMenu(platform *p, game_state *GameState)
             v2 Dim = ButtonDim;
             MenuAddButton(Menu, MCI_Reset, GridCoords, Dim, &Button);
         }{
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = DefaultColor;
             Button.HoverColor = HoverColor;
             Button.DefaultTextColor = DefaultTextColor;

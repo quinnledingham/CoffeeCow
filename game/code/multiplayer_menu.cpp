@@ -32,7 +32,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         
         menu_component *T1;
         {
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "PORT:");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 50;
@@ -40,7 +40,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             v2 GridCoords = v2(0, Y + 1);
             T1 = MenuAddText(Menu, GridCoords, &Text);
         }{
-            menu_text Text = {};
+            menu_component_text Text = {};
             FontStringSetText(&Text.FontString, "IP:");
             Text.FontString.Font = Rubik;
             Text.FontString.PixelHeight = 50;
@@ -48,7 +48,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             v2 GridCoords = v2(0, Y);
             MenuAddText(Menu, GridCoords, &Text, T1);
         }{
-            menu_textbox TextBox = {};
+            menu_component_textbox TextBox = {};
             FontStringSetText(&TextBox.FontString, "");
             TextBox.FontString.Font = Rubik;
             TextBox.FontString.PixelHeight = 50;
@@ -58,7 +58,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             v2 Dim = TextBoxDim;
             MenuAddTextBox(Menu, MCI_IP, GridCoords, Dim, &TextBox, 0);
         }{
-            menu_textbox TextBox = {};
+            menu_component_textbox TextBox = {};
             FontStringSetText(&TextBox.FontString, "");
             TextBox.FontString.Font = Rubik;
             TextBox.FontString.PixelHeight = 50;
@@ -70,7 +70,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         }
         Y += 2;
         {
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = ButtonDefaultColor;
             Button.HoverColor = ButtonHoverColor;
             Button.DefaultTextColor = ButtonDefaultTextColor;
@@ -84,7 +84,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             v2 Dim = ButtonDim;
             MenuAddButton(Menu, MCI_Join, GridCoords, Dim, &Button);
         }{
-            menu_button Button = {};
+            menu_component_button Button = {};
             Button.DefaultColor = ButtonDefaultColor;
             Button.HoverColor = ButtonHoverColor;
             Button.DefaultTextColor = ButtonDefaultTextColor;
@@ -107,10 +107,13 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
     
     HandleMenuEvents(Menu, p->Input);
     if (Menu->Events.ButtonClicked == MCI_Join) {
-        //PlatformSetCursorMode(&p->Input, platform_cursor_mode::Arrow);
-        //GameState->ResetGame = true;
-        //GameState->Menu = menu_mode::not_in_menu;
-        //GameState->Mode = game_mode::singleplayer;
+        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        GameState->ResetGame = true;
+        SetMenu(GameState, menu_mode::not_in_menu);
+        GameState->Game = game_mode::multiplayer;
+        
+        GameState->IP = MenuGetTextBoxText(Menu, MCI_IP);
+        GameState->Port = MenuGetTextBoxText(Menu, MCI_Port);
     }
     else if (Menu->Events.ButtonClicked == MCI_Back) {
         SetMenu(GameState, menu_mode::main_menu);

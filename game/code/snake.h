@@ -2,20 +2,17 @@
 Todo:
 Coffee:
 Make Coffee not theoretically run forever
-Coffee resets with game
-
-CoffeeCow:
-Fix how the Rectangles outline and body are being drawn
 
 Assets:
 Think about how I am going to load them
 
-Fonts:
-Be able to resize fonts depending on the screen size
+Renderer:
+Refactor code
+Add live shader loaing
+Figure out image bitmap texture situation
 
-GUI:
-Make adding a new gui easier
-Make resizing a gui easier
+Win32
+Add DirectSound
 */
 
 #ifndef SNAKE_H
