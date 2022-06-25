@@ -76,11 +76,11 @@ DrawGameOverMenu(platform *p, game_state *GameState)
         MenuSortActiveComponents(Menu);
     }
     else if (Menu->Reset) {
-        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
         MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, p->Input);
+    HandleMenuEvents(Menu, &p->Input);
     if (Menu->Events.ButtonClicked == MCI_Menu) {
         GameState->Game = game_mode::not_in_game;
         SetMenu(GameState, menu_mode::main_menu);

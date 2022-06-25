@@ -81,6 +81,8 @@ struct CoffeeCow
     real32 LastTransitionAmt = 0;
     
     Arr Inputs; // int
+    
+    platform_controller_input *Input;
 };
 
 struct Coffee
@@ -111,6 +113,11 @@ enum game_asset_id
     GAI_Tail,
     GAI_Tongue,
     GAI_Miz,
+    GAI_Join,
+    GAI_JoinAlt,
+    GAI_JoinHover,
+    GAI_JoinAltHover,
+    
     GAI_MainMenuBack,
     
     GAI_Count
@@ -149,6 +156,7 @@ menu_mode
     multiplayer_menu,
     pause_menu,
     game_over_menu,
+    local_multiplayer_menu,
     
     menu_mode_Count
 };
@@ -159,6 +167,7 @@ game_mode
     not_in_game,
     singleplayer,
     multiplayer,
+    local_multiplayer,
 };
 
 #define MAX_THREADS 2

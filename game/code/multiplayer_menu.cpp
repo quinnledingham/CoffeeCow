@@ -101,13 +101,13 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
         MenuSortActiveComponents(Menu);
     }
     else if (Menu->Reset) {
-        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
         MenuReset(Menu);
     }
     
-    HandleMenuEvents(Menu, p->Input);
+    HandleMenuEvents(Menu, &p->Input);
     if (Menu->Events.ButtonClicked == MCI_Join) {
-        PlatformSetCursorMode(p->Input, platform_cursor_mode::Arrow);
+        PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
         GameState->ResetGame = true;
         SetMenu(GameState, menu_mode::not_in_menu);
         GameState->Game = game_mode::multiplayer;
