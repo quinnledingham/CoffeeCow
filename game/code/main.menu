@@ -1,9 +1,0 @@
-Y = 0
-DefaultColor = 0xFF000000;
-
-#Logo
-Texture: GAI_Miz
-Dim: 550 274
-GridCoords 0 Y++
-
-#Button

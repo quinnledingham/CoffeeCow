@@ -659,8 +659,11 @@ LoadAssets(platform_work_queue *Queue, game_assets *Assets)
     
     Win32CompleteAllWork(Queue);
     
-    for (int i = 0; i < GAI_Count; i++)
+    for (int i = 0; i < GAI_Count; i++) {
         InitTexture(GetTexture(Assets, (game_asset_id)i));
+        
+        
+    }
     for (int i = 0; i < 3; i++)
         InitTexture(Assets->Spots[i]);
 }
@@ -788,7 +791,7 @@ void UpdateRender(platform* p)
         GameState->GridSize = NewGridSize;
     
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
-    if (Keyboard->F5.NewEndedDown)
+    if (OnKeyDown(&Keyboard->F5))
         GameState->ShowFPS = !GameState->ShowFPS;
     
     if (GameState->ShowFPS) {
@@ -923,17 +926,222 @@ void UpdateRender(platform* p)
         }
     }
     
-    if (GameState->Menu == menu_mode::main_menu)
-        DrawMainMenu(p, GameState);
-    else if (GameState->Menu == menu_mode::multiplayer_menu)
-        DrawMultiplayerMenu(p, GameState);
-    else if (GameState->Menu == menu_mode::pause_menu)
-        DrawPauseMenu(p, GameState);
-    else if (GameState->Menu == menu_mode::game_over_menu)
-        DrawGameOverMenu(p, GameState);
-    else if (GameState->Menu == menu_mode::local_multiplayer_menu)
-        DrawLocalMultiplayerMenu(p, GameState);
-    
+    if (GameState->Menu == menu_mode::main_menu) {
+        enum menu_component_id
+        {
+            MCI_Singleplayer,
+            MCI_LocalMultiplayer,
+            MCI_Multiplayer,
+            MCI_Quit,
+            MCI_Count
+        };
+        pair_int_string IDs[] = {
+            pairintstring(MCI_Singleplayer),
+            pairintstring(MCI_LocalMultiplayer),
+            pairintstring(MCI_Multiplayer),
+            pairintstring(MCI_Quit),
+            pairintstring(MCI_Count)
+        };
+        
+        menu *Menu = GetMenu(GameState, menu_mode::main_menu);
+        if (DoMenu(Menu, "main.menu", p, GameState, IDs, MCI_Count)) 
+        {
+            if (Menu->Events.ButtonClicked == MCI_Singleplayer) {
+                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                SetMenu(GameState, menu_mode::not_in_menu);
+                GameState->ResetGame = true;
+                GameState->Game = game_mode::singleplayer;
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Multiplayer) {
+                SetMenu(GameState, menu_mode::multiplayer_menu);
+            }
+            else if (Menu->Events.ButtonClicked == MCI_LocalMultiplayer) {
+                for (int i = 0; i < ArrayCount(p->Input.Controllers); i++) {
+                    platform_controller_input *Controller = &p->Input.Controllers[i];
+                    Controller->IgnoreInputs = false;
+                }
+                SetMenu(GameState, menu_mode::local_multiplayer_menu);
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Quit)
+                p->Input.Quit = 1;
+            
+            if (Menu->ScreenDim != GetDim(p)) {
+                ResizeMenu(Menu, GetDim(p));
+                UpdateMenu(Menu);
+            }
+        }
+        
+        DrawMenu(Menu, 100.0f);
+        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+    }
+    else if (GameState->Menu == menu_mode::multiplayer_menu) {
+        enum menu_component_id
+        {
+            MCI_IP,
+            MCI_Port,
+            MCI_Join,
+            MCI_Back,
+            MCI_PortText,
+            MCI_Count
+        };
+        pair_int_string IDs[] = {
+            pairintstring(MCI_IP),
+            pairintstring(MCI_Port),
+            pairintstring(MCI_Join),
+            pairintstring(MCI_Back),
+            pairintstring(MCI_PortText),
+            pairintstring(MCI_Count)
+        };
+        
+        menu *Menu = GetMenu(GameState, menu_mode::multiplayer_menu);
+        if (DoMenu(Menu, "online_multiplayer.menu", p, GameState, IDs, MCI_Count)) 
+        {
+            if (Menu->Events.ButtonClicked == MCI_Join) {
+                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                GameState->ResetGame = true;
+                SetMenu(GameState, menu_mode::not_in_menu);
+                GameState->Game = game_mode::multiplayer;
+                
+                GameState->IP = MenuGetTextBoxText(Menu, MCI_IP);
+                GameState->Port = MenuGetTextBoxText(Menu, MCI_Port);
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Back) {
+                SetMenu(GameState, menu_mode::main_menu);
+            }
+            
+            if (Menu->ScreenDim != GetDim(p)) {
+                ResizeMenu(Menu, GetDim(p));
+                UpdateMenu(Menu);
+            }
+        }
+        
+        DrawMenu(Menu, 100.0f);
+        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+    }
+    else if (GameState->Menu == menu_mode::pause_menu) {
+        
+        enum menu_component_id
+        {
+            MCI_Reset,
+            MCI_Menu,
+            MCI_Count
+        };
+        pair_int_string IDs[] = {
+            pairintstring(MCI_Reset),
+            pairintstring(MCI_Menu),
+            pairintstring(MCI_Count)
+        };
+        
+        menu *Menu = GetMenu(GameState, menu_mode::pause_menu);
+        if (DoMenu(Menu, "pause.menu", p, GameState, IDs, MCI_Count)) 
+        {
+            if (Menu->Events.ButtonClicked == MCI_Menu) {
+                GameState->Game = game_mode::not_in_game;
+                SetMenu(GameState, menu_mode::main_menu);
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Reset) {
+                GameState->ResetGame = true;
+                GameState->Game = game_mode::singleplayer;
+                SetMenu(GameState, menu_mode::not_in_menu);
+            }
+            
+            if (Menu->ScreenDim != GetDim(p)) {
+                ResizeMenu(Menu, GetDim(p));
+                UpdateMenu(Menu);
+            }
+        }
+        
+        DrawMenu(Menu, 100.0f);
+        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+    }
+    else if (GameState->Menu == menu_mode::game_over_menu) {
+        
+        enum menu_component_id
+        {
+            MCI_Reset,
+            MCI_Menu,
+            MCI_Count
+        };
+        pair_int_string IDs[] = {
+            pairintstring(MCI_Reset),
+            pairintstring(MCI_Menu),
+            pairintstring(MCI_Count)
+        };
+        
+        menu *Menu = GetMenu(GameState, menu_mode::game_over_menu);
+        if (DoMenu(Menu, "game_over.menu", p, GameState, IDs, MCI_Count)) 
+        {
+            if (Menu->Events.ButtonClicked == MCI_Menu) {
+                GameState->Game = game_mode::not_in_game;
+                SetMenu(GameState, menu_mode::main_menu);
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Reset) {
+                GameState->ResetGame = true;
+                GameState->Game = game_mode::singleplayer;
+                SetMenu(GameState, menu_mode::not_in_menu);
+            }
+            
+            if (Menu->ScreenDim != GetDim(p)) {
+                ResizeMenu(Menu, GetDim(p));
+                UpdateMenu(Menu);
+            }
+        }
+        
+        DrawMenu(Menu, 100.0f);
+    }
+    else if (GameState->Menu == menu_mode::local_multiplayer_menu) {
+        enum menu_component_id
+        {
+            MCI_Default,
+            MCI_Start,
+            MCI_Back,
+            PI_Player1,
+            PI_Player2,
+            PI_Player3,
+            PI_Player4,
+            
+            MCI_Count
+        };
+        pair_int_string IDs[] = {
+            pairintstring(MCI_Default),
+            pairintstring(MCI_Start),
+            pairintstring(MCI_Back),
+            pairintstring(PI_Player1),
+            pairintstring(PI_Player2),
+            pairintstring(PI_Player3),
+            pairintstring(PI_Player4),
+        };
+        
+        menu *Menu = GetMenu(GameState, menu_mode::local_multiplayer_menu);
+        if (DoMenu(Menu, "local_multiplayer.menu", p, GameState, IDs, MCI_Count)) 
+        {
+            if (Menu->Events.ButtonClicked == MCI_Start) {
+                for (int i = 0; i < MCI_Count; i++) {
+                    menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i);
+                    menu_component_checkbox *CheckBox = (menu_component_checkbox*)Player->Data;
+                    GameState->Players[i].Input = CheckBox->Controller;
+                }
+                
+                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                SetMenu(GameState, menu_mode::not_in_menu);
+                GameState->ResetGame = true;
+                GameState->Game = game_mode::local_multiplayer;
+                
+                
+            }
+            else if (Menu->Events.ButtonClicked == MCI_Back) {
+                SetMenu(GameState, menu_mode::main_menu);
+            }
+            
+            if (Menu->ScreenDim != GetDim(p)) {
+                ResizeMenu(Menu, GetDim(p));
+                UpdateMenu(Menu);
+            }
+        }
+        
+        DrawMenu(Menu, 100.0f);
+        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+    }
     BeginMode2D(*C);
     RenderPieceGroup(RenderGroup);
     EndMode2D();

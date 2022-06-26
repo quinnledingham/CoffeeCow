@@ -56,7 +56,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             TextBox.CurrentTextColor = TextBoxDefaultTextColor;
             v2 GridCoords = v2(1, Y);
             v2 Dim = TextBoxDim;
-            MenuAddTextBox(Menu, MCI_IP, GridCoords, Dim, &TextBox, 0);
+            MenuAddTextBox(Menu, MCI_IP, GridCoords, Dim, &TextBox);
         }{
             menu_component_textbox TextBox = {};
             FontStringSetText(&TextBox.FontString, "");
@@ -66,7 +66,7 @@ DrawMultiplayerMenu(platform *p, game_state *GameState)
             TextBox.CurrentTextColor = TextBoxDefaultTextColor;
             v2 GridCoords = v2(1, Y + 1);
             v2 Dim = TextBoxDim;
-            MenuAddTextBox(Menu, MCI_Port, GridCoords, Dim, &TextBox, 0);
+            MenuAddTextBox(Menu, MCI_Port, GridCoords, Dim, &TextBox);
         }
         Y += 2;
         {

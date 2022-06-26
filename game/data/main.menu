@@ -1,0 +1,68 @@
+#start
+Y: 0
+DefaultColor: 0xFF000000
+HoverColor: 0xFFDEC9B3
+DefaultTextColor: 0xFFFFFFFF
+HoverTextColor: 0xFF000000
+BtnDim: 550, 75
+ButtonFont: GAFI_Rubik
+
+#Menu
+BackgroundColor: 0x00000000
+DefaultDim: 1000, 1000
+DefaultPadding: 10
+
+#Logo
+Texture: GAI_Miz
+Dim: 550, 274
+GridCoords: 0, Y++
+
+#Button
+ID: MCI_Singleplayer
+Text:Singleplayer
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Font: ButtonFont
+PixelHeight: 50
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#Button
+ID: MCI_LocalMultiplayer
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Text:Local Multiplayer
+Font: ButtonFont
+PixelHeight: 50
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#Button
+ID: MCI_Multiplayer
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Text:Online Multiplayer
+Font: ButtonFont
+PixelHeight: 50
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#Button
+ID: MCI_Quit
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Text:Quit
+Font: ButtonFont
+PixelHeight: 50
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#end

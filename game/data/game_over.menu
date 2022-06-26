@@ -1,0 +1,53 @@
+#start
+Y: 0
+DefaultColor: 0x96000000
+HoverColor: 0xFF000000
+DefaultTextColor: 0xFFFFFFFF
+HoverTextColor: 0xFFFFFFFF
+BtnDim: 500, 150
+tFont: GAFI_Rubik
+
+#Menu
+BackgroundColor: 0x32000000;
+DefaultDim: 1000, 1000
+DefaultPadding: 10
+
+#Text
+Text:Game Over
+Font: tFont
+PixelHeight: 100
+DefaultTextColor: DefaultTextColor
+GridCoords: 0, Y++
+
+#Text
+Text:
+Font: tFont
+PixelHeight: 100
+DefaultTextColor: DefaultTextColor
+GridCoords: 0, Y++
+
+#Button
+ID: MCI_Reset
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Text:Play Again
+Font: tFont
+PixelHeight: 100
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#Button
+ID: MCI_Menu
+DefaultColor: DefaultColor
+HoverColor: HoverColor
+DefaultTextColor: DefaultTextColor
+HoverTextColor: HoverTextColor
+Text:Main Menu
+Font: tFont
+PixelHeight: 100
+GridCoords: 0, Y++
+Dim: BtnDim
+
+#end

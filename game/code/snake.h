@@ -96,6 +96,18 @@ struct Coffee
     bool32 NewLocation;
 };
 
+#define str(x) #x
+#define xstr(x) str(x)
+
+#define pairintstring(x) {x, xstr(x)}
+
+inline int Enum(char *a, int b)
+{
+    if (Equal(a, xstr(b)))
+        return b;
+    return -1;
+}
+
 enum game_asset_id
 {
     GAI_Background,
@@ -117,12 +129,10 @@ enum game_asset_id
     GAI_JoinAlt,
     GAI_JoinHover,
     GAI_JoinAltHover,
-    
     GAI_MainMenuBack,
     
     GAI_Count
 };
-
 
 enum game_asset_font_id
 {
@@ -142,9 +152,31 @@ inline Texture *GetTexture(game_assets *Assets, game_asset_id ID)
     Texture *Result = Assets->Textures[ID];
     return Result;
 }
+inline Texture *GetTexture(game_assets *Assets, const char* ID)
+{
+    Texture *Result = 0;
+    if (Equal(ID, "GAI_Miz"))
+        Result = Assets->Textures[GAI_Miz];
+    if (Equal(ID, "GAI_Join"))
+        Result = Assets->Textures[GAI_Join];
+    if (Equal(ID, "GAI_JoinAlt"))
+        Result = Assets->Textures[GAI_JoinAlt];
+    if (Equal(ID, "GAI_JoinHover"))
+        Result = Assets->Textures[GAI_JoinHover];
+    if (Equal(ID, "GAI_JoinAltHover"))
+        Result = Assets->Textures[GAI_JoinAltHover];
+    return Result;
+}
 inline font *GetFont(game_assets *Assets, game_asset_font_id ID)
 {
     font *Result = Assets->Fonts[ID];
+    return Result;
+}
+inline font *GetFont(game_assets *Assets, const char* ID)
+{
+    font *Result = 0;
+    if (Equal(ID, "GAFI_Rubik"))
+        Result = Assets->Fonts[GAFI_Rubik];
     return Result;
 }
 
@@ -183,10 +215,30 @@ struct thread_param
     client *Client;
 };
 
+struct qlib_bool
+{
+    bool Value;
+    bool New;
+};
+inline void Toggle(qlib_bool *Bool)
+{
+    Bool->Value = !Bool->Value;
+    Bool->New = true;
+}
+inline bool GetNew(qlib_bool *Bool)
+{
+    bool Ret = Bool->New;
+    Bool->New = false;
+    return Ret;
+}
+
 struct game_state
 {
     game_mode Game;
     menu_mode Menu;
+    
+    qlib_bool EditMenu;
+    
     menu Menus[(int)menu_mode::menu_mode_Count];
     
     bool32 ShowFPS = false;
