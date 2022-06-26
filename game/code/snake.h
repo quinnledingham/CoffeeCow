@@ -11,8 +11,11 @@ Refactor code
 Add live shader loaing
 Figure out image bitmap texture situation
 
-Win32
+Win32:
 Add DirectSound
+
+menu:
+Fix qallocing problem (only do it once)
 */
 
 #ifndef SNAKE_H

@@ -741,10 +741,6 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
 }
 
 #include "main_menu.cpp" 
-#include "game_over_menu.cpp"
-#include "pause_menu.cpp" 
-#include "multiplayer_menu.cpp"
-#include "local_multiplayer_menu.cpp"
 
 inline void
 CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)

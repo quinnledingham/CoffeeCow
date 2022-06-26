@@ -4,29 +4,17 @@ GetGridCoords(char *Input, int *X, int *Y)
     v2_string Coords = Getv2StringFromChar(Input);
     
     if (Equal(Coords.y.Value, "Y++"))
-    {
         return v2(atoi(Coords.x.Value), (*Y)++);
-    }
     else if (Equal(Coords.y.Value, "Y"))
-    {
         return v2(atoi(Coords.x.Value), (*Y));
-    }
     else if (Equal(Coords.y.Value, "Y+1"))
-    {
         return v2(atoi(Coords.x.Value), (*Y)+1);
-    }
     else if (Equal(Coords.y.Value, "Y+2"))
-    {
         return v2(atoi(Coords.x.Value), (*Y)+2);
-    }
     else if (Equal(Coords.y.Value, "Y+3"))
-    {
         return v2(atoi(Coords.x.Value), (*Y)+3);
-    }
     else
-    {
         return v2(atoi(Coords.x.Value), atoi(Coords.y.Value));
-    }
 }
 
 internal void
@@ -57,7 +45,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_state *GameState, pair_i
         char Line[100];
         memset(Line, 0, 100);
         int j = 0;
-        while (Cursor[i] != 0x0A)
+        while (Cursor[i] != 0x0A && i < (int)EntireFile.ContentsSize)
         {
             Line[j] = Cursor[i];
             j++;
@@ -81,7 +69,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_state *GameState, pair_i
             }
             else if (FillCollection)
             {
-                fprintf(stderr, "%s\n", Line);
+                //fprintf(stderr, "%s\n", Line);
                 
                 int CursorIndex = 0;
                 int TokenIndex = 0;
@@ -307,6 +295,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p,  game_state *GameState, pa
     
     if (!Menu->Initialized)
     {
+        
         MenuInit(Menu);
         ReadMenuFromFile(Menu, FileName, GameState, IDs, NumOfIDs);
         MenuSortActiveComponents(Menu);
