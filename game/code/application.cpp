@@ -406,35 +406,51 @@ MoveInDirection(v2 *Coords, int Direction)
         Coords->y += 1;
 }
 
+
 internal bool32
+CheckCollisonCow(CoffeeCowNode *Head, CoffeeCow *Cow)
+{
+    v2 HeadCoords = v2(Head->Coords);
+    MoveInDirection(&HeadCoords, Head->CurrentDirection);
+    int i = 0;
+    if (Head == Cow->Nodes[0])
+        i = 1;
+    for (i; i < Cow->Nodes.Size; i++) {
+        CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
+        if (HeadCoords.x == Node->Coords.x &&
+            HeadCoords.y == Node->Coords.y)
+            return false;
+    }
+    
+    return true;
+}
+
+internal bool32
+CheckCollisionCoffeeCow(CoffeeCow *Cow, CoffeeCow *OtherCows, v2 GridDim)
+{
+    CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
+    
+    // Check collision with wall
+    v2 Coords = Head->Coords;
+    int Direction = Cow->Direction;
+    if ((Direction == LEFT && Coords.x <= 0) || (Direction == RIGHT && Coords.x >= GridDim.x - 1) ||
+        (Direction == UP && Coords.y <= 0) || (Direction == DOWN && Coords.y >= GridDim.y - 1))
+        return false;
+    
+    for (int i = 0; i < 4; i++) {
+        if (!CheckCollisonCow((CoffeeCowNode*)Cow->Nodes[0], &OtherCows[i]))
+            return false;
+    }
+    
+    return true;
+}
+
+internal void
 MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
 {
     real32 Dm = (Cow->Speed * SecondsElapsed);
     real32 TransitionAmt = Cow->TransitionAmt + Dm;
     CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
-    
-    // Check collision with wall
-    {
-        v2 Coords = Head->Coords;
-        int Direction = Cow->Direction;
-        if ((Direction == LEFT && Coords.x <= 0) ||
-            (Direction == RIGHT && Coords.x >= GridDim.x - 1) ||
-            (Direction == UP && Coords.y <= 0) ||
-            (Direction == DOWN && Coords.y >= GridDim.y - 1))
-            return false;
-    }
-    
-    // Check collision with self
-    {
-        v2 HeadCoords = v2(Head->Coords);
-        MoveInDirection(&HeadCoords, Head->CurrentDirection);
-        for (int i = 1; i < Cow->Nodes.Size; i++) {
-            CoffeeCowNode* Node = (CoffeeCowNode*)Cow->Nodes[i];
-            if (HeadCoords.x == Node->Coords.x &&
-                HeadCoords.y == Node->Coords.y)
-                return false;
-        }
-    }
     
     if (TransitionAmt > 1) {
         for (int i = 0; i < Cow->Nodes.Size; i++)
@@ -467,8 +483,6 @@ MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
     } 
     else
         Cow->TransitionAmt += Dm;
-    
-    return true;
 }
 
 internal void
@@ -797,7 +811,7 @@ void UpdateRender(platform* p)
             strinq FPS = S() + (int)fps;
             
             font_string FontString = {};
-            FontStringInit(&FontString, GetFont(&GameState->Assets, GAFI_Rubik), FPS.Data, 50, 0xFFFFFFFF);
+            FontStringInit(&FontString, GetFont(&GameState->Assets, GAFI_Rubik), FPS.Data, 50, 0xFFFFFF00);
             v2 SDim = FontStringGetDim(&FontString);
             FontStringPrint(&FontString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
         }
@@ -822,7 +836,9 @@ void UpdateRender(platform* p)
             if (GameState->Menu != menu_mode::game_over_menu)
                 CoffeeCowProcessInput(p->Input.CurrentInputInfo.Controller, Cow);
             
-            if (!MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim)) 
+            if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
+                MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);
+            else
                 SetMenu(GameState, menu_mode::game_over_menu);
             
             CollectCoffee(Cow, Cof, GameState->GridDim);
@@ -864,7 +880,9 @@ void UpdateRender(platform* p)
         if (GameState->Menu != menu_mode::pause_menu) {
             CoffeeCowProcessInput(p->Input.CurrentInputInfo.Controller, CowPlayer);
             
-            if (!MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim))
+            if (CheckCollisionCoffeeCow(CowPlayer, CowPlayer, GameState->GridDim))
+                MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim);
+            else
                 SetMenu(GameState, menu_mode::game_over_menu);
             
             CollectCoffee(CowPlayer, Collect, GameState->GridDim);
@@ -898,14 +916,31 @@ void UpdateRender(platform* p)
                 GameState->ResetGame = false;
             }
             
+            bool GameOver = false;
             for (int i = 0; i < 4; i++) {
                 if (GameState->Players[i].Input != 0) {
                     if (GameState->Menu != menu_mode::game_over_menu)
                         CoffeeCowProcessInput(GameState->Players[i].Input, &GameState->Players[i]);
                     
-                    if (!MoveCoffeeCow(&GameState->Players[i], p->Input.WorkSecondsElapsed, GameState->GridDim)) 
-                        SetMenu(GameState, menu_mode::game_over_menu);
+                    
+                    for (int j = 0; j < 4; j++) {
+                        if (GameState->Players[j].Input != 0) {
+                            if (!CheckCollisionCoffeeCow(&GameState->Players[i], &GameState->Players[j], GameState->GridDim))
+                                GameOver = true;
+                        }
+                    }
                 }
+            }
+            
+            if (!GameOver){
+                for (int i = 0; i < 4; i++) {
+                    if (GameState->Players[i].Input != 0) {
+                        MoveCoffeeCow(&GameState->Players[i], p->Input.WorkSecondsElapsed, GameState->GridDim);
+                    }
+                }
+            }
+            else {
+                SetMenu(GameState, menu_mode::game_over_menu);
             }
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
@@ -915,6 +950,7 @@ void UpdateRender(platform* p)
                     DrawCoffeeCow(&GameState->Assets, &GameState->Players[i], Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
                 }
             }
+            
             DrawRock(&GameState->Assets, GridCoords, RealGridDim, -.001f);
             DrawBackground(&GameState->Assets, TopLeftCornerCoords, PlatformDim, -1.0f);
             DrawGrid(&GameState->Assets, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
@@ -923,6 +959,7 @@ void UpdateRender(platform* p)
     }
     
     if (GameState->Menu == menu_mode::main_menu) {
+        
         enum menu_component_id
         {
             MCI_Singleplayer,
@@ -960,15 +997,9 @@ void UpdateRender(platform* p)
             }
             else if (Menu->Events.ButtonClicked == MCI_Quit)
                 p->Input.Quit = 1;
-            
-            if (Menu->ScreenDim != GetDim(p)) {
-                ResizeMenu(Menu, GetDim(p));
-                UpdateMenu(Menu);
-            }
         }
         
-        DrawMenu(Menu, 100.0f);
-        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::multiplayer_menu) {
         enum menu_component_id
@@ -1010,9 +1041,7 @@ void UpdateRender(platform* p)
                 UpdateMenu(Menu);
             }
         }
-        
-        DrawMenu(Menu, 100.0f);
-        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::pause_menu) {
         
@@ -1040,15 +1069,9 @@ void UpdateRender(platform* p)
                 GameState->Game = game_mode::singleplayer;
                 SetMenu(GameState, menu_mode::not_in_menu);
             }
-            
-            if (Menu->ScreenDim != GetDim(p)) {
-                ResizeMenu(Menu, GetDim(p));
-                UpdateMenu(Menu);
-            }
         }
         
-        DrawMenu(Menu, 100.0f);
-        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::game_over_menu) {
         
@@ -1070,16 +1093,11 @@ void UpdateRender(platform* p)
             if (Menu->Events.ButtonClicked == MCI_Menu) {
                 GameState->Game = game_mode::not_in_game;
                 SetMenu(GameState, menu_mode::main_menu);
+                
             }
             else if (Menu->Events.ButtonClicked == MCI_Reset) {
                 GameState->ResetGame = true;
-                GameState->Game = game_mode::singleplayer;
                 SetMenu(GameState, menu_mode::not_in_menu);
-            }
-            
-            if (Menu->ScreenDim != GetDim(p)) {
-                ResizeMenu(Menu, GetDim(p));
-                UpdateMenu(Menu);
             }
         }
         
@@ -1112,31 +1130,30 @@ void UpdateRender(platform* p)
         if (DoMenu(Menu, "local_multiplayer.menu", p, GameState, IDs, MCI_Count)) 
         {
             if (Menu->Events.ButtonClicked == MCI_Start) {
-                for (int i = 0; i < MCI_Count; i++) {
-                    menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i);
+                int PlayersInGame = 0;
+                for (int i = 0; i < 4; i++) {
+                    menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i + 3);
                     menu_component_checkbox *CheckBox = (menu_component_checkbox*)Player->Data;
-                    GameState->Players[i].Input = CheckBox->Controller;
+                    if (CheckBox->Controller != 0)
+                    {
+                        GameState->Players[i].Input = CheckBox->Controller;
+                        PlayersInGame++;
+                    }
                 }
-                
-                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
-                SetMenu(GameState, menu_mode::not_in_menu);
-                GameState->ResetGame = true;
-                GameState->Game = game_mode::local_multiplayer;
-                
-                
+                if (PlayersInGame > 1)
+                {
+                    PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                    SetMenu(GameState, menu_mode::not_in_menu);
+                    GameState->ResetGame = true;
+                    GameState->Game = game_mode::local_multiplayer;
+                }
             }
             else if (Menu->Events.ButtonClicked == MCI_Back) {
                 SetMenu(GameState, menu_mode::main_menu);
             }
-            
-            if (Menu->ScreenDim != GetDim(p)) {
-                ResizeMenu(Menu, GetDim(p));
-                UpdateMenu(Menu);
-            }
         }
         
-        DrawMenu(Menu, 100.0f);
-        DrawBackground(GetTexture(&GameState->Assets, GAI_MainMenuBack), GetTopLeftCornerCoords(p), GetDim(p), 0.0f);
+        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
     }
     BeginMode2D(*C);
     RenderPieceGroup(RenderGroup);

@@ -9,6 +9,7 @@ tFont: GAFI_Rubik
 
 #Menu
 BackgroundColor: 0x00000000;
+BackgroundTexture: GAI_MainMenuBack
 DefaultDim: 1000, 1000
 DefaultPadding: 10
 

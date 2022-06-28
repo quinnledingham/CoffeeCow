@@ -160,14 +160,16 @@ inline Texture *GetTexture(game_assets *Assets, const char* ID)
     Texture *Result = 0;
     if (Equal(ID, "GAI_Miz"))
         Result = Assets->Textures[GAI_Miz];
-    if (Equal(ID, "GAI_Join"))
+    else if (Equal(ID, "GAI_Join"))
         Result = Assets->Textures[GAI_Join];
-    if (Equal(ID, "GAI_JoinAlt"))
+    else if (Equal(ID, "GAI_JoinAlt"))
         Result = Assets->Textures[GAI_JoinAlt];
-    if (Equal(ID, "GAI_JoinHover"))
+    else if (Equal(ID, "GAI_JoinHover"))
         Result = Assets->Textures[GAI_JoinHover];
-    if (Equal(ID, "GAI_JoinAltHover"))
+    else if (Equal(ID, "GAI_JoinAltHover"))
         Result = Assets->Textures[GAI_JoinAltHover];
+    else if (Equal(ID, "GAI_MainMenuBack"))
+        Result = Assets->Textures[GAI_MainMenuBack];
     return Result;
 }
 inline font *GetFont(game_assets *Assets, game_asset_font_id ID)
@@ -273,6 +275,7 @@ struct game_state
             CoffeeCow Player4;
         };
     };
+    
     
     platform_controller_input *ActiveInput;
     

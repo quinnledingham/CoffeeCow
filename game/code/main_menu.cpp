@@ -93,7 +93,6 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_state *GameState, pair_i
                     }
                     CursorIndex++;
                 }
-                
             }
         }
         
@@ -136,6 +135,8 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_state *GameState, pair_i
                 menu_token *Token = &Collection->Tokens[j];
                 if (Equal(Token->ID,  "BackgroundColor"))
                     Menu->BackgroundColor = StringHex2Int(Token->Value);
+                else if (Equal(Token->ID,  "BackgroundTexture"))
+                    Menu->BackgroundTexture = GetTexture(&GameState->Assets, Token->Value);
                 else if (Equal(Token->ID,  "DefaultDim"))
                     Menu->DefaultDim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "DefaultPadding"))
@@ -282,6 +283,15 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_state *GameState, pair_i
             
             MenuAddCheckBox(Menu, ID, GridCoords, Dim, &CheckBox);
         }
+        else if (Equal(Collection->Type, "GridCoords"))
+        {
+            for (int j = 0; j < Collection->NumOfTokens; j++)
+            {
+                menu_token *Token = &Collection->Tokens[j];
+                if (Equal(Token->ID,  "Y")) 
+                    Y = atoi(Token->Value);
+            }
+        }
     }
 }
 
@@ -318,12 +328,17 @@ DoMenu(menu *Menu, const char *FileName, platform *p,  game_state *GameState, pa
         MenuInit(Menu);
         ReadMenuFromFile(Menu, FileName, GameState, IDs, NumOfIDs);
         
+        PaddingResizeMenu(Menu);
         UpdateMenu(Menu);
         return false;
     }
     else
     {
         HandleMenuEvents(Menu, &p->Input);
+        
+        if (Menu->ScreenDim != GetDim(p)) 
+            UpdateMenu(Menu, GetDim(p));
+        
         return true;
     }
 }

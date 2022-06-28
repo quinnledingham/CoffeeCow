@@ -8,7 +8,8 @@ BtnDim: 550, 75
 ButtonFont: GAFI_Rubik
 
 #Menu
-BackgroundColor: 0x00000000
+BackgroundColor: 0xFF0000FF
+BackgroundTexture: GAI_MainMenuBack
 DefaultDim: 1000, 1000
 DefaultPadding: 10
 

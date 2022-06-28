@@ -8,11 +8,12 @@ TextBoxDefaultColor: 0xFFFFFFFF
 TextBoxDefaultTextColor: 0xFF000000
 
 TextBoxDim: 400, 50
-BtnDim: 550, 75
+BtnDim: 250, 75
 tFont: GAFI_Rubik
 
 #Menu
 BackgroundColor: 0x00000000;
+BackgroundTexture: GAI_MainMenuBack
 DefaultDim: 1000, 1000
 DefaultPadding: 10
 
@@ -49,8 +50,19 @@ Font: tFont
 PixelHeight: 50
 DefaultColor: TextBoxDefaultColor
 DefaultTextColor: TextBoxDefaultTextColor
-GridCoords: 1, Y 
+GridCoords: 1, Y
 Dim: TextBoxDim
+
+#GridCoords
+Y: 2
+
+#Text
+Text:
+Font: tFont
+PixelHeight: 50
+DefaultTextColor: DefaultTextColor
+GridCoords: 0, Y++
+Align: MCI_PortText
 
 #Button
 ID: MCI_Join
@@ -61,7 +73,7 @@ HoverTextColor: HoverTextColor
 Text:Join
 Font: tFont
 PixelHeight: 50
-GridCoords: 0, Y + 2
+GridCoords: 0, Y++
 Dim: BtnDim
 
 #Button
@@ -73,7 +85,7 @@ HoverTextColor: HoverTextColor
 Text:Quit
 Font: tFont
 PixelHeight: 50
-GridCoords: 0, Y + 3
+GridCoords: 0, Y++
 Dim: BtnDim
 
 #end
