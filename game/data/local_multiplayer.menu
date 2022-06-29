@@ -10,7 +10,7 @@ ClickedTexture: GAI_JoinAlt
 ActiveClickedTexture: GAI_JoinAltHover
 
 CharDim: 200, 400
-BtnDim: 250, 75
+BtnDim: 300, 75
 tFont: GAFI_Rubik
 
 #Menu
@@ -61,7 +61,7 @@ DefaultColor: DefaultColor
 HoverColor: HoverColor
 DefaultTextColor: DefaultTextColor
 HoverTextColor: HoverTextColor
-Text:Join
+Text:Start Game
 Font: tFont
 PixelHeight: 50
 GridCoords: 0, Y++
@@ -73,7 +73,7 @@ DefaultColor: DefaultColor
 HoverColor: HoverColor
 DefaultTextColor: DefaultTextColor
 HoverTextColor: HoverTextColor
-Text:Quit
+Text:Back
 Font: tFont
 PixelHeight: 50
 GridCoords: 0, Y++

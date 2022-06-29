@@ -73,6 +73,7 @@ struct CoffeeCowNode
 struct CoffeeCow
 {
     Arr Nodes; // CoffeeCowNode
+    Arr Corners;
     
     real32 TransitionAmt = 0;
     real32 Speed;
@@ -98,92 +99,6 @@ struct Coffee
     
     bool32 NewLocation;
 };
-
-#define str(x) #x
-#define xstr(x) str(x)
-
-#define pairintstring(x) {x, xstr(x)}
-
-inline int Enum(char *a, int b)
-{
-    if (Equal(a, xstr(b)))
-        return b;
-    return -1;
-}
-
-enum game_asset_id
-{
-    GAI_Background,
-    GAI_Grass,
-    GAI_Rocks,
-    GAI_Grid,
-    GAI_CoffeeTex,
-    GAI_Head,
-    GAI_Straight,
-    GAI_Corner,
-    GAI_CoffeeStreak,
-    GAI_HeadOutline,
-    GAI_StraightOutline,
-    GAI_CornerOutline,
-    GAI_Tail,
-    GAI_Tongue,
-    GAI_Miz,
-    GAI_Join,
-    GAI_JoinAlt,
-    GAI_JoinHover,
-    GAI_JoinAltHover,
-    GAI_MainMenuBack,
-    
-    GAI_Count
-};
-
-enum game_asset_font_id
-{
-    GAFI_Rubik,
-    
-    GAFI_Count
-};
-struct game_assets
-{
-    Texture *Textures[GAI_Count];
-    Texture *Spots[4];
-    
-    font *Fonts[GAFI_Count];
-};
-inline Texture *GetTexture(game_assets *Assets, game_asset_id ID)
-{
-    Texture *Result = Assets->Textures[ID];
-    return Result;
-}
-inline Texture *GetTexture(game_assets *Assets, const char* ID)
-{
-    Texture *Result = 0;
-    if (Equal(ID, "GAI_Miz"))
-        Result = Assets->Textures[GAI_Miz];
-    else if (Equal(ID, "GAI_Join"))
-        Result = Assets->Textures[GAI_Join];
-    else if (Equal(ID, "GAI_JoinAlt"))
-        Result = Assets->Textures[GAI_JoinAlt];
-    else if (Equal(ID, "GAI_JoinHover"))
-        Result = Assets->Textures[GAI_JoinHover];
-    else if (Equal(ID, "GAI_JoinAltHover"))
-        Result = Assets->Textures[GAI_JoinAltHover];
-    else if (Equal(ID, "GAI_MainMenuBack"))
-        Result = Assets->Textures[GAI_MainMenuBack];
-    return Result;
-}
-inline font *GetFont(game_assets *Assets, game_asset_font_id ID)
-{
-    font *Result = Assets->Fonts[ID];
-    return Result;
-}
-inline font *GetFont(game_assets *Assets, const char* ID)
-{
-    font *Result = 0;
-    if (Equal(ID, "GAFI_Rubik"))
-        Result = Assets->Fonts[GAFI_Rubik];
-    return Result;
-}
 
 enum struct
 menu_mode
@@ -219,23 +134,6 @@ struct thread_param
     CoffeeCow *Cow;
     client *Client;
 };
-
-struct qlib_bool
-{
-    bool Value;
-    bool New;
-};
-inline void Toggle(qlib_bool *Bool)
-{
-    Bool->Value = !Bool->Value;
-    Bool->New = true;
-}
-inline bool GetNew(qlib_bool *Bool)
-{
-    bool Ret = Bool->New;
-    Bool->New = false;
-    return Ret;
-}
 
 struct game_state
 {
@@ -282,6 +180,10 @@ struct game_state
     Coffee Collect;
     
     v2 OldPlatformDim;
+    
+    real32 tSine;
+    uint32 TestSampleIndex;
+    loaded_sound TestSound;
     
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
