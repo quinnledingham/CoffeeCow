@@ -593,7 +593,7 @@ inline void InitializeCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
     MoveCoffee(Cow, Cof, GridDim);
 }
 
-internal void
+internal bool32
 CollectCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
 {
     CoffeeCowNode* Head = (CoffeeCowNode*)Cow->Nodes[0];
@@ -613,7 +613,10 @@ CollectCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
         
         AddCoffeeCowNode(Cow, NewX, NewY, LastNode->CurrentDirection, LastNode->CurrentDirection);
         MoveCoffee(Cow, Cof, GridDim);
+        
+        return true;
     }
+    return false;
 }
 
 internal void
@@ -657,6 +660,13 @@ LoadAssets(platform_work_queue *Queue, game_assets *Assets)
     
     for (int i = 0; i < GAFI_Count; i++)
         Win32AddEntry(Queue, LoadFontAsset, &Fonts[i]);
+    
+    game_asset *Sounds = Assets->Sounds;
+    GameAssetLoadTag(Sounds, "bloop_01.wav", GASI_Bloop);
+    GameAssetLoadTag(Sounds, "2_Violence.wav", GASI_Violence);
+    
+    for (int i = 0; i < GASI_Count; i++)
+        Win32AddEntry(Queue, LoadSoundAsset, &Sounds[i]);
     
     Win32CompleteAllWork(Queue);
 }
@@ -746,7 +756,7 @@ void UpdateRender(platform* p)
         Manager.Next = (char*)p->Memory.PermanentStorage;
         qalloc(sizeof(game_state));
         
-        GameState->TestSound = DEBUGLoadWAV("2_Violence.wav");
+        InitializeAudioState(&GameState->AudioState);
         
         *C = {};
         C->Position = v3(0, 0, -900);
@@ -760,6 +770,8 @@ void UpdateRender(platform* p)
         GameState->GridDim = v2(17, 17);
         
         LoadAssets(&p->Queue, &GameState->Assets);
+        
+        PlaySound(&GameState->AudioState, GetSound(&GameState->Assets, GASI_Violence));
     }
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
@@ -807,7 +819,8 @@ void UpdateRender(platform* p)
             else
                 SetMenu(GameState, menu_mode::game_over_menu);
             
-            CollectCoffee(Cow, Cof, GameState->GridDim);
+            if (CollectCoffee(Cow, Cof, GameState->GridDim))
+                PlaySound(&GameState->AudioState, GetSound(&GameState->Assets, GASI_Bloop));
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2;

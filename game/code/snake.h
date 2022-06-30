@@ -13,6 +13,7 @@ Figure out image bitmap texture situation
 
 Win32:
 Add DirectSound
+Fix NewEndedDown. Only sets NewEndedDown to false if the OnKeyDown is used in the loop for that key.
 
 menu:
 Fix qallocing problem (only do it once)
@@ -184,6 +185,7 @@ struct game_state
     real32 tSine;
     uint32 TestSampleIndex;
     loaded_sound TestSound;
+    audio_state AudioState;
     
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
