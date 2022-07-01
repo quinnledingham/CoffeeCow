@@ -1,34 +1,16 @@
 #define QLIB_WINDOW_APPLICATION
 #include "qlib/application.h"
 
-internal void
-OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuffer, int ToneHz)
-{
-    int16 ToneVolume = 3000;
-    int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;    
-    
-    int16 *SampleOut = SoundBuffer->Samples;
-    for(int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
-    {
-        // TODO(casey): Draw this out for people
-#if 1
-        real32 SineValue = sinf(GameState->tSine);
-        int16 SampleValue = (int16)(SineValue * ToneVolume);
-#else
-        int16 SampleValue = 0;
-#endif
-        *SampleOut++ = SampleValue;
-        *SampleOut++ = SampleValue;
-        
-#if 1
-        GameState->tSine += Tau32*1.0f/(real32)WavePeriod;
-        if(GameState->tSine > Tau32)
-        {
-            GameState->tSine -= Tau32;
-        }
-#endif
-    }
-}
+#include "qlib/random.h"
+#include "qlib/socketq.h"
+#include "qlib/text.h"
+
+#include "qlib/asset.h"
+
+#include "qlib/menu.h"
+#include "coffee_cow.h"
+
+#include "snake.h"
 
 inline void
 DrawRock(game_assets *Assets, v2 GridCoords, v2 RealGridDim, real32 Z)
@@ -663,7 +645,7 @@ LoadAssets(platform_work_queue *Queue, game_assets *Assets)
     
     game_asset *Sounds = Assets->Sounds;
     GameAssetLoadTag(Sounds, "bloop_01.wav", GASI_Bloop);
-    GameAssetLoadTag(Sounds, "2_Violence.wav", GASI_Violence);
+    GameAssetLoadTag(Sounds, "bornintheusa.wav", GASI_Violence);
     
     for (int i = 0; i < GASI_Count; i++)
         Win32AddEntry(Queue, LoadSoundAsset, &Sounds[i]);
