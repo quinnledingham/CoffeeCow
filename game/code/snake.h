@@ -1,22 +1,18 @@
 /*
 Todo:
-Coffee:
-Make Coffee not theoretically run forever
-
 Assets:
 Think about how I am going to load them
 
 Renderer:
 Refactor code
-Add live shader loaing
+Add live shader loading
 Figure out image bitmap texture situation
 
 Win32:
-Add DirectSound
 Fix NewEndedDown. Only sets NewEndedDown to false if the OnKeyDown is used in the loop for that key.
 
-menu:
-Fix qallocing problem (only do it once)
+Snake:
+Rename files to coffee cow - get server and client to work good together
 */
 
 #ifndef SNAKE_H

@@ -3,7 +3,6 @@
 
 #include "qlib/random.h"
 #include "qlib/socketq.h"
-#include "qlib/text.h"
 
 #include "qlib/asset.h"
 
@@ -55,12 +54,16 @@ DrawGrid(game_assets *Assets, v2 GridCoords, v2 GridDim, real32 GridSize, real32
 }
 
 inline void
-DrawScore(game_assets *Assets, int Score, v2 TopLeftCornerCoords)
+DrawScore(game_assets *Assets, int Score, v2 TopLeftCornerCoords, v2 BufferDim)
 {
     strinq ScoreStrinq = S() + "Score: " + Score;
     
     font_string FontString = {};
     FontStringInit(&FontString, GetFont(Assets, GAFI_Rubik), ScoreStrinq.Data, 50, 0xFFFFFFFF);
+    
+    v2 ResizeFactors = GetResizeFactor(v2(1000, 1000), BufferDim);
+    FontStringResize(&FontString, ResizeEquivalentAmount(50, ResizeFactors.y));
+    
     FontStringPrint(&FontString, TopLeftCornerCoords + 10);
     
     v2 ScoreSize = FontStringGetDim(&FontString);
@@ -557,8 +560,23 @@ internal void
 MoveCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
 {
     bool32 ValidLocation = false;
+    int Attempts = 0;
+    
+    int X = 0;
+    int Y = 0;
+    
     while (!ValidLocation) {
-        Cof->Coords = v2(Random(0, (int)GridDim.x - 1), Random(0, (int)GridDim.y - 1));
+        Attempts++;
+        
+        if (Attempts < 10) {
+            Cof->Coords = v2(Random(0, (int)GridDim.x - 1), Random(0, (int)GridDim.y - 1));
+        }
+        else if (Attempts >= 10) {
+            Cof->Coords = v2(X++, Y++); 
+            // After 10 random attempts just find
+            // first open spot on grid
+        }
+        
         ValidLocation = true;
         Cof->IncreasingHeight = true;
         Cof->Height = 0;
@@ -627,7 +645,7 @@ LoadAssets(platform_work_queue *Queue, game_assets *Assets)
     GameAssetLoadTag(Textures, "joinhover.png", GAI_JoinHover);
     
     for (int i = 0; i < GAI_Count; i++)
-        Win32AddEntry(Queue, LoadTextureAsset, &Textures[i]);
+        WorkQueueAddEntry(Queue, LoadTextureAsset, &Textures[i]);
     
     game_asset *Spots = Assets->Spots;
     GameAssetLoadTag(Spots, "spot1.png", 0);
@@ -635,22 +653,22 @@ LoadAssets(platform_work_queue *Queue, game_assets *Assets)
     GameAssetLoadTag(Spots, "spot3.png", 2);
     
     for (int i = 0; i < 3; i++)
-        Win32AddEntry(Queue, LoadTextureAsset, &Spots[i]);
+        WorkQueueAddEntry(Queue, LoadTextureAsset, &Spots[i]);
     
     game_asset *Fonts = Assets->Fonts;
     GameAssetLoadTag(Fonts, "Rubik-Medium.ttf", GAFI_Rubik);
     
     for (int i = 0; i < GAFI_Count; i++)
-        Win32AddEntry(Queue, LoadFontAsset, &Fonts[i]);
+        WorkQueueAddEntry(Queue, LoadFontAsset, &Fonts[i]);
     
     game_asset *Sounds = Assets->Sounds;
     GameAssetLoadTag(Sounds, "bloop_01.wav", GASI_Bloop);
     GameAssetLoadTag(Sounds, "bornintheusa.wav", GASI_Violence);
     
     for (int i = 0; i < GASI_Count; i++)
-        Win32AddEntry(Queue, LoadSoundAsset, &Sounds[i]);
+        WorkQueueAddEntry(Queue, LoadSoundAsset, &Sounds[i]);
     
-    Win32CompleteAllWork(Queue);
+    WorkQueueCompleteAllWork(Queue);
 }
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
@@ -704,15 +722,15 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
     game_state *GameState = (game_state*)lpParam;
     
     while(1) {
-        Win32AddEntry(GameState->Queue, RecvData, GameState);
-        Win32AddEntry(GameState->Queue, SendData, GameState);
+        WorkQueueAddEntry(GameState->Queue, RecvData, GameState);
+        WorkQueueAddEntry(GameState->Queue, SendData, GameState);
         Sleep(1);
-        Win32CompleteAllWork(GameState->Queue);
+        WorkQueueCompleteAllWork(GameState->Queue);
         
         if (GameState->Disconnect == 1) {
-            Win32AddEntry(GameState->Queue, SendData, GameState);
+            WorkQueueAddEntry(GameState->Queue, SendData, GameState);
             Sleep(1);
-            Win32CompleteAllWork(GameState->Queue);
+            WorkQueueCompleteAllWork(GameState->Queue);
             GameState->Disconnect = 0;
             break;
         }
@@ -745,7 +763,6 @@ void UpdateRender(platform* p)
         C->Target = v3(0, 0, 0);
         C->Up = v3(0, 1, 0);
         C->FOV = 90.0f;
-        C->F = 0.01f;
         
         GameState->Menu = menu_mode::main_menu;
         GameState->Game = game_mode::not_in_game;
@@ -764,18 +781,8 @@ void UpdateRender(platform* p)
     if (OnKeyDown(&Keyboard->F5))
         GameState->ShowFPS = !GameState->ShowFPS;
     
-    if (GameState->ShowFPS) {
-        real32 fps = 0;
-        if (p->Input.WorkSecondsElapsed != 0) {
-            fps= 1 / p->Input.WorkSecondsElapsed;
-            strinq FPS = S() + (int)fps;
-            
-            font_string FontString = {};
-            FontStringInit(&FontString, GetFont(&GameState->Assets, GAFI_Rubik), FPS.Data, 50, 0xFFFFFF00);
-            v2 SDim = FontStringGetDim(&FontString);
-            FontStringPrint(&FontString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
-        }
-    }
+    if (GameState->ShowFPS)
+        DrawFPS(p->Input.WorkSecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GAFI_Rubik));
     
     C->Dimension = p->Dimension;
     
@@ -813,7 +820,7 @@ void UpdateRender(platform* p)
             
             DrawCoffeeCow(&GameState->Assets, Cow, Cof->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffee(&GameState->Assets, Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
-            DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords);
+            DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords, GetDim(p));
         }
     }
     else if (GameState->Game == game_mode::multiplayer) {
