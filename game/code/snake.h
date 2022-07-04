@@ -84,6 +84,16 @@ struct CoffeeCow
     Arr Inputs; // int
     
     platform_controller_input *Input;
+    
+    texture Head;
+    texture Straight;
+    texture Corner;
+    texture HeadOutline;
+    texture StraightOutline;
+    texture CornerOutline;
+    texture Tongue;
+    texture TailTex;
+    texture Spots[3];
 };
 
 struct Coffee
@@ -95,6 +105,8 @@ struct Coffee
     real32 Height;
     
     bool32 NewLocation;
+    
+    texture Texture;
 };
 
 enum struct
@@ -151,7 +163,7 @@ struct game_state
     
     real32 GridSize;
     v2 GridDim;
-    Camera C;
+    camera Camera;
     
     char Buffer[BUF_SIZE];
     client Client;
@@ -185,6 +197,11 @@ struct game_state
     
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
+    
+    texture Background;
+    texture Grass;
+    texture Rocks;
+    texture Grid;
 };
 inline menu* GetMenu(game_state *GameState, menu_mode MenuMode)
 {
