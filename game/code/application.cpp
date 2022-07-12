@@ -1,25 +1,154 @@
+#define WindowName "Coffee Cow"
+#define ClientHeight (ScreenHeight - 200)
+#define ClientWidth ClientHeight
+
+#define Permanent_Storage_Size Megabytes(126)
+#define Transient_Storage_Size Megabytes(1)
+
+#define IconFileName "bitmaps/icon.ico"
+#define CurrentDirectory "../game/data"
+
+enum asset_font_type
+{
+    FontType_Default = 0,
+};
+
+enum asset_tag_id
+{
+    Tag_Player1,
+    Tag_Player2,
+    Tag_Player3,
+    Tag_Player4,
+    
+    Tag_UnicodeCodepoint,
+    Tag_FontType,
+    
+    Tag_Count
+};
+
+enum asset_type_id
+{
+    Asset_None,
+    
+    //
+    // Bitmaps
+    //
+    // Cow related
+    Asset_CowHead,
+    Asset_CowHeadOutline,
+    Asset_CowStraight,
+    Asset_CowStraightOutline,
+    Asset_CowCorner,
+    Asset_CowCornerOutline,
+    Asset_CowTail,
+    Asset_CowTongue,
+    Asset_CowSpot,
+    
+    // Menu/World related
+    Asset_Rock,
+    Asset_Background,
+    Asset_Grass,
+    Asset_Grid,
+    Asset_Coffee,
+    
+    //
+    // Fonts
+    //
+    Asset_Font,
+    Asset_FontGlyph,
+    
+    //
+    // Sounds
+    //
+    Asset_Bloop,
+    Asset_Song,
+    
+    Asset_Count
+};
+
+enum game_asset_id
+{
+    GAI_Background,
+    GAI_Grass,
+    GAI_Rocks,
+    GAI_Grid,
+    GAI_CoffeeTex,
+    GAI_MainMenuBack,
+    GAI_Miz,
+    
+    GAI_Join,
+    GAI_JoinAlt,
+    GAI_JoinHover,
+    GAI_JoinAltHover,
+    
+    GAI_Head,
+    GAI_Straight,
+    GAI_Corner,
+    GAI_HeadOutline,
+    GAI_StraightOutline,
+    GAI_CornerOutline,
+    GAI_Tail,
+    GAI_Tongue,
+    GAI_Spot1,
+    GAI_Spot2,
+    GAI_Spot3,
+    
+    BITMAP_COUNT
+};
+enum game_asset_font_id
+{
+    GAFI_Rubik,
+    
+    FONT_COUNT
+};
+enum game_asset_sound_id
+{
+    GASI_Bloop,
+    GASI_Violence,
+    
+    SOUND_COUNT
+};
+#define SOUND_COUNT SOUND_COUNT
+#define BITMAP_COUNT BITMAP_COUNT
+#define FONT_COUNT FONT_COUNT
+
 #define QLIB_WINDOW_APPLICATION
 #include "qlib/application.h"
 
-#include "qlib/random.h"
-#include "qlib/socketq.h"
-
-#include "qlib/menu.h"
 #include "coffee_cow.h"
-
 #include "snake.h"
 
-inline void
-DrawRock(texture *Texture, v2 GridCoords, v2 RealGridDim, real32 Z)
+internal void
+InitCow1Textures(assets *Assets, CoffeeCow *Cow)
 {
-    v2 RockCoords = GridCoords - (RealGridDim/6);
-    v2 RockDim = v2(RealGridDim.x * 4/3 - 1, RealGridDim.y * 4/3 - 1);
-    Push(v3(RockCoords, Z), RockDim, Texture, 0, blend_mode::gl_src_alpha);
+    TextureInit(&Cow->Head, Assets, GAI_Head);
+    TextureInit(&Cow->Straight, Assets, GAI_Straight);
+    TextureInit(&Cow->Corner, Assets, GAI_Corner);
+    TextureInit(&Cow->HeadOutline, Assets, GAI_HeadOutline);
+    TextureInit(&Cow->StraightOutline, Assets, GAI_StraightOutline);
+    TextureInit(&Cow->CornerOutline, Assets, GAI_CornerOutline);
+    TextureInit(&Cow->Tongue, Assets, GAI_Tongue);
+    TextureInit(&Cow->TailTex, Assets, GAI_Tail);
+    
+    TextureInit(&Cow->Spots[0], Assets, GAI_Spot1);
+    TextureInit(&Cow->Spots[1], Assets, GAI_Spot2);
+    TextureInit(&Cow->Spots[2], Assets, GAI_Spot3);
 }
 
-inline void
-DrawBackground(texture *Texture, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
+internal void
+DrawEnvironment(bitmap_id BackgroundID,
+                bitmap_id InnerBackgroundID,
+                bitmap_id GridID,
+                bitmap_id BorderID,
+                v2 TopLeftCornerCoords,
+                v2 PlatformDim,
+                v2 GridCoords,
+                v2 GridDim,
+                v2 RealGridDim,
+                real32 GridSize,
+                real32 Z)
 {
+    // Draw Background
     v2 BackgroundCoords = TopLeftCornerCoords - 5;
     v2 BackgroundDim = 0;
     if (PlatformDim.x >= PlatformDim.y)
@@ -29,22 +158,27 @@ DrawBackground(texture *Texture, v2 TopLeftCornerCoords, v2 PlatformDim, real32 
     
     BackgroundCoords.y -= ((BackgroundDim.y - (PlatformDim.y + 5)) / 2);
     
-    Push(v3(BackgroundCoords, Z), BackgroundDim, Texture, 0, blend_mode::gl_src_alpha);
-}
-
-inline void
-DrawGrid(texture *Texture, v2 GridCoords, v2 GridDim, real32 GridSize, real32 Z)
-{
+    Push(v3(BackgroundCoords, Z), BackgroundDim, BackgroundID, 0, blend_mode::gl_src_alpha);
+    
+    // Draw InnerBackground
+    Push(v3(GridCoords, Z + 0.01f), RealGridDim, InnerBackgroundID, 0, blend_mode::gl_src_alpha);
+    
+    // Draw Grid
     for (int i = 0; i < (int)GridDim.x; i++) {
         for (int j = 0; j < (int)GridDim.y; j++) {
-            v3 Coords = v3((GridCoords.x + (i * GridSize)), (GridCoords.y + (j * GridSize)), Z);
-            Push(Coords, v2(GridSize), Texture, 0, blend_mode::gl_src_alpha);
+            v3 Coords = v3((GridCoords.x + (i * GridSize)), (GridCoords.y + (j * GridSize)), Z + 0.02f);
+            Push(Coords, v2(GridSize), GridID, 0, blend_mode::gl_src_alpha);
         }
     }
+    
+    // Draw Border
+    v2 RockCoords = GridCoords - (RealGridDim/6) + 1;
+    v2 RockDim = v2(RealGridDim.x * 4/3 - 2, RealGridDim.y * 4/3 - 2);
+    Push(v3(RockCoords, Z + 0.03f), RockDim, BorderID, 0, blend_mode::gl_src_alpha);
 }
 
 inline void
-DrawScore(game_assets *Assets, int Score, v2 TopLeftCornerCoords, v2 BufferDim)
+DrawScore(assets *Assets, int Score, v2 TopLeftCornerCoords, v2 BufferDim)
 {
     strinq ScoreStrinq = S() + "Score: " + Score;
     
@@ -131,10 +265,22 @@ GetAngleDiff(int StartDirection, int EndDirection)
 }
 
 internal void
-DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, real32 GridY, real32 GridSize)
+DrawCoffeeCow(CoffeeCow *Cow, 
+              v2 CoffeeCoords,
+              debug_assets *Assets,
+              asset_tag_id Tag,
+              real32 Seconds, 
+              real32 GridX,
+              real32 GridY,
+              real32 GridSize)
 {
     // Put the head, tail, and corners into a list
     Arr *Corners = &Cow->Corners;
+    
+    asset_vector MatchVector = {};
+    asset_vector WeightVector = {};
+    MatchVector.E[Tag] = 1.0f;
+    WeightVector.E[Tag] = 1.0f;
     
     for (int i = 0; i < Cow->Nodes.Size; i++)
     {
@@ -167,7 +313,12 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
             Temp.x -= (HeadResize/2);
             Temp.y -= (HeadResize/2);
             Temp.z = 2.0f;
-            Push(Temp, v2(GridSize + HeadResize), &Cow->Head, GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+            
+            
+            Push(Temp, v2(GridSize + HeadResize),
+                 GetBestMatchBitmap(Assets, Asset_CowHead, &MatchVector, &WeightVector),
+                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+            
             Corners->Push(&Coords);
             
             CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[i];
@@ -202,15 +353,21 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
             else if (Node->CurrentDirection == DOWN) MouthCoords.y += Cow->MouthOpening;
             
             MouthCoords.z = 0.0f;
-            Push(MouthCoords, v2(GridSize + HeadResize), &Cow->Tongue, GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+            Push(MouthCoords, v2(GridSize + HeadResize), 
+                 GetBestMatchBitmap(Assets, Asset_CowTongue, &MatchVector, &WeightVector),
+                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
             
             Temp.z = OutlineZ;
             Coords.z = OutlineZ;
-            Push(Temp, v2(GridSize + HeadResize), &Cow->HeadOutline, GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+            Push(Temp, v2(GridSize + HeadResize), 
+                 GetBestMatchBitmap(Assets, Asset_CowHeadOutline, &MatchVector, &WeightVector),
+                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
         }
         if (i == Cow->Nodes.Size - 1) {
             Coords.z = 0.5f;
-            Push(Coords, v2(GridSize, GridSize), &Cow->Corner, 0.0f, blend_mode::gl_one);
+            Push(Coords, v2(GridSize, GridSize), 
+                 GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector),
+                 0.0f, blend_mode::gl_one);
             Corners->Push(&Coords);
             
             v3 TailCoords = v3();
@@ -245,10 +402,14 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
                 Rotation = GetRotation(Node->CurrentDirection);
             }
             TailCoords.z = 0.0f;
-            Push(TailCoords, v2(GridSize, GridSize), &Cow->TailTex, Rotation, blend_mode::gl_one);
+            Push(TailCoords, v2(GridSize, GridSize), 
+                 GetBestMatchBitmap(Assets, Asset_CowTail, &MatchVector, &WeightVector),
+                 Rotation, blend_mode::gl_one);
             
             Coords.z = OutlineZ;
-            Push(Coords, v2(GridSize, GridSize), &Cow->CornerOutline, 0.0f, blend_mode::gl_one);
+            Push(Coords, v2(GridSize, GridSize),
+                 GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector), 
+                 0.0f, blend_mode::gl_one);
         }
         else if (i != Cow->Nodes.Size - 1) {
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
@@ -256,11 +417,15 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
                 v3 Temp = v3(roundf(GridX + ((Node->Coords.x) * GridSize)),
                              roundf(GridY + ((Node->Coords.y) * GridSize)),
                              0.5f);
-                Push(Temp, v2(GridSize, GridSize), &Cow->Corner, 0.0f, blend_mode::gl_one);
+                Push(Temp, v2(GridSize, GridSize), 
+                     GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector),
+                     0.0f, blend_mode::gl_one);
                 Corners->Push(&Temp);
                 
                 Temp.z = OutlineZ;
-                Push(Temp, v2(GridSize, GridSize), &Cow->CornerOutline, 0.0f, blend_mode::gl_one);
+                Push(Temp, v2(GridSize, GridSize),
+                     GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector), 
+                     0.0f, blend_mode::gl_one);
             }
         }
         
@@ -324,7 +489,13 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
             Coords.y += Outline;
             Coords.z = 3.0f;
             
-            Push(Coords, v2(GridSize - (Outline*2), GridSize - (Outline*2)), &Cow->Spots[Node->Streak-1], Rotation, blend_mode::gl_one);
+            //Push(Coords, v2(GridSize - (Outline*2), GridSize - (Outline*2)), 
+            //&Cow->Spots[Node->Streak-1],
+            //Rotation, blend_mode::gl_one);
+            
+            Push(Coords, v2(GridSize - (Outline*2), GridSize - (Outline*2)),
+                 GetIndexBitmap(Assets, Asset_CowSpot, Node->Streak-1), 
+                 Rotation, blend_mode::gl_one);
         }
     }
     
@@ -358,11 +529,18 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords, real32 Seconds, real32 GridX, rea
             if (Left->x == Right->x) Coords.x -= Outline;
             Coords.z = 0.0f;
             
-            Push(Coords, GetSize(*Left, *Right, (real32)GridSize), &Cow->StraightOutline, 0.0f, blend_mode::gl_one);
+            Push(Coords, GetSize(*Left, *Right, (real32)GridSize), 
+                 GetBestMatchBitmap(Assets, Asset_CowStraightOutline, &MatchVector, &WeightVector), 
+                 0.0f, blend_mode::gl_one);
         }
     }
     
     Corners->Clear();
+}
+inline void
+DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords,  real32 Seconds, real32 GridX, real32 GridY, real32 GridSize)
+{
+    DrawCoffeeCow(Cow, CoffeeCoords, 0, Tag_Player1, Seconds, GridX, GridY, GridSize);
 }
 
 internal void
@@ -440,10 +618,10 @@ CheckCollisionCoffeeCow(CoffeeCow *Cow, CoffeeCow *OtherCows, v2 GridDim)
         (Direction == UP && Coords.y <= 0) || (Direction == DOWN && Coords.y >= GridDim.y - 1))
         return false;
     
-    for (int i = 0; i < 4; i++) {
-        if (!CheckCollisonCow((CoffeeCowNode*)Cow->Nodes[0], &OtherCows[i]))
-            return false;
-    }
+    //for (int i = 0; i < OtherCows->Nodes.Size; i++) {
+    if (!CheckCollisonCow((CoffeeCowNode*)Cow->Nodes[0], OtherCows))
+        return false;
+    //}
     
     return true;
 }
@@ -612,50 +790,69 @@ CollectCoffee(CoffeeCow *Cow, Coffee *Cof, v2 GridDim)
 }
 
 internal void
-LoadAssets(platform_work_queue *Queue, game_assets *Assets)
+MakeAssetFile(platform_work_queue *Queue, debug_assets *Assets)
 {
-    game_asset *Bitmaps = Assets->Bitmaps;
-    GameAssetLoadTag(Bitmaps, "bitmaps/sand.png", GAI_Background);
-    GameAssetLoadTag(Bitmaps, "bitmaps/grass.png", GAI_Grass);
-    GameAssetLoadTag(Bitmaps, "bitmaps/grid.png", GAI_Grid);
-    GameAssetLoadTag(Bitmaps, "bitmaps/rocks.png", GAI_Rocks);
-    GameAssetLoadTag(Bitmaps, "bitmaps/coffee.png", GAI_CoffeeTex);
-    GameAssetLoadTag(Bitmaps, "bitmaps/logo.png", GAI_Miz);
-    GameAssetLoadTag(Bitmaps, "bitmaps/mainmenuback.png", GAI_MainMenuBack);
-    GameAssetLoadTag(Bitmaps, "bitmaps/join.png", GAI_Join);
-    GameAssetLoadTag(Bitmaps, "bitmaps/joinalt.png", GAI_JoinAlt);
-    GameAssetLoadTag(Bitmaps, "bitmaps/joinalthover.png", GAI_JoinAltHover);
-    GameAssetLoadTag(Bitmaps, "bitmaps/joinhover.png", GAI_JoinHover);
+    debug_builder_assets BuilderAssets = {};
     
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/cowhead.png", GAI_Head);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/straight.png", GAI_Straight);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/circle.png", GAI_Corner);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/cowheadoutline.png", GAI_HeadOutline);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/straightoutline.png", GAI_StraightOutline);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/circleoutline.png", GAI_CornerOutline);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/tail.png", GAI_Tail);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/tongue.png", GAI_Tongue);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/spot1.png", GAI_Spot1);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/spot2.png", GAI_Spot2);
-    GameAssetLoadTag(Bitmaps, "bitmaps/cow/spot3.png", GAI_Spot3);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/sand.png", Asset_Background);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/grass.png", Asset_Grass);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/grid.png", Asset_Grid);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/coffee.png", Asset_Coffee);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/rocks.png", Asset_Rock);
     
-    for (int i = 0; i < GAI_Count; i++) {
-        //Bitmaps[i].Data = LoadResizableBitmap(Bitmaps[i].FileName);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/cowhead.png", Asset_CowHead, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/cowheadoutline.png", Asset_CowHeadOutline, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/straight.png", Asset_CowStraight, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/straightoutline.png", Asset_CowStraightOutline, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/circle.png", Asset_CowCorner, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/circleoutline.png", Asset_CowCornerOutline, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/tail.png", Asset_CowTail, Tag_Player1);
+    BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/tongue.png", Asset_CowTongue, Tag_Player1);
+    
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/cow1/spot1.png", Asset_CowSpot);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/cow1/spot2.png", Asset_CowSpot);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/cow1/spot3.png", Asset_CowSpot);
+    
+    BuilderAddSound(&BuilderAssets, "sounds/bloop_01.wav", Asset_Bloop);
+    BuilderAddSound(&BuilderAssets, "sounds/bornintheusa.wav", Asset_Song);
+    
+    BuilderMakeFile(&BuilderAssets);
+}
+
+internal void
+LoadAssetFile(platform_work_queue *Queue, debug_assets *Assets)
+{
+    BuilderLoadFile(Assets);
+}
+
+internal void
+LoadAssets(platform_work_queue *Queue, assets *Assets)
+{
+    asset *Bitmaps = Assets->Bitmaps;
+    
+    AssetInitTag(Bitmaps, "bitmaps/coffee.png", GAI_CoffeeTex);
+    AssetInitTag(Bitmaps, "bitmaps/logo.png", GAI_Miz);
+    AssetInitTag(Bitmaps, "bitmaps/mainmenuback.png", GAI_MainMenuBack);
+    AssetInitTag(Bitmaps, "bitmaps/join.png", GAI_Join);
+    AssetInitTag(Bitmaps, "bitmaps/joinalt.png", GAI_JoinAlt);
+    AssetInitTag(Bitmaps, "bitmaps/joinalthover.png", GAI_JoinAltHover);
+    AssetInitTag(Bitmaps, "bitmaps/joinhover.png", GAI_JoinHover);
+    
+    for (int i = 0; i < BITMAP_COUNT; i++)
         WorkQueueAddEntry(Queue, LoadBitmapAsset, &Bitmaps[i]);
-    }
     
-    game_asset *Fonts = Assets->Fonts;
-    GameAssetLoadTag(Fonts, "fonts/Rubik-Medium.ttf", GAFI_Rubik);
+    asset *Fonts = Assets->Fonts;
+    AssetInitTag(Fonts, "fonts/Rubik-Medium.ttf", GAFI_Rubik);
     
-    for (int i = 0; i < GAFI_Count; i++)
+    for (int i = 0; i < FONT_COUNT; i++)
         WorkQueueAddEntry(Queue, LoadFontAsset, &Fonts[i]);
     
-    game_asset *Sounds = Assets->Sounds;
-    GameAssetLoadTag(Sounds, "sounds/bloop_01.wav", GASI_Bloop);
-    GameAssetLoadTag(Sounds, "sounds/bornintheusa.wav", GASI_Violence);
+    //asset *Sounds = Assets->Sounds;
+    //AssetInitTag(Sounds, "sounds/bloop_01.wav", GASI_Bloop);
+    //AssetInitTag(Sounds, "sounds/bornintheusa.wav", GASI_Violence);
     
-    for (int i = 0; i < GASI_Count; i++)
-        WorkQueueAddEntry(Queue, LoadSoundAsset, &Sounds[i]);
+    //for (int i = 0; i < SOUND_COUNT; i++)
+    //WorkQueueAddEntry(Queue, LoadSoundAsset, &Sounds[i]);
     
     WorkQueueCompleteAllWork(Queue);
 }
@@ -758,29 +955,16 @@ void UpdateRender(platform* p)
         GameState->GridDim = v2(17, 17);
         
         LoadAssets(&p->Queue, &GameState->Assets);
+        //MakeAssetFile(&p->Queue, &GameState->DebugAssets);
+        LoadAssetFile(&p->Queue, &GameState->DebugAssets);
         
-        PlaySound(&p->AudioState, GetSound(&GameState->Assets, GASI_Violence));
-        
-        TextureInit(&GameState->Background, &GameState->Assets, GAI_Background);
-        TextureInit(&GameState->Grass, &GameState->Assets, GAI_Grass);
-        TextureInit(&GameState->Rocks, &GameState->Assets, GAI_Rocks);
-        TextureInit(&GameState->Grid, &GameState->Assets, GAI_Grid);
+        PlaySound(&p->AudioState, GetSound(&GameState->DebugAssets, Asset_Song));
+        SetTrue(&p->AudioState.Paused);
         
         TextureInit(&GameState->Collect.Texture, &GameState->Assets, GAI_CoffeeTex);
         
-        CoffeeCow *Cow = &GameState->Player1;
-        TextureInit(&Cow->Head, &GameState->Assets, GAI_Head);
-        TextureInit(&Cow->Straight, &GameState->Assets, GAI_Straight);
-        TextureInit(&Cow->Corner, &GameState->Assets, GAI_Corner);
-        TextureInit(&Cow->HeadOutline, &GameState->Assets, GAI_HeadOutline);
-        TextureInit(&Cow->StraightOutline, &GameState->Assets, GAI_StraightOutline);
-        TextureInit(&Cow->CornerOutline, &GameState->Assets, GAI_CornerOutline);
-        TextureInit(&Cow->Tongue, &GameState->Assets, GAI_Tongue);
-        TextureInit(&Cow->TailTex, &GameState->Assets, GAI_Tail);
-        
-        TextureInit(&Cow->Spots[0], &GameState->Assets, GAI_Spot1);
-        TextureInit(&Cow->Spots[1], &GameState->Assets, GAI_Spot2);
-        TextureInit(&Cow->Spots[2], &GameState->Assets, GAI_Spot3);
+        InitCow1Textures(&GameState->Assets, &GameState->Player1);
+        InitCow1Textures(&GameState->Assets, &GameState->Player2);
     }
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
@@ -819,17 +1003,24 @@ void UpdateRender(platform* p)
                 SetMenu(GameState, menu_mode::game_over_menu);
             
             if (CollectCoffee(Cow, Cof, GameState->GridDim))
-                PlaySound(&p->AudioState, GetSound(&GameState->Assets, GASI_Bloop));
+                PlaySound(&p->AudioState, GetSound(&GameState->DebugAssets, Asset_Bloop));
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2;
+            DrawEnvironment(GetFirstBitmap(&GameState->DebugAssets, Asset_Background),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grass),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grid),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Rock),
+                            TopLeftCornerCoords,
+                            PlatformDim,
+                            GridCoords,
+                            GameState->GridDim,
+                            RealGridDim,
+                            GameState->GridSize,
+                            -1.0f
+                            );
             
-            DrawBackground(&GameState->Background, TopLeftCornerCoords, PlatformDim, -1.0f);
-            Push(v3(GridCoords, -0.2f), RealGridDim, &GameState->Grass, 0, blend_mode::gl_src_alpha);
-            DrawGrid(&GameState->Grid, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
-            DrawRock(&GameState->Rocks, GridCoords, RealGridDim, -0.001f);
-            
-            DrawCoffeeCow(Cow, Cof->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+            DrawCoffeeCow(Cow, Cof->Coords, &GameState->DebugAssets, Tag_Player1, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffee(Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
             DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords, GetDim(p));
         }
@@ -868,10 +1059,18 @@ void UpdateRender(platform* p)
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2;
-            DrawRock(&GameState->Rocks, GridCoords, RealGridDim, -0.001f);
-            DrawBackground(&GameState->Background, TopLeftCornerCoords, PlatformDim, -1.0f);
-            DrawGrid(&GameState->Grid, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
-            Push(v3(GridCoords, -0.2f), RealGridDim, &GameState->Grass, 0, blend_mode::gl_src_alpha);
+            DrawEnvironment(GetFirstBitmap(&GameState->DebugAssets, Asset_Background),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grass),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grid),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Rock),
+                            TopLeftCornerCoords,
+                            PlatformDim,
+                            GridCoords,
+                            GameState->GridDim,
+                            RealGridDim,
+                            GameState->GridSize,
+                            -1.0f
+                            );
             
             DrawCoffeeCow(CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffeeCow(CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
@@ -904,7 +1103,6 @@ void UpdateRender(platform* p)
                     if (GameState->Menu != menu_mode::game_over_menu)
                         CoffeeCowProcessInput(GameState->Players[i].Input, &GameState->Players[i]);
                     
-                    
                     for (int j = 0; j < 4; j++) {
                         if (GameState->Players[j].Input != 0) {
                             if (!CheckCollisionCoffeeCow(&GameState->Players[i], &GameState->Players[j], GameState->GridDim))
@@ -918,6 +1116,7 @@ void UpdateRender(platform* p)
                 for (int i = 0; i < 4; i++) {
                     if (GameState->Players[i].Input != 0) {
                         MoveCoffeeCow(&GameState->Players[i], p->Input.WorkSecondsElapsed, GameState->GridDim);
+                        CollectCoffee(&GameState->Players[i], Collect, GameState->GridDim);
                     }
                 }
             }
@@ -933,10 +1132,20 @@ void UpdateRender(platform* p)
                 }
             }
             
-            DrawRock(&GameState->Rocks, GridCoords, RealGridDim, -0.001f);
-            DrawBackground(&GameState->Background, TopLeftCornerCoords, PlatformDim, -1.0f);
-            DrawGrid(&GameState->Grid, GridCoords, GameState->GridDim, GameState->GridSize, -0.1f);
-            Push(v3(GridCoords, -0.2f), RealGridDim, &GameState->Grass, 0, blend_mode::gl_src_alpha);
+            DrawEnvironment(GetFirstBitmap(&GameState->DebugAssets, Asset_Background),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grass),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Grid),
+                            GetFirstBitmap(&GameState->DebugAssets, Asset_Rock),
+                            TopLeftCornerCoords,
+                            PlatformDim,
+                            GridCoords,
+                            GameState->GridDim,
+                            RealGridDim,
+                            GameState->GridSize,
+                            -1.0f
+                            );
+            
+            DrawCoffee(Collect, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
         }
     }
     
@@ -1138,5 +1347,5 @@ void UpdateRender(platform* p)
     }
     
     BeginMode2D(*C);
-    RenderPieceGroup(RenderPieceGroup2);
+    RenderPieceGroup(&GameState->DebugAssets);
 }

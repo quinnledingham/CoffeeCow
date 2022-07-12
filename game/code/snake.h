@@ -13,6 +13,10 @@ Fix NewEndedDown. Only sets NewEndedDown to false if the OnKeyDown is used in th
 
 Snake:
 Rename files to coffee cow - get server and client to work good together
+
+Multiplayer:
+Add different coloured snakes (Should find out how textures should work from doing this)
+Make multiplayer actually a game
 */
 
 #ifndef SNAKE_H
@@ -156,7 +160,8 @@ struct game_state
     bool32 ShowFPS = false;
     bool32 ResetGame = true;
     
-    game_assets Assets;
+    assets Assets;
+    debug_assets DebugAssets;
     
     const char* IP;
     const char* Port;
