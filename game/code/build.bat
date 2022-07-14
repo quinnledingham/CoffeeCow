@@ -4,12 +4,13 @@ set CommonCompilerFlags=-MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd
 
 set CommonLinkerFlags= -incremental:no -opt:ref user32.lib opengl32.lib gdi32.lib winmm.lib Dxgi.lib
 
+pushd %CD%
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
 
-cl %CommonCompilerFlags% -DQLIB_OPENGL=1 C:\Stuff\CoffeeCow\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% -DQLIB_OPENGL=1 ..\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
-REM cl %CommonCompilerFlags% -DQLIB_OPENGL=0 C:\Stuff\CoffeeCow\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
+REM cl %CommonCompilerFlags% -DQLIB_OPENGL=0 ..\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
 
 popd

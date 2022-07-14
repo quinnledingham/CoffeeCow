@@ -88,16 +88,6 @@ struct CoffeeCow
     Arr Inputs; // int
     
     platform_controller_input *Input;
-    
-    texture Head;
-    texture Straight;
-    texture Corner;
-    texture HeadOutline;
-    texture StraightOutline;
-    texture CornerOutline;
-    texture Tongue;
-    texture TailTex;
-    texture Spots[3];
 };
 
 struct Coffee
@@ -110,7 +100,6 @@ struct Coffee
     
     bool32 NewLocation;
     
-    texture Texture;
     bitmap_id Bitmap;
 };
 
