@@ -14,7 +14,7 @@ DefaultDim: 1000, 1000
 DefaultPadding: 10
 
 #Logo
-Texture: GAI_Miz
+Texture: 0
 Dim: 550, 274
 GridCoords: 0, Y++
 

@@ -111,6 +111,7 @@ struct Coffee
     bool32 NewLocation;
     
     texture Texture;
+    bitmap_id Bitmap;
 };
 
 enum struct
@@ -161,7 +162,6 @@ struct game_state
     bool32 ResetGame = true;
     
     assets Assets;
-    debug_assets DebugAssets;
     
     const char* IP;
     const char* Port;
@@ -202,11 +202,6 @@ struct game_state
     
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
-    
-    texture Background;
-    texture Grass;
-    texture Rocks;
-    texture Grid;
 };
 inline menu* GetMenu(game_state *GameState, menu_mode MenuMode)
 {
@@ -227,5 +222,6 @@ inline void  MenuToggle(game_state *GameState, menu_mode Default, menu_mode Togg
     else if (GameState->Menu== Default)
         SetMenu(GameState, Toggle);
 }
+
 
 #endif //SNAKE_H

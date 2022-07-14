@@ -21,37 +21,37 @@ DefaultPadding: 10
 
 #CheckBox
 ID: PI_Player1
-DefaultTexture: DefaultTexture
-ActiveTexture: ActiveTexture
-ClickedTexture: ClickedTexture
-ActiveClickedTexture: ActiveClickedTexture
+DefaultTexture: 0
+ActiveTexture: 0
+ClickedTexture: 0
+ActiveClickedTexture: 0
 GridCoords: 0, 0
 Dim: CharDim
 
 #CheckBox
 ID: PI_Player2
-DefaultTexture: DefaultTexture
-ActiveTexture: ActiveTexture
-ClickedTexture: ClickedTexture
-ActiveClickedTexture: ActiveClickedTexture
+DefaultTexture: 0
+ActiveTexture: 0
+ClickedTexture: 0
+ActiveClickedTexture: 0
 GridCoords: 1, 0
 Dim: CharDim
 
 #CheckBox
 ID: PI_Player3
-DefaultTexture: DefaultTexture
-ActiveTexture: ActiveTexture
-ClickedTexture: ClickedTexture
-ActiveClickedTexture: ActiveClickedTexture
+DefaultTexture: 0
+ActiveTexture: 0
+ClickedTexture: 0
+ActiveClickedTexture: 0
 GridCoords: 2, 0
 Dim: CharDim
 
 #CheckBox
 ID: PI_Player4
-DefaultTexture: DefaultTexture
-ActiveTexture: ActiveTexture
-ClickedTexture: ClickedTexture
-ActiveClickedTexture: ActiveClickedTexture
+DefaultTexture: 0
+ActiveTexture: 0
+ClickedTexture: 0
+ActiveClickedTexture: 0
 GridCoords: 3, Y++
 Dim: CharDim
 
