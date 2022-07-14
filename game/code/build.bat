@@ -7,9 +7,9 @@ set CommonLinkerFlags= -incremental:no -opt:ref user32.lib opengl32.lib gdi32.li
 IF NOT EXIST ..\..\build mkdir ..\..\build
 pushd ..\..\build
 
-cl %CommonCompilerFlags% -DQLIB_OPENGL=1 C:\Snake\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% -DQLIB_OPENGL=1 C:\Stuff\CoffeeCow\game\code\application.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
-REM cl %CommonCompilerFlags% -DQLIB_OPENGL=0 C:\Snake\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
+REM cl %CommonCompilerFlags% -DQLIB_OPENGL=0 C:\Stuff\CoffeeCow\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
 
 popd
