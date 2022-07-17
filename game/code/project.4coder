@@ -1,5 +1,6 @@
 version(2);
 project_name = "Q:/build/";
+
 patterns = {
 "*.c",
 "*.cpp",
@@ -8,13 +9,17 @@ patterns = {
 "*.bat",
 "*.sh",
 "*.4coder",
+"*.menu",
 };
+
 blacklist_patterns = {
 ".*",
 };
+
 load_paths_base = {
  { ".", .relative = true, .recursive = true, },
 };
+
 load_paths = {
  .win = load_paths_base,
  .linux = load_paths_base,
@@ -25,12 +30,9 @@ commands = {
  .build = { .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
    .win = "build.bat",
    .linux = "./build.sh",
-   .mac = "./build.sh", },
- .run = { .out = "*run*", .footer_panel = false, .save_dirty_files = false,
-   .win = "Q:\build\\\Q:\build\",
-   .linux = "Q:/build//Q:/build/",
-   .mac = "Q:/build//Q:/build/", },
+   .mac = "./build.sh",}, 
 };
+
 fkey_command = {
 .F1 = "run";
 .F2 = "run";

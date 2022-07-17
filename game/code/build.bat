@@ -12,5 +12,4 @@ cl %CommonCompilerFlags% -DQLIB_OPENGL=1 ..\game\code\application.cpp -Fmwin32_a
 
 REM cl %CommonCompilerFlags% -DQLIB_OPENGL=0 ..\game\code\server.cpp -Fmwin32_application.map /link %CommonLinkerFlags%
 
-
 popd
