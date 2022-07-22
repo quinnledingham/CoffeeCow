@@ -1,6 +1,6 @@
 #define WindowName "Coffee Cow"
-#define ClientHeight (ScreenHeight - 200)
-#define ClientWidth ClientHeight
+#define ClientHeight 0.80f
+#define ClientWidth 0.0f
 
 #define Permanent_Storage_Size Megabytes(526)
 #define Transient_Storage_Size Megabytes(1)
@@ -75,6 +75,9 @@ enum asset_type_id
     Asset_Count
 };
 
+#define QLIB_SDL
+#define QLIB_OPENGL 1
+//#define QLIB_DISCRETE_GRAPHICS
 #define QLIB_WINDOW_APPLICATION
 #include "qlib/application.h"
 
@@ -884,6 +887,18 @@ void UpdateRender(platform* p)
         
         PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Song));
         SetTrue(&p->AudioState.Paused);
+        
+        loaded_sound *LoadedSound = GetSound(&GameState->Assets, GetFirstSound(&GameState->Assets, Asset_Song));
+        
+        Uint32 wavLength;
+        Uint8 *wavBuffer;
+        SDL_LoadWAV("sounds/bornintheusa.wav", &SDL.AudioSpec, &wavBuffer, &wavLength);
+        
+        SDL.AudioDeviceID = SDL_OpenAudioDevice(NULL, 0, &SDL.AudioSpec, NULL, 0);
+        
+        int Success = SDL_QueueAudio(SDL.AudioDeviceID, wavBuffer, wavLength);
+        SDL_PauseAudioDevice(SDL.AudioDeviceID, 0);
+        
         
         GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
     }
