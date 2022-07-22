@@ -82,6 +82,7 @@ enum asset_type_id
 #include "qlib/application.h"
 
 #include "coffee_cow.h"
+
 #include "snake.h"
 
 internal void
@@ -887,18 +888,6 @@ void UpdateRender(platform* p)
         
         PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Song));
         SetTrue(&p->AudioState.Paused);
-        
-        loaded_sound *LoadedSound = GetSound(&GameState->Assets, GetFirstSound(&GameState->Assets, Asset_Song));
-        
-        Uint32 wavLength;
-        Uint8 *wavBuffer;
-        SDL_LoadWAV("sounds/bornintheusa.wav", &SDL.AudioSpec, &wavBuffer, &wavLength);
-        
-        SDL.AudioDeviceID = SDL_OpenAudioDevice(NULL, 0, &SDL.AudioSpec, NULL, 0);
-        
-        int Success = SDL_QueueAudio(SDL.AudioDeviceID, wavBuffer, wavLength);
-        SDL_PauseAudioDevice(SDL.AudioDeviceID, 0);
-        
         
         GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
     }
