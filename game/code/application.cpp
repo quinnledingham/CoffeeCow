@@ -491,6 +491,7 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords,  real32 Seconds, real32 GridX, re
 internal void
 AddInput(CoffeeCow *Cow, int NewDirection)
 {
+    printf("Input: %d\n", NewDirection);
     Cow->Speed = 8; // m/s
     if (Cow->Inputs.Size >= 3)
         return;
@@ -512,6 +513,15 @@ AddInput(CoffeeCow *Cow, int NewDirection)
 
 inline void
 CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
+{
+    if(OnKeyDown(&Controller->MoveLeft)) AddInput(Cow, LEFT);
+    if(OnKeyDown(&Controller->MoveRight))AddInput(Cow, RIGHT);
+    if(OnKeyDown(&Controller->MoveDown)) AddInput(Cow, DOWN);
+    if(OnKeyDown(&Controller->MoveUp)) AddInput(Cow, UP);
+}
+
+inline void
+CoffeeCowProcessInput(game_controller *Controller, CoffeeCow *Cow)
 {
     if(OnKeyDown(&Controller->MoveLeft)) AddInput(Cow, LEFT);
     if(OnKeyDown(&Controller->MoveRight))AddInput(Cow, RIGHT);
@@ -590,7 +600,7 @@ MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
                     Cow->Tail.ChangingDirections = true;
                     Cow->Tail.OldDir = Node->CurrentDirection;
                     Cow->Tail.NewDir = Node->NextDirection;
-                }
+                } 
                 else
                     Cow->Tail.ChangingDirections = false;
                 
@@ -785,6 +795,39 @@ LoadAssetFile(platform_work_queue *Queue, assets *Assets)
     BuilderLoadFile(Assets);
 }
 
+internal bool32
+CopyButtonState(platform_button_state *Dest, platform_button_state *Src)
+{
+    //printf("Dest %d, Src %d\n", Dest->NewEndedDown, Src->NewEndedDown);
+    Dest->EndedDown = Src->EndedDown;
+    
+    if (Dest->EndedDown) {
+        if (Dest->NewEndedDown)
+        {
+            Dest->NewEndedDown = false;
+        }
+        else
+        {
+            Dest->NewEndedDown = Src->NewEndedDown;
+        }
+    }
+    else
+        Dest->NewEndedDown = false;
+    
+    return false;
+}
+
+internal bool32
+PlatformKeyboardToGameController(platform_keyboard_input *Keyboard, game_controller *Controller)
+{
+    CopyButtonState(&Controller->MoveUp, &Keyboard->W);
+    CopyButtonState(&Controller->MoveLeft, &Keyboard->A);
+    CopyButtonState(&Controller->MoveDown, &Keyboard->S);
+    CopyButtonState(&Controller->MoveRight, &Keyboard->D);
+    
+    return true;
+}
+
 internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
 {
     game_state *GameState = (game_state*)Data;
@@ -892,6 +935,9 @@ void UpdateRender(platform* p)
         GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
     }
     
+    if (PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Controllers[0]))
+        GameState->ActiveControllerIndex = 0;
+    
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
     if (NewGridSize != GameState->GridSize)
         GameState->GridSize = NewGridSize;
@@ -920,7 +966,7 @@ void UpdateRender(platform* p)
         
         if (GameState->Menu != menu_mode::pause_menu) {
             if (GameState->Menu != menu_mode::game_over_menu)
-                CoffeeCowProcessInput(p->Input.CurrentInputInfo.Controller, Cow);
+                CoffeeCowProcessInput(&GameState->Controllers[GameState->ActiveControllerIndex], Cow);
             
             if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
                 MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);

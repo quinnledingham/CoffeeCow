@@ -138,12 +138,28 @@ struct thread_param
     client *Client;
 };
 
+struct game_controller
+{
+    platform_button_state MoveUp;
+    platform_button_state MoveLeft;
+    platform_button_state MoveDown;
+    platform_button_state MoveRight;
+    
+    platform_button_state Enter;
+    
+    platform_button_state Back;
+    platform_button_state Start;
+};
+
 struct game_state
 {
     game_mode Game;
     menu_mode Menu;
     
     qlib_bool EditMenu;
+    
+    int ActiveControllerIndex;
+    game_controller Controllers[5];
     
     menu Menus[(int)menu_mode::menu_mode_Count];
     
@@ -211,6 +227,5 @@ inline void  MenuToggle(game_state *GameState, menu_mode Default, menu_mode Togg
     else if (GameState->Menu== Default)
         SetMenu(GameState, Toggle);
 }
-
 
 #endif //SNAKE_H
