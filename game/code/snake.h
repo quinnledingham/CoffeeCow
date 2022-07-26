@@ -138,21 +138,24 @@ struct thread_param
     client *Client;
 };
 
+typedef platform_button_state game_button;
 struct game_controller
 {
-    platform_button_state MoveUp;
-    platform_button_state MoveLeft;
-    platform_button_state MoveDown;
-    platform_button_state MoveRight;
+    game_button MoveUp;
+    game_button MoveLeft;
+    game_button MoveDown;
+    game_button MoveRight;
     
-    platform_button_state Enter;
+    game_button Enter;
     
-    platform_button_state Back;
-    platform_button_state Start;
+    game_button Back;
+    game_button Start;
 };
 
 struct game_state
 {
+    bool32 Initialized;
+    
     game_mode Game;
     menu_mode Menu;
     

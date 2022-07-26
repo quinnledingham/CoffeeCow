@@ -53,12 +53,12 @@ enum asset_type_id
     
     // Menu
     Asset_MenuBackground,
-    Asset_Logo,
+    Asset_MenuLogo,
     
-    Asset_Character,
-    Asset_CharacterHighlight,
-    Asset_CharacterHover,
-    Asset_CharacterHoverHighlight,
+    Asset_DefaultCheckBox,
+    Asset_HighlightCheckBox,
+    Asset_ActiveCheckBox,
+    Asset_ActiveHighlightCheckBox,
     
     //
     // Fonts
@@ -491,7 +491,6 @@ DrawCoffeeCow(CoffeeCow *Cow, v2 CoffeeCoords,  real32 Seconds, real32 GridX, re
 internal void
 AddInput(CoffeeCow *Cow, int NewDirection)
 {
-    printf("Input: %d\n", NewDirection);
     Cow->Speed = 8; // m/s
     if (Cow->Inputs.Size >= 3)
         return;
@@ -754,13 +753,13 @@ MakeAssetFile(platform_work_queue *Queue, assets *Assets)
     BuilderAddBitmap(&BuilderAssets, "bitmaps/coffee.png", Asset_Coffee);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/rocks.png", Asset_Rock);
     
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/logo.png", Asset_Logo);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/logo.png", Asset_MenuLogo);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/mainmenuback.png", Asset_MenuBackground);
     
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/join.png", Asset_Character);
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinalt.png", Asset_CharacterHighlight);
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinhover.png", Asset_CharacterHover);
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinalthover.png", Asset_CharacterHoverHighlight);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/join.png", Asset_DefaultCheckBox);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinalt.png", Asset_HighlightCheckBox);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinhover.png", Asset_ActiveCheckBox);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/joinalthover.png", Asset_ActiveHighlightCheckBox);
     
     BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/cowhead.png", Asset_CowHead, Tag_Player1);
     BuilderAddBitmapTag(&BuilderAssets, "bitmaps/cow1/cowheadoutline.png", Asset_CowHeadOutline, Tag_Player1);
@@ -898,7 +897,7 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
 
 void UpdateRender(platform* p)
 {
-    game_state *GameState = (game_state*)p->Memory.PermanentStorage;
+    game_state *GameState = MemStart(game_state);
     GameState->Queue = &p->Queue;
     
     v2 TopLeftCornerCoords = GetTopLeftCornerCoords(p);
@@ -906,12 +905,9 @@ void UpdateRender(platform* p)
     
     camera *C = &GameState->Camera;
     
-    if (!p->Initialized)
+    if (!GameState->Initialized)
     {
-        p->Initialized = true;
-        
-        Manager.Next = (char*)p->Memory.PermanentStorage;
-        qalloc(sizeof(game_state));
+        GameState->Initialized = true;
         
         InitializeAudioState(&p->AudioState);
         p->AudioState.Assets = (void*)&GameState->Assets;
