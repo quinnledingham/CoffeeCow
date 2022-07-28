@@ -54,7 +54,6 @@ enum asset_type_id
     // Menu
     Asset_MenuBackground,
     Asset_MenuLogo,
-    
     Asset_DefaultCheckBox,
     Asset_HighlightCheckBox,
     Asset_ActiveCheckBox,
@@ -522,10 +521,10 @@ CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
 inline void
 CoffeeCowProcessInput(game_controller *Controller, CoffeeCow *Cow)
 {
-    if(OnKeyDown(&Controller->MoveLeft)) AddInput(Cow, LEFT);
-    if(OnKeyDown(&Controller->MoveRight))AddInput(Cow, RIGHT);
-    if(OnKeyDown(&Controller->MoveDown)) AddInput(Cow, DOWN);
-    if(OnKeyDown(&Controller->MoveUp)) AddInput(Cow, UP);
+    if(OnKeyDown(Controller->MoveLeft)) AddInput(Cow, LEFT);
+    if(OnKeyDown(Controller->MoveRight))AddInput(Cow, RIGHT);
+    if(OnKeyDown(Controller->MoveDown)) AddInput(Cow, DOWN);
+    if(OnKeyDown(Controller->MoveUp)) AddInput(Cow, UP);
 }
 
 internal void
@@ -795,34 +794,56 @@ LoadAssetFile(platform_work_queue *Queue, assets *Assets)
 }
 
 internal bool32
-CopyButtonState(platform_button_state *Dest, platform_button_state *Src)
+PlatformKeyboardToGameController(platform_keyboard_input *Keyboard, game_controller *Controller)
 {
-    //printf("Dest %d, Src %d\n", Dest->NewEndedDown, Src->NewEndedDown);
-    Dest->EndedDown = Src->EndedDown;
+    Controller->MoveUp = &Keyboard->W;
+    Controller->MoveLeft = &Keyboard->A;
+    Controller->MoveDown = &Keyboard->S;
+    Controller->MoveRight = &Keyboard->D;
     
-    if (Dest->EndedDown) {
-        if (Dest->NewEndedDown)
-        {
-            Dest->NewEndedDown = false;
-        }
-        else
-        {
-            Dest->NewEndedDown = Src->NewEndedDown;
-        }
-    }
-    else
-        Dest->NewEndedDown = false;
+    Controller->Start = &Keyboard->Esc;
     
-    return false;
+    return true;
 }
 
 internal bool32
-PlatformKeyboardToGameController(platform_keyboard_input *Keyboard, game_controller *Controller)
+PlatformKeyboardToMenuController(platform_keyboard_input *Keyboard, menu_controller *Controller)
 {
-    CopyButtonState(&Controller->MoveUp, &Keyboard->W);
-    CopyButtonState(&Controller->MoveLeft, &Keyboard->A);
-    CopyButtonState(&Controller->MoveDown, &Keyboard->S);
-    CopyButtonState(&Controller->MoveRight, &Keyboard->D);
+    Controller->ForwardActive[0] = &Keyboard->S;
+    Controller->ForwardActive[1] = &Keyboard->Tab;
+    Controller->BackwardActive = &Keyboard->W;
+    Controller->Enter = &Keyboard->Enter;
+    
+    Controller->Left = &Keyboard->Left;
+    Controller->Right = &Keyboard->Right;
+    Controller->Backspace = &Keyboard->Backspace;
+    Controller->Period = &Keyboard->Period;
+    
+    for (int i = 0; i < 10; i++)
+        Controller->Numbers[i] = &Keyboard->Numbers[i];
+    
+    if (KeyDown(&Keyboard->Ctrl) && OnKeyDown(&Keyboard->V))
+        Controller->Paste = &Keyboard->V;
+    else
+        Controller->Paste = &Keyboard->Ctrl;
+    Controller->Clipboard = Keyboard->Clipboard;
+    
+    Controller->Edit = &Keyboard->F6;
+    
+    Controller->MouseControls = false;
+    Controller->Index = 0;
+    
+    return true;
+}
+
+internal bool32
+PlatformMouseToMenuController(platform_mouse_input *Mouse, menu_controller *Controller)
+{
+    Controller->MouseCoords = v2(Mouse->X, Mouse->Y);
+    Controller->Enter = &Mouse->Left;
+    
+    Controller->MouseControls = true;
+    Controller->Index = 0;
     
     return true;
 }
@@ -912,11 +933,11 @@ void UpdateRender(platform* p)
         InitializeAudioState(&p->AudioState);
         p->AudioState.Assets = (void*)&GameState->Assets;
         
-        *C = {};
         C->Position = v3(0, 0, -900);
         C->Target = v3(0, 0, 0);
         C->Up = v3(0, 1, 0);
         C->FOV = 90.0f;
+        C->Mode3D = false;
         
         GameState->Menu = menu_mode::main_menu;
         GameState->Game = game_mode::not_in_game;
@@ -929,25 +950,22 @@ void UpdateRender(platform* p)
         SetTrue(&p->AudioState.Paused);
         
         GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
+        
+        PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Controllers[0]);
+        GameState->ActiveControllerIndex = 0;
     }
     
-    if (PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Controllers[0]))
-        GameState->ActiveControllerIndex = 0;
+    if (p->Input.ActiveInput == platform_input_index::keyboard)
+        PlatformKeyboardToMenuController(&p->Input.Keyboard, &GameState->MenuController);
+    else if (p->Input.ActiveInput == platform_input_index::mouse)
+        PlatformMouseToMenuController(&p->Input.Mouse, &GameState->MenuController);
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
     if (NewGridSize != GameState->GridSize)
         GameState->GridSize = NewGridSize;
     
-    platform_keyboard_input *Keyboard = &p->Input.Keyboard;
-    if (OnKeyDown(&Keyboard->F5))
-        GameState->ShowFPS = !GameState->ShowFPS;
-    
-    if (GameState->ShowFPS)
-        DrawFPS(p->Input.WorkSecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
-    
-    C->WindowDim = v2(p->Dimension.Width, p->Dimension.Height);
-    
     if (GameState->Game == game_mode::singleplayer) {
+        game_controller *Controller = &GameState->Controllers[GameState->ActiveControllerIndex];
         CoffeeCow *Cow = &GameState->Player1;
         Coffee *Cof = &GameState->Collect;
         
@@ -957,12 +975,12 @@ void UpdateRender(platform* p)
             GameState->ResetGame = false;
         }
         
-        if (OnKeyDown(&p->Input.CurrentInputInfo.Controller->Start))
+        if (OnKeyDown(Controller->Start))
             MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
             if (GameState->Menu != menu_mode::game_over_menu)
-                CoffeeCowProcessInput(&GameState->Controllers[GameState->ActiveControllerIndex], Cow);
+                CoffeeCowProcessInput(Controller, Cow);
             
             if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
                 MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);
@@ -1132,7 +1150,7 @@ void UpdateRender(platform* p)
         };
         
         menu *Menu = GetMenu(GameState, menu_mode::main_menu);
-        if (DoMenu(Menu, "menus/main.menu", p, &GameState->Assets, &GameState->EditMenu, IDs, MCI_Count)) 
+        if (DoMenu(Menu, "menus/main.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController)) 
         {
             if (Menu->Events.ButtonClicked == MCI_Singleplayer) {
                 PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
@@ -1176,7 +1194,7 @@ void UpdateRender(platform* p)
         };
         
         menu *Menu = GetMenu(GameState, menu_mode::multiplayer_menu);
-        if (DoMenu(Menu, "menus/online_multiplayer.menu", p, &GameState->Assets, &GameState->EditMenu, IDs, MCI_Count))
+        if (DoMenu(Menu, "menus/online_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
         {
             if (Menu->Events.ButtonClicked == MCI_Join) {
                 PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
@@ -1213,7 +1231,7 @@ void UpdateRender(platform* p)
         };
         
         menu *Menu = GetMenu(GameState, menu_mode::pause_menu);
-        if (DoMenu(Menu, "menus/pause.menu", p, &GameState->Assets, &GameState->EditMenu, IDs, MCI_Count))
+        if (DoMenu(Menu, "menus/pause.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
         {
             if (Menu->Events.ButtonClicked == MCI_Menu) {
                 GameState->Game = game_mode::not_in_game;
@@ -1243,7 +1261,7 @@ void UpdateRender(platform* p)
         };
         
         menu *Menu = GetMenu(GameState, menu_mode::game_over_menu);
-        if (DoMenu(Menu, "menus/game_over.menu", p, &GameState->Assets, &GameState->EditMenu, IDs, MCI_Count))
+        if (DoMenu(Menu, "menus/game_over.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
         {
             if (Menu->Events.ButtonClicked == MCI_Menu) {
                 GameState->Game = game_mode::not_in_game;
@@ -1282,16 +1300,16 @@ void UpdateRender(platform* p)
         };
         
         menu *Menu = GetMenu(GameState, menu_mode::local_multiplayer_menu);
-        if (DoMenu(Menu, "menus/local_multiplayer.menu", p, &GameState->Assets, &GameState->EditMenu, IDs, MCI_Count))
+        if (DoMenu(Menu, "menus/local_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
         {
             if (Menu->Events.ButtonClicked == MCI_Start) {
                 int PlayersInGame = 0;
                 for (int i = 0; i < 4; i++) {
                     menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i + 3);
                     menu_component_checkbox *CheckBox = (menu_component_checkbox*)Player->Data;
-                    if (CheckBox->Controller != 0)
+                    if (CheckBox->ControllerIndex != -1)
                     {
-                        GameState->Players[i].Input = CheckBox->Controller;
+                        //GameState->Players[i].Input = CheckBox->Controller;
                         PlayersInGame++;
                     }
                 }
@@ -1310,6 +1328,14 @@ void UpdateRender(platform* p)
         DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
     }
     
-    BeginMode2D(*C);
-    RenderPieceGroup(&GameState->Assets);
+    
+    platform_keyboard_input *Keyboard = &p->Input.Keyboard;
+    if (OnKeyDown(&Keyboard->F5))
+        GameState->ShowFPS = !GameState->ShowFPS;
+    if (GameState->ShowFPS)
+        DrawFPS(p->Input.WorkSecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
+    
+    C->PlatformDim = v2(p->Dimension.Width, p->Dimension.Height);
+    
+    RenderPieceGroup(C, &GameState->Assets);
 }

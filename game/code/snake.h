@@ -141,15 +141,12 @@ struct thread_param
 typedef platform_button_state game_button;
 struct game_controller
 {
-    game_button MoveUp;
-    game_button MoveLeft;
-    game_button MoveDown;
-    game_button MoveRight;
+    game_button *MoveUp;
+    game_button *MoveLeft;
+    game_button *MoveDown;
+    game_button *MoveRight;
     
-    game_button Enter;
-    
-    game_button Back;
-    game_button Start;
+    game_button *Start;
 };
 
 struct game_state
@@ -163,6 +160,8 @@ struct game_state
     
     int ActiveControllerIndex;
     game_controller Controllers[5];
+    
+    menu_controller MenuController;
     
     menu Menus[(int)menu_mode::menu_mode_Count];
     
