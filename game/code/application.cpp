@@ -1,13 +1,3 @@
-#define WindowName "Coffee Cow"
-#define ClientHeight 0.80f
-#define ClientWidth 0.0f
-
-#define Permanent_Storage_Size Megabytes(526)
-#define Transient_Storage_Size Megabytes(1)
-
-#define IconFileName "bitmaps/icon.ico"
-#define CurrentDirectory "../game/data"
-
 enum asset_font_type
 {
     FontType_Default = 0,
@@ -74,6 +64,16 @@ enum asset_type_id
     Asset_Count
 };
 
+#define WindowName "Coffee Cow"
+#define ClientHeight 0.80f
+#define ClientWidth 0.0f
+
+#define Permanent_Storage_Size Megabytes(256)
+#define Transient_Storage_Size Megabytes(1)
+
+#define IconFileName "bitmaps/icon.ico"
+#define CurrentDirectory "../game/data"
+
 #define QLIB_SDL
 #define QLIB_OPENGL 1
 //#define QLIB_DISCRETE_GRAPHICS
@@ -81,7 +81,6 @@ enum asset_type_id
 #include "qlib/application.h"
 
 #include "coffee_cow.h"
-
 #include "snake.h"
 
 internal void
@@ -150,6 +149,7 @@ DrawCoffee(Coffee *Cof, real32 Seconds, v2 GridCoords, real32 GridSize, real32 Z
     if (Cof->Rotation > 360) Cof->Rotation -= 360;
     
     if (Cof->IncreasingHeight) {
+        
         Cof->Height += (Seconds * 2);
         if (Cof->Height > (GridSize * 0.05f)) Cof->IncreasingHeight = false;
     }
@@ -189,8 +189,8 @@ GetSize(v3 Left, v3 Right, real32 GridSize)
 inline real32
 GetRotation(int Direction)
 {
-    if (Direction == LEFT) return 90.0f;
-    else if (Direction == RIGHT) return 270.0f;
+    if (Direction == LEFT) return 270.0f;
+    else if (Direction == RIGHT) return 90.0f;
     else if (Direction == UP) return 180.0f;
     else if (Direction == DOWN) return 0.0f;
     else return 0.0f;
@@ -202,8 +202,8 @@ GetAngleDiff(int StartDirection, int EndDirection)
     real32 Goal;
     real32 BRotation = GetRotation(StartDirection);
     real32 ERotation = GetRotation(EndDirection);
-    if (StartDirection == DOWN && EndDirection == RIGHT) Goal = -90;
-    else if (StartDirection == RIGHT && EndDirection == DOWN) Goal = 90;
+    if (StartDirection == DOWN && EndDirection == LEFT) Goal = -90;
+    else if (StartDirection == LEFT && EndDirection == DOWN) Goal = 90;
     else Goal = ERotation - BRotation;
     return Goal;
 }
@@ -225,6 +225,8 @@ DrawCoffeeCow(CoffeeCow *Cow,
     asset_vector WeightVector = {};
     MatchVector.E[Tag] = 1.0f;
     WeightVector.E[Tag] = 1.0f;
+    
+    qlibBlendMode(BLEND_MODE_GL_ONE);
     
     for (int i = 0; i < Cow->Nodes.Size; i++)
     {
@@ -261,7 +263,7 @@ DrawCoffeeCow(CoffeeCow *Cow,
             
             Push(Temp, v2(GridSize + HeadResize),
                  GetBestMatchBitmap(Assets, Asset_CowHead, &MatchVector, &WeightVector),
-                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+                 GetRotation(Node->CurrentDirection));
             
             Corners->Push(&Coords);
             
@@ -299,19 +301,18 @@ DrawCoffeeCow(CoffeeCow *Cow,
             MouthCoords.z = 0.0f;
             Push(MouthCoords, v2(GridSize + HeadResize), 
                  GetBestMatchBitmap(Assets, Asset_CowTongue, &MatchVector, &WeightVector),
-                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+                 GetRotation(Node->CurrentDirection));
             
             Temp.z = OutlineZ;
             Coords.z = OutlineZ;
             Push(Temp, v2(GridSize + HeadResize), 
                  GetBestMatchBitmap(Assets, Asset_CowHeadOutline, &MatchVector, &WeightVector),
-                 GetRotation(Node->CurrentDirection), blend_mode::gl_one);
+                 GetRotation(Node->CurrentDirection));
         }
         if (i == Cow->Nodes.Size - 1) {
             Coords.z = 0.5f;
             Push(Coords, v2(GridSize, GridSize), 
-                 GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector),
-                 0.0f, blend_mode::gl_one);
+                 GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector));
             Corners->Push(&Coords);
             
             v3 TailCoords = v3();
@@ -348,12 +349,11 @@ DrawCoffeeCow(CoffeeCow *Cow,
             TailCoords.z = 0.0f;
             Push(TailCoords, v2(GridSize, GridSize), 
                  GetBestMatchBitmap(Assets, Asset_CowTail, &MatchVector, &WeightVector),
-                 Rotation, blend_mode::gl_one);
+                 Rotation);
             
             Coords.z = OutlineZ;
             Push(Coords, v2(GridSize, GridSize),
-                 GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector), 
-                 0.0f, blend_mode::gl_one);
+                 GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector));
         }
         else if (i != Cow->Nodes.Size - 1) {
             CoffeeCowNode *NextNode = (CoffeeCowNode*)Cow->Nodes[i + 1];
@@ -362,14 +362,12 @@ DrawCoffeeCow(CoffeeCow *Cow,
                              roundf(GridY + ((Node->Coords.y) * GridSize)),
                              0.5f);
                 Push(Temp, v2(GridSize, GridSize), 
-                     GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector),
-                     0.0f, blend_mode::gl_one);
+                     GetBestMatchBitmap(Assets, Asset_CowCorner, &MatchVector, &WeightVector));
                 Corners->Push(&Temp);
                 
                 Temp.z = OutlineZ;
                 Push(Temp, v2(GridSize, GridSize),
-                     GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector), 
-                     0.0f, blend_mode::gl_one);
+                     GetBestMatchBitmap(Assets, Asset_CowCornerOutline, &MatchVector, &WeightVector));
             }
         }
         
@@ -426,20 +424,15 @@ DrawCoffeeCow(CoffeeCow *Cow,
             else
                 Rotation = GetRotation(Node->CurrentDirection);
             
-            real32 OutlineFactor = 0.96f;
+            real32 OutlineFactor = 0.9625f;
             real32 Outline = (real32)(GridSize - (GridSize * OutlineFactor));
             
             Coords.x += Outline;
             Coords.y += Outline;
             Coords.z = 3.0f;
             
-            //Push(Coords, v2(GridSize - (Outline*2), GridSize - (Outline*2)), 
-            //&Cow->Spots[Node->Streak-1],
-            //Rotation, blend_mode::gl_one);
-            
             Push(Coords, v2(GridSize - (Outline*2), GridSize - (Outline*2)),
-                 GetIndexBitmap(Assets, Asset_CowSpot, Node->Streak-1), 
-                 Rotation, blend_mode::gl_one);
+                 GetIndexBitmap(Assets, Asset_CowSpot, Node->Streak-1), Rotation);
         }
     }
     
@@ -459,7 +452,7 @@ DrawCoffeeCow(CoffeeCow *Cow,
             Right = Node;
         }
         
-        real32 OutlineFactor = 0.96f;
+        real32 OutlineFactor = 0.9625f;
         real32 Outline = (real32)(GridSize - (GridSize * OutlineFactor));
         
         v3 Coords = v3(Left->x, Left->y, 0.5f);
@@ -467,18 +460,18 @@ DrawCoffeeCow(CoffeeCow *Cow,
         if (Left->x == Right->x) Coords = Coords + v3(Outline, GridSize/2, 0);
         
         if (Left->y != Right->y || Left->x != Right->x) {
-            Push(Coords, GetSize(*Left, *Right, GridSize - (Outline*2)), 0xFFFFFFFF, 0.0f);
+            Push(Coords, GetSize(*Left, *Right, GridSize - (Outline*2)), 0xFFFFFFFF);
             
             if (Left->y == Right->y) Coords.y -= Outline;
             if (Left->x == Right->x) Coords.x -= Outline;
             Coords.z = 0.0f;
             
-            Push(Coords, GetSize(*Left, *Right, (real32)GridSize), 
-                 GetBestMatchBitmap(Assets, Asset_CowStraightOutline, &MatchVector, &WeightVector), 
-                 0.0f, blend_mode::gl_one);
+            Push(Coords, GetSize(*Left, *Right, GridSize), 0xFF000000);
+            //Push(Coords, GetSize(*Left, *Right, (real32)GridSize), GetBestMatchBitmap(Assets, Asset_CowStraightOutline, &MatchVector, &WeightVector));
         }
     }
     
+    qlibBlendMode(BLEND_MODE_GL_SRC_ALPHA);
     Corners->Clear();
 }
 inline void
@@ -925,6 +918,7 @@ void UpdateRender(platform* p)
     v2 PlatformDim = GetDim(p);
     
     camera *C = &GameState->Camera;
+    qlibCoordSystem(QLIB_TOP_RIGHT);
     
     if (!GameState->Initialized)
     {
@@ -933,7 +927,7 @@ void UpdateRender(platform* p)
         InitializeAudioState(&p->AudioState);
         p->AudioState.Assets = (void*)&GameState->Assets;
         
-        C->Position = v3(0, 0, -900);
+        C->Position = v3(0, 0, 900);
         C->Target = v3(0, 0, 0);
         C->Up = v3(0, 1, 0);
         C->FOV = 90.0f;
@@ -991,12 +985,13 @@ void UpdateRender(platform* p)
                 PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Bloop));
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
-            v2 GridCoords = (RealGridDim * -1) / 2;
+            v2 GridCoords = (RealGridDim * -1) / 2 + (PlatformDim/2);
+            
             DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
                             GetFirstBitmap(&GameState->Assets, Asset_Grass),
                             GetFirstBitmap(&GameState->Assets, Asset_Grid),
                             GetFirstBitmap(&GameState->Assets, Asset_Rock),
-                            TopLeftCornerCoords,
+                            v2(0, 0),
                             PlatformDim,
                             GridCoords,
                             GameState->GridDim,
@@ -1006,7 +1001,7 @@ void UpdateRender(platform* p)
             
             DrawCoffeeCow(Cow, Cof->Coords, &GameState->Assets, Tag_Player1, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
             DrawCoffee(Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
-            DrawScore(&GameState->Assets, Cow->Score, TopLeftCornerCoords, GetDim(p));
+            DrawScore(&GameState->Assets, Cow->Score, v2(0, 0), GetDim(p));
         }
     }
     else if (GameState->Game == game_mode::multiplayer) {
@@ -1149,6 +1144,11 @@ void UpdateRender(platform* p)
             pairintstring(MCI_Count)
         };
         
+        const char *IDs2[] = {
+            "MCI_Singleplayer",
+            "MCI_LocalMultiplayer",
+        };
+        
         menu *Menu = GetMenu(GameState, menu_mode::main_menu);
         if (DoMenu(Menu, "menus/main.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController)) 
         {
@@ -1172,7 +1172,7 @@ void UpdateRender(platform* p)
                 p->Input.Quit = 1;
         }
         
-        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
+        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::multiplayer_menu) {
         enum menu_component_id
@@ -1214,7 +1214,7 @@ void UpdateRender(platform* p)
                 UpdateMenu(Menu);
             }
         }
-        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
+        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::pause_menu) {
         
@@ -1244,7 +1244,7 @@ void UpdateRender(platform* p)
             }
         }
         
-        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
+        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
     }
     else if (GameState->Menu == menu_mode::game_over_menu) {
         
@@ -1325,7 +1325,7 @@ void UpdateRender(platform* p)
                 SetMenu(GameState, menu_mode::main_menu);
             }
         }
-        DrawMenu(Menu, GetTopLeftCornerCoords(p), GetDim(p), 100.0f);
+        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
     }
     
     
@@ -1333,7 +1333,7 @@ void UpdateRender(platform* p)
     if (OnKeyDown(&Keyboard->F5))
         GameState->ShowFPS = !GameState->ShowFPS;
     if (GameState->ShowFPS)
-        DrawFPS(p->Input.WorkSecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
+        DrawFPS(p->Input.MillisecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
     
     C->PlatformDim = v2(p->Dimension.Width, p->Dimension.Height);
     
