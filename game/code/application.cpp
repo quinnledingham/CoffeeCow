@@ -71,7 +71,7 @@ enum asset_type_id
 #define Permanent_Storage_Size Megabytes(256)
 #define Transient_Storage_Size Megabytes(1)
 
-#define IconFileName "bitmaps/icon.ico"
+#define IconFileName "bitmaps/icon2.png"
 #define CurrentDirectory "../game/data"
 
 #define QLIB_SDL
@@ -937,7 +937,7 @@ void UpdateRender(platform* p)
         GameState->Game = game_mode::not_in_game;
         GameState->GridDim = v2(17, 17);
         
-        MakeAssetFile(&p->Queue, &GameState->Assets);
+        //MakeAssetFile(&p->Queue, &GameState->Assets);
         LoadAssetFile(&p->Queue, &GameState->Assets);
         
         PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Song));
