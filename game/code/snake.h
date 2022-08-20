@@ -113,11 +113,10 @@ menu_mode
     game_over_menu,
     local_multiplayer_menu,
     
-    menu_mode_Count
+    count
 };
 enum struct
 game_mode
-
 {
     not_in_game,
     singleplayer,
@@ -162,8 +161,10 @@ struct game_state
     game_controller Controllers[5];
     
     menu_controller MenuController;
+    menu Menus[(int)menu_mode::count];
     
-    menu Menus[(int)menu_mode::menu_mode_Count];
+    gui Status;
+    u32 FPSComponent;
     
     bool32 ShowFPS = false;
     bool32 ResetGame = true;
@@ -195,16 +196,8 @@ struct game_state
         };
     };
     
-    
-    platform_controller_input *ActiveInput;
-    
     Coffee Collect;
     
-    v2 OldPlatformDim;
-    
-    real32 tSine;
-    uint32 TestSampleIndex;
-    loaded_sound TestSound;
     audio_state AudioState;
     
     platform_work_queue *Queue;

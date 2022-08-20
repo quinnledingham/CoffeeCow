@@ -503,13 +503,7 @@ AddInput(CoffeeCow *Cow, int NewDirection)
 }
 
 inline void
-CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow)
-{
-    if(OnKeyDown(&Controller->MoveLeft)) AddInput(Cow, LEFT);
-    if(OnKeyDown(&Controller->MoveRight))AddInput(Cow, RIGHT);
-    if(OnKeyDown(&Controller->MoveDown)) AddInput(Cow, DOWN);
-    if(OnKeyDown(&Controller->MoveUp)) AddInput(Cow, UP);
-}
+CoffeeCowProcessInput(platform_controller_input *Controller, CoffeeCow *Cow) {}
 
 inline void
 CoffeeCowProcessInput(game_controller *Controller, CoffeeCow *Cow)
@@ -770,6 +764,7 @@ MakeAssetFile(platform_work_queue *Queue, assets *Assets)
     // Sounds
     //
     BuilderAddSound(&BuilderAssets, "sounds/bloop_01.wav", Asset_Bloop);
+    BuilderAddSound(&BuilderAssets, "sounds/ahem_x.wav", Asset_Bloop);
     BuilderAddSound(&BuilderAssets, "sounds/bornintheusa.wav", Asset_Song);
     
     //
@@ -795,6 +790,19 @@ PlatformKeyboardToGameController(platform_keyboard_input *Keyboard, game_control
     Controller->MoveRight = &Keyboard->D;
     
     Controller->Start = &Keyboard->Esc;
+    
+    return true;
+}
+
+internal bool32
+PlatformControllerToGameController(platform_controller_input *PlatformController, game_controller *Controller)
+{
+    Controller->MoveUp = &PlatformController->DPadUp;
+    Controller->MoveLeft = &PlatformController->DPadLeft;
+    Controller->MoveDown = &PlatformController->DPadDown;
+    Controller->MoveRight = &PlatformController->DPadRight;
+    
+    Controller->Start = &PlatformController->Start;
     
     return true;
 }
@@ -838,6 +846,16 @@ PlatformMouseToMenuController(platform_mouse_input *Mouse, menu_controller *Cont
     Controller->MouseControls = true;
     Controller->Index = 0;
     
+    return true;
+}
+
+internal bool32
+PlatformControllerToMenuController(platform_controller_input *PlatformController, menu_controller *Controller)
+{
+    Controller->ForwardActive[0] = &PlatformController->DPadDown;
+    Controller->BackwardActive = &PlatformController->DPadUp;
+    Controller->Enter = &PlatformController->A;
+    Controller->MouseControls = false;
     return true;
 }
 
@@ -937,7 +955,7 @@ void UpdateRender(platform* p)
         GameState->Game = game_mode::not_in_game;
         GameState->GridDim = v2(17, 17);
         
-        //MakeAssetFile(&p->Queue, &GameState->Assets);
+        MakeAssetFile(&p->Queue, &GameState->Assets);
         LoadAssetFile(&p->Queue, &GameState->Assets);
         
         PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Song));
@@ -946,13 +964,18 @@ void UpdateRender(platform* p)
         GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
         
         PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Controllers[0]);
-        GameState->ActiveControllerIndex = 0;
+        PlatformControllerToGameController(&p->Input.Controllers[0], &GameState->Controllers[1]);
+        PlatformControllerToGameController(&p->Input.Controllers[1], &GameState->Controllers[2]);
+        PlatformControllerToGameController(&p->Input.Controllers[2], &GameState->Controllers[3]);
+        PlatformControllerToGameController(&p->Input.Controllers[3], &GameState->Controllers[4]);
     }
     
     if (p->Input.ActiveInput == platform_input_index::keyboard)
         PlatformKeyboardToMenuController(&p->Input.Keyboard, &GameState->MenuController);
     else if (p->Input.ActiveInput == platform_input_index::mouse)
         PlatformMouseToMenuController(&p->Input.Mouse, &GameState->MenuController);
+    else if (p->Input.ActiveInput == platform_input_index::controller1)
+        PlatformControllerToMenuController(&p->Input.Controllers[0], &GameState->MenuController);
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
     if (NewGridSize != GameState->GridSize)
@@ -973,16 +996,19 @@ void UpdateRender(platform* p)
             MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            if (GameState->Menu != menu_mode::game_over_menu)
+            if (GameState->Menu != menu_mode::game_over_menu) {
                 CoffeeCowProcessInput(Controller, Cow);
+            }
             
             if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
                 MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);
             else
                 SetMenu(GameState, menu_mode::game_over_menu);
             
-            if (CollectCoffee(Cow, Cof, GameState->GridDim))
+            if (CollectCoffee(Cow, Cof, GameState->GridDim)) {
                 PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Bloop));
+                //PlaySound(&p->AudioState, GetIndexSound(&GameState->Assets, Asset_Bloop, 1));
+            }
             
             v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
             v2 GridCoords = (RealGridDim * -1) / 2 + (PlatformDim/2);
@@ -1005,6 +1031,7 @@ void UpdateRender(platform* p)
         }
     }
     else if (GameState->Game == game_mode::multiplayer) {
+        game_controller *Controller = &GameState->Controllers[GameState->ActiveControllerIndex];
         CoffeeCow *CowPlayer = &GameState->Player1;
         CoffeeCow *CowPlayer2 = &GameState->Player2;
         Coffee *Collect = &GameState->Collect;
@@ -1023,11 +1050,11 @@ void UpdateRender(platform* p)
             GameState->ThreadHandle = CreateThread(0, 0, SendRecvFunction, GameState, 0, &ThreadID);
         }
         
-        if (OnKeyDown(&p->Input.CurrentInputInfo.Controller->Start))
+        if (OnKeyDown(Controller->Start))
             MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
         
         if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(p->Input.CurrentInputInfo.Controller, CowPlayer);
+            CoffeeCowProcessInput(Controller, CowPlayer);
             
             if (CheckCollisionCoffeeCow(CowPlayer, CowPlayer, GameState->GridDim))
                 MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim);
@@ -1157,6 +1184,11 @@ void UpdateRender(platform* p)
                 SetMenu(GameState, menu_mode::not_in_menu);
                 GameState->ResetGame = true;
                 GameState->Game = game_mode::singleplayer;
+                
+                if (p->Input.ActiveInput == platform_input_index::keyboard || p->Input.ActiveInput == platform_input_index::mouse)
+                    GameState->ActiveControllerIndex = 0;
+                else if (p->Input.ActiveInput == platform_input_index::controller1)
+                    GameState->ActiveControllerIndex = 1;
             }
             else if (Menu->Events.ButtonClicked == MCI_Multiplayer) {
                 SetMenu(GameState, menu_mode::multiplayer_menu);
@@ -1164,12 +1196,12 @@ void UpdateRender(platform* p)
             else if (Menu->Events.ButtonClicked == MCI_LocalMultiplayer) {
                 for (int i = 0; i < ArrayCount(p->Input.Controllers); i++) {
                     platform_controller_input *Controller = &p->Input.Controllers[i];
-                    Controller->IgnoreInputs = false;
+                    //Controller->IgnoreInputs = false;
                 }
                 SetMenu(GameState, menu_mode::local_multiplayer_menu);
             }
             else if (Menu->Events.ButtonClicked == MCI_Quit)
-                p->Input.Quit = 1;
+                p->Quit = true;
         }
         
         DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
@@ -1332,8 +1364,16 @@ void UpdateRender(platform* p)
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
     if (OnKeyDown(&Keyboard->F5))
         GameState->ShowFPS = !GameState->ShowFPS;
-    if (GameState->ShowFPS)
+    
+    if (GameState->ShowFPS) {
         DrawFPS(p->Input.MillisecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
+        //GUIAdd();
+    }
+    
+    if (GUIRun(&GameState->Status))
+    {
+        
+    }
     
     C->PlatformDim = v2(p->Dimension.Width, p->Dimension.Height);
     
