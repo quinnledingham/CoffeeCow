@@ -143,7 +143,7 @@ DrawScore(assets *Assets, int Score, v2 TopLeftCornerCoords, v2 BufferDim)
 }
 
 internal void
-DrawCoffee(Coffee *Cof, real32 Seconds, v2 GridCoords, real32 GridSize, real32 Z)
+DrawCoffee(Coffee *Cof, bitmap_id Bitmap, real32 Seconds, v2 GridCoords, real32 GridSize, real32 Z)
 {
     Cof->Rotation += (Seconds * 100);
     if (Cof->Rotation > 360) Cof->Rotation -= 360;
@@ -161,7 +161,7 @@ DrawCoffee(Coffee *Cof, real32 Seconds, v2 GridCoords, real32 GridSize, real32 Z
     v3 Coords = v3(GridCoords.x + (Cof->Coords.x * GridSize) - (Cof->Height/2),
                    GridCoords.y + (Cof->Coords.y * GridSize) - (Cof->Height/2),
                    Z);
-    Push(Coords, v2(GridSize + Cof->Height), Cof->Bitmap, Cof->Rotation, blend_mode::gl_src_alpha);
+    Push(Coords, v2(GridSize + Cof->Height), Bitmap, Cof->Rotation, blend_mode::gl_src_alpha);
 }
 /*
 internal void
@@ -562,6 +562,32 @@ CheckCollisionCoffeeCow(CoffeeCow *Cow, CoffeeCow *OtherCows, v2 GridDim)
     return true;
 }
 
+internal bool32
+CheckCollionCoffeeCow(CoffeeCow *Cow, coffee_cow_collision_node *CollisionNodes, v2 GridDim)
+{
+    CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
+    v2 HeadCoords = Head->Coords;
+    
+    // Check collision with wall
+    int Direction = Cow->Direction;
+    if ((Direction == LEFT && HeadCoords.x <= 0) || (Direction == RIGHT && HeadCoords.x >= GridDim.x - 1) ||
+        (Direction == UP && HeadCoords.y <= 0) || (Direction == DOWN && HeadCoords.y >= GridDim.y - 1))
+        return false;
+    
+    MoveInDirection(&HeadCoords, Head->CurrentDirection);
+    u32 i = 0;
+    if (HeadCoords == CollisionNodes->Head)
+        i = 1;
+    for (i; i < CollisionNodes->NumNodes; i++) {
+        v2 Node = CollisionNodes->Nodes[i];
+        if (HeadCoords.x == Node.x &&
+            HeadCoords.y == Node.y)
+            return false;
+    }
+    
+    return true;
+}
+
 internal void
 MoveCoffeeCow(CoffeeCow *Cow, real32 SecondsElapsed, v2 GridDim)
 {
@@ -862,7 +888,7 @@ PlatformControllerToMenuController(platform_controller_input *PlatformController
 internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
 {
     game_state *GameState = (game_state*)Data;
-    CoffeeCow *CowPlayer2 = &GameState->Player2;
+    CoffeeCow *CowPlayer2 = &GameState->Players[1];
     
     char Buffer[BUF_SIZE];
     int bytes = SocketqRecv(&GameState->Client, BufferC(Buffer, BUF_SIZE), BUF_SIZE);
@@ -885,7 +911,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(RecvData)
 internal PLATFORM_WORK_QUEUE_CALLBACK(SendData)
 {
     game_state *GameState = (game_state*)Data;
-    CoffeeCow *CowPlayer = &GameState->Player1;
+    CoffeeCow *CowPlayer = &GameState->Players[0];
     
     game_packet PacketSend = {};
     PacketSend.Cow.TransitionAmt = CowPlayer->TransitionAmt;
@@ -927,6 +953,50 @@ DWORD WINAPI SendRecvFunction(LPVOID lpParam)
     return true;
 }
 
+struct coffee_cow_thread_params
+{
+    bool32 Reset;
+    bool32 GameOver;
+    menu_mode Menu;
+    v2 GridDim;
+    CoffeeCow *Cow;
+    coffee_cow_collision_node *Nodes;
+    real32 SecondsElapsed;
+};
+
+internal int
+DoCoffeeCow(void *Data)
+{
+    coffee_cow_thread_params *Params = (coffee_cow_thread_params*)Data;
+    if (Params->Reset)
+        InitializeCow(Params->Cow, Params->GridDim);
+    
+    if (Params->Menu == menu_mode::pause_menu)
+        return 0;
+    
+    if (Params->Menu != menu_mode::game_over_menu)
+        CoffeeCowProcessInput(&Params->Cow->Controller, Params->Cow);
+    
+    if (CheckCollionCoffeeCow(Params->Cow, Params->Nodes, Params->GridDim))
+        MoveCoffeeCow(Params->Cow, Params->SecondsElapsed, Params->GridDim);
+    else
+        Params->GameOver = true;
+    
+}
+
+internal void
+CoffeeCowCollisionNode(coffee_cow_collision_node *CollisionNode, CoffeeCow *Cow)
+{
+    CoffeeCowNode *Head = (CoffeeCowNode*)Cow->Nodes[0];
+    CollisionNode->Head = Head->Coords;
+    
+    for (int i = 0; Cow->Nodes.Size; i++) {
+        CoffeeCowNode *Node = (CoffeeCowNode*)Cow->Nodes[i];
+        CollisionNode->Nodes[i] = Node->Coords;
+        CollisionNode->NumNodes++;
+    }
+}
+
 void UpdateRender(platform* p)
 {
     game_state *GameState = MemStart(game_state);
@@ -960,405 +1030,355 @@ void UpdateRender(platform* p)
         
         PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Song));
         SetTrue(&p->AudioState.Paused);
-        
-        GameState->Collect.Bitmap = GetFirstBitmap(&GameState->Assets, Asset_Coffee);
-        
-        PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Controllers[0]);
-        PlatformControllerToGameController(&p->Input.Controllers[0], &GameState->Controllers[1]);
-        PlatformControllerToGameController(&p->Input.Controllers[1], &GameState->Controllers[2]);
-        PlatformControllerToGameController(&p->Input.Controllers[2], &GameState->Controllers[3]);
-        PlatformControllerToGameController(&p->Input.Controllers[3], &GameState->Controllers[4]);
     }
-    
-    if (p->Input.ActiveInput == platform_input_index::keyboard)
-        PlatformKeyboardToMenuController(&p->Input.Keyboard, &GameState->MenuController);
-    else if (p->Input.ActiveInput == platform_input_index::mouse)
-        PlatformMouseToMenuController(&p->Input.Mouse, &GameState->MenuController);
-    else if (p->Input.ActiveInput == platform_input_index::controller1)
-        PlatformControllerToMenuController(&p->Input.Controllers[0], &GameState->MenuController);
     
     real32 NewGridSize = p->Dimension.Height / (GameState->GridDim.x + 6);
     if (NewGridSize != GameState->GridSize)
         GameState->GridSize = NewGridSize;
     
-    if (GameState->Game == game_mode::singleplayer) {
-        game_controller *Controller = &GameState->Controllers[GameState->ActiveControllerIndex];
-        CoffeeCow *Cow = &GameState->Player1;
-        Coffee *Cof = &GameState->Collect;
+    // Do/Render Game
+    if (GameState->Game != game_mode::not_in_game) {
+        v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
+        v2 GridCoords = (RealGridDim * -1) / 2 + (PlatformDim/2);
         
-        if (GameState->ResetGame) {
-            InitializeCow(Cow, GameState->GridDim);
-            InitializeCoffee(Cow, Cof, GameState->GridDim);
+        if (GameState->ResetGame)
+        {
+            for (u32  i = 0; i < GameState->NumPlayers; i++)
+            {
+                CoffeeCow *Cow = &GameState->Players[i];
+                InitializeCow(Cow, GameState->GridDim);
+            }
+            
             GameState->ResetGame = false;
         }
         
-        if (OnKeyDown(Controller->Start))
-            MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
+        for (u32 i = 0; i < GameState->NumPlayers; i++)
+        {
+            CoffeeCow *Cow = &GameState->Players[i];
+            if (OnKeyDown(Cow->Controller.Start))
+                MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
+        }
         
-        if (GameState->Menu != menu_mode::pause_menu) {
-            if (GameState->Menu != menu_mode::game_over_menu) {
-                CoffeeCowProcessInput(Controller, Cow);
+        if (GameState->Menu != menu_mode::pause_menu)
+        {
+            if (GameState->Menu != menu_mode::game_over_menu)
+            {
+                for (u32 i = 0; i < GameState->NumPlayers; i++)
+                {
+                    CoffeeCow *Cow = &GameState->Players[i];
+                    CoffeeCowProcessInput(&Cow->Controller, Cow);
+                }
             }
             
-            if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
-                MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);
-            else
-                SetMenu(GameState, menu_mode::game_over_menu);
-            
-            if (CollectCoffee(Cow, Cof, GameState->GridDim)) {
-                PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Bloop));
-                //PlaySound(&p->AudioState, GetIndexSound(&GameState->Assets, Asset_Bloop, 1));
-            }
-            
-            v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
-            v2 GridCoords = (RealGridDim * -1) / 2 + (PlatformDim/2);
-            
-            DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grass),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grid),
-                            GetFirstBitmap(&GameState->Assets, Asset_Rock),
-                            v2(0, 0),
-                            PlatformDim,
-                            GridCoords,
-                            GameState->GridDim,
-                            RealGridDim,
-                            GameState->GridSize,
-                            -1.0f);
-            
-            DrawCoffeeCow(Cow, Cof->Coords, &GameState->Assets, Tag_Player1, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-            DrawCoffee(Cof, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
-            DrawScore(&GameState->Assets, Cow->Score, v2(0, 0), GetDim(p));
-        }
-    }
-    else if (GameState->Game == game_mode::multiplayer) {
-        game_controller *Controller = &GameState->Controllers[GameState->ActiveControllerIndex];
-        CoffeeCow *CowPlayer = &GameState->Player1;
-        CoffeeCow *CowPlayer2 = &GameState->Player2;
-        Coffee *Collect = &GameState->Collect;
-        
-        if (GameState->ResetGame) {
-            InitializeCow(CowPlayer, GameState->GridDim);
-            CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
-            
-            SocketqInit(&GameState->Client, GameState->IP, GameState->Port, TCP);
-            GameState->ResetGame = false;
-            GameState->Disconnect = 0;
-            
-            DWORD ThreadID;
-            //HANDLE ThreadHandle = CreateThread(0, 0, SendRecvFunction, GameState, 0, &ThreadID);
-            //CloseHandle(ThreadHandle);
-            GameState->ThreadHandle = CreateThread(0, 0, SendRecvFunction, GameState, 0, &ThreadID);
-        }
-        
-        if (OnKeyDown(Controller->Start))
-            MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
-        
-        if (GameState->Menu != menu_mode::pause_menu) {
-            CoffeeCowProcessInput(Controller, CowPlayer);
-            
-            if (CheckCollisionCoffeeCow(CowPlayer, CowPlayer, GameState->GridDim))
-                MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim);
-            else
-                SetMenu(GameState, menu_mode::game_over_menu);
-            
-            CollectCoffee(CowPlayer, Collect, GameState->GridDim);
-            
-            v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
-            v2 GridCoords = (RealGridDim * -1) / 2;
-            DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grass),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grid),
-                            GetFirstBitmap(&GameState->Assets, Asset_Rock),
-                            TopLeftCornerCoords,
-                            PlatformDim,
-                            GridCoords,
-                            GameState->GridDim,
-                            RealGridDim,
-                            GameState->GridSize,
-                            -1.0f);
-            
-            DrawCoffeeCow(CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-            DrawCoffeeCow(CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-            DrawCoffee(Collect, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
-            //DrawScore(&GameState->Assets, CowPlayer->Score, TopLeftCornerCoords, GetDim(p));
-        }
-    }
-    else if (GameState->Game == game_mode::local_multiplayer) {
-        for (int i = 0; i < 4; i++) {
-            if (GameState->Players[i].Input != 0) {
-                if (OnKeyDown(&GameState->Players[i].Input->Start))
-                    MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
+            for (u32 i = 0; i < GameState->NumPlayers; i++)
+            {
+                CoffeeCow *Cow = &GameState->Players[i];
+                if (CheckCollisionCoffeeCow(Cow, Cow, GameState->GridDim))
+                    MoveCoffeeCow(Cow, p->Input.WorkSecondsElapsed, GameState->GridDim);
+                else
+                    SetMenu(GameState, menu_mode::game_over_menu);
             }
         }
-        if (GameState->Menu != menu_mode::pause_menu) {
-            Coffee *Collect = &GameState->Collect;
+        
+        if (GameState->Game == game_mode::singleplayer) {
+            CoffeeCow *Cow = &GameState->Players[0];
+            Coffee *Cof = &GameState->Coffees[0];
+            
+            if (GameState->Menu != menu_mode::pause_menu) {
+                if (CollectCoffee(Cow, Cof, GameState->GridDim)) {
+                    PlaySound(&p->AudioState, GetFirstSound(&GameState->Assets, Asset_Bloop));
+                    //PlaySound(&p->AudioState, GetIndexSound(&GameState->Assets, Asset_Bloop, 1));
+                }
+                
+                DrawCoffee(Cof, GetFirstBitmap(&GameState->Assets, Asset_Coffee), p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
+                DrawScore(&GameState->Assets, Cow->Score, v2(0, 0), GetDim(p));
+            }
+        }
+        else if (GameState->Game == game_mode::local_multiplayer) {
+            
+        }
+        else if (GameState->Game == game_mode::multiplayer) {
+            game_controller *Controller = &GameState->Players[0].Controller;
+            CoffeeCow *CowPlayer = &GameState->Players[0];
+            CoffeeCow *CowPlayer2 = &GameState->Players[1];
+            Coffee *Collect = &GameState->Coffees[0];
             
             if (GameState->ResetGame) {
-                for (int i = 0; i < 4; i++) {
-                    if (GameState->Players[i].Input != 0) {
-                        InitializeCow(&GameState->Players[i], GameState->GridDim);
-                    }
-                }
+                InitializeCow(CowPlayer, GameState->GridDim);
+                CowPlayer2->Nodes.Init((int)(GameState->GridDim.x * GameState->GridDim.y), sizeof(CoffeeCowNode));
+                
+                SocketqInit(&GameState->Client, GameState->IP, GameState->Port, TCP);
                 GameState->ResetGame = false;
+                GameState->Disconnect = 0;
+                
+                DWORD ThreadID;
+                //HANDLE ThreadHandle = CreateThread(0, 0, SendRecvFunction, GameState, 0, &ThreadID);
+                //CloseHandle(ThreadHandle);
+                GameState->ThreadHandle = CreateThread(0, 0, SendRecvFunction, GameState, 0, &ThreadID);
             }
             
-            bool GameOver = false;
-            for (int i = 0; i < 4; i++) {
-                if (GameState->Players[i].Input != 0) {
-                    if (GameState->Menu != menu_mode::game_over_menu)
-                        CoffeeCowProcessInput(GameState->Players[i].Input, &GameState->Players[i]);
-                    
-                    for (int j = 0; j < 4; j++) {
-                        if (GameState->Players[j].Input != 0) {
-                            if (!CheckCollisionCoffeeCow(&GameState->Players[i], &GameState->Players[j], GameState->GridDim))
-                                GameOver = true;
-                        }
-                    }
-                }
-            }
+            if (OnKeyDown(Controller->Start))
+                MenuToggle(GameState, menu_mode::not_in_menu, menu_mode::pause_menu);
             
-            if (!GameOver){
-                for (int i = 0; i < 4; i++) {
-                    if (GameState->Players[i].Input != 0) {
-                        MoveCoffeeCow(&GameState->Players[i], p->Input.WorkSecondsElapsed, GameState->GridDim);
-                        CollectCoffee(&GameState->Players[i], Collect, GameState->GridDim);
-                    }
-                }
+            if (GameState->Menu != menu_mode::pause_menu) {
+                CoffeeCowProcessInput(Controller, CowPlayer);
+                
+                if (CheckCollisionCoffeeCow(CowPlayer, CowPlayer, GameState->GridDim))
+                    MoveCoffeeCow(CowPlayer, p->Input.WorkSecondsElapsed, GameState->GridDim);
+                else
+                    SetMenu(GameState, menu_mode::game_over_menu);
+                
+                CollectCoffee(CowPlayer, Collect, GameState->GridDim);
+                
+                v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
+                v2 GridCoords = (RealGridDim * -1) / 2;
+                
+                
+                DrawCoffeeCow(CowPlayer, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+                DrawCoffeeCow(CowPlayer2, Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+                DrawCoffee(Collect, GetFirstBitmap(&GameState->Assets, Asset_Coffee), p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
+                //DrawScore(&GameState->Assets, CowPlayer->Score, TopLeftCornerCoords, GetDim(p));
             }
-            else {
-                SetMenu(GameState, menu_mode::game_over_menu);
-            }
-            
-            v2 RealGridDim = v2(GameState->GridDim.x * GameState->GridSize, GameState->GridDim.y * GameState->GridSize);
-            v2 GridCoords = (RealGridDim * -1) / 2;
-            for (int i = 0; i < 4; i++) {
-                if (GameState->Players[i].Input != 0) {
-                    DrawCoffeeCow(&GameState->Players[i], Collect->Coords, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
-                }
-            }
-            
-            DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grass),
-                            GetFirstBitmap(&GameState->Assets, Asset_Grid),
-                            GetFirstBitmap(&GameState->Assets, Asset_Rock),
-                            TopLeftCornerCoords,
-                            PlatformDim,
-                            GridCoords,
-                            GameState->GridDim,
-                            RealGridDim,
-                            GameState->GridSize,
-                            -1.0f);
-            
-            DrawCoffee(Collect, p->Input.WorkSecondsElapsed, GridCoords, GameState->GridSize, 0.1f);
         }
+        
+        DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
+                        GetFirstBitmap(&GameState->Assets, Asset_Grass),
+                        GetFirstBitmap(&GameState->Assets, Asset_Grid),
+                        GetFirstBitmap(&GameState->Assets, Asset_Rock),
+                        v2(0, 0),
+                        PlatformDim,
+                        GridCoords,
+                        GameState->GridDim,
+                        RealGridDim,
+                        GameState->GridSize,
+                        -1.0f);
+        
+        for (u32 i = 0; i < GameState->NumPlayers; i++)
+            DrawCoffeeCow(&GameState->Players[i], GameState->Coffees[0].Coords, &GameState->Assets, GameState->Players[i].Tag, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
+        
     }
+    // End of Do/Render Game
     
-    if (GameState->Menu == menu_mode::main_menu) {
+    // Do/Render Menu
+    if (GameState->Menu != menu_mode::not_in_menu) {
+        if (p->Input.ActiveInput == platform_input_index::keyboard)
+            PlatformKeyboardToMenuController(&p->Input.Keyboard, &GameState->MenuController);
+        else if (p->Input.ActiveInput == platform_input_index::mouse)
+            PlatformMouseToMenuController(&p->Input.Mouse, &GameState->MenuController);
+        else if (p->Input.ActiveInput == platform_input_index::controller1)
+            PlatformControllerToMenuController(&p->Input.Controllers[0], &GameState->MenuController);
         
-        enum menu_component_id
-        {
-            MCI_Singleplayer,
-            MCI_LocalMultiplayer,
-            MCI_Multiplayer,
-            MCI_Quit,
-            MCI_Count
-        };
-        pair_int_string IDs[] = {
-            pairintstring(MCI_Singleplayer),
-            pairintstring(MCI_LocalMultiplayer),
-            pairintstring(MCI_Multiplayer),
-            pairintstring(MCI_Quit),
-            pairintstring(MCI_Count)
-        };
-        
-        const char *IDs2[] = {
-            "MCI_Singleplayer",
-            "MCI_LocalMultiplayer",
-        };
-        
-        menu *Menu = GetMenu(GameState, menu_mode::main_menu);
-        if (DoMenu(Menu, "menus/main.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController)) 
-        {
-            if (Menu->Events.ButtonClicked == MCI_Singleplayer) {
-                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
-                SetMenu(GameState, menu_mode::not_in_menu);
-                GameState->ResetGame = true;
-                GameState->Game = game_mode::singleplayer;
-                
-                if (p->Input.ActiveInput == platform_input_index::keyboard || p->Input.ActiveInput == platform_input_index::mouse)
-                    GameState->ActiveControllerIndex = 0;
-                else if (p->Input.ActiveInput == platform_input_index::controller1)
-                    GameState->ActiveControllerIndex = 1;
-            }
-            else if (Menu->Events.ButtonClicked == MCI_Multiplayer) {
-                SetMenu(GameState, menu_mode::multiplayer_menu);
-            }
-            else if (Menu->Events.ButtonClicked == MCI_LocalMultiplayer) {
-                for (int i = 0; i < ArrayCount(p->Input.Controllers); i++) {
-                    platform_controller_input *Controller = &p->Input.Controllers[i];
-                    //Controller->IgnoreInputs = false;
-                }
-                SetMenu(GameState, menu_mode::local_multiplayer_menu);
-            }
-            else if (Menu->Events.ButtonClicked == MCI_Quit)
-                p->Quit = true;
-        }
-        
-        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
-    }
-    else if (GameState->Menu == menu_mode::multiplayer_menu) {
-        enum menu_component_id
-        {
-            MCI_IP,
-            MCI_Port,
-            MCI_Join,
-            MCI_Back,
-            MCI_PortText,
-            MCI_Count
-        };
-        pair_int_string IDs[] = {
-            pairintstring(MCI_IP),
-            pairintstring(MCI_Port),
-            pairintstring(MCI_Join),
-            pairintstring(MCI_Back),
-            pairintstring(MCI_PortText),
-            pairintstring(MCI_Count)
-        };
-        
-        menu *Menu = GetMenu(GameState, menu_mode::multiplayer_menu);
-        if (DoMenu(Menu, "menus/online_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
-        {
-            if (Menu->Events.ButtonClicked == MCI_Join) {
-                PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
-                GameState->ResetGame = true;
-                SetMenu(GameState, menu_mode::not_in_menu);
-                GameState->Game = game_mode::multiplayer;
-                
-                GameState->IP = MenuGetTextBoxText(Menu, MCI_IP);
-                GameState->Port = MenuGetTextBoxText(Menu, MCI_Port);
-            }
-            else if (Menu->Events.ButtonClicked == MCI_Back) {
-                SetMenu(GameState, menu_mode::main_menu);
-            }
+        if (GameState->Menu == menu_mode::main_menu) {
+            enum menu_component_id
+            {
+                MCI_Singleplayer,
+                MCI_LocalMultiplayer,
+                MCI_Multiplayer,
+                MCI_Quit,
+                MCI_Count
+            };
+            pair_int_string IDs[] = {
+                pairintstring(MCI_Singleplayer),
+                pairintstring(MCI_LocalMultiplayer),
+                pairintstring(MCI_Multiplayer),
+                pairintstring(MCI_Quit),
+                pairintstring(MCI_Count)
+            };
             
-            if (Menu->ScreenDim != GetDim(p)) {
-                ResizeMenu(Menu, GetDim(p), &GameState->Assets);
-                UpdateMenu(Menu);
-            }
-        }
-        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
-    }
-    else if (GameState->Menu == menu_mode::pause_menu) {
-        
-        enum menu_component_id
-        {
-            MCI_Reset,
-            MCI_Menu,
-            MCI_Count
-        };
-        pair_int_string IDs[] = {
-            pairintstring(MCI_Reset),
-            pairintstring(MCI_Menu),
-            pairintstring(MCI_Count)
-        };
-        
-        menu *Menu = GetMenu(GameState, menu_mode::pause_menu);
-        if (DoMenu(Menu, "menus/pause.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
-        {
-            if (Menu->Events.ButtonClicked == MCI_Menu) {
-                GameState->Game = game_mode::not_in_game;
-                SetMenu(GameState, menu_mode::main_menu);
-            }
-            else if (Menu->Events.ButtonClicked == MCI_Reset) {
-                GameState->ResetGame = true;
-                GameState->Game = game_mode::singleplayer;
-                SetMenu(GameState, menu_mode::not_in_menu);
-            }
-        }
-        
-        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
-    }
-    else if (GameState->Menu == menu_mode::game_over_menu) {
-        
-        enum menu_component_id
-        {
-            MCI_Reset,
-            MCI_Menu,
-            MCI_Count
-        };
-        pair_int_string IDs[] = {
-            pairintstring(MCI_Reset),
-            pairintstring(MCI_Menu),
-            pairintstring(MCI_Count)
-        };
-        
-        menu *Menu = GetMenu(GameState, menu_mode::game_over_menu);
-        if (DoMenu(Menu, "menus/game_over.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
-        {
-            if (Menu->Events.ButtonClicked == MCI_Menu) {
-                GameState->Game = game_mode::not_in_game;
-                SetMenu(GameState, menu_mode::main_menu);
-                
-            }
-            else if (Menu->Events.ButtonClicked == MCI_Reset) {
-                GameState->ResetGame = true;
-                SetMenu(GameState, menu_mode::not_in_menu);
-            }
-        }
-        
-        DrawMenu(Menu, 100.0f);
-    }
-    else if (GameState->Menu == menu_mode::local_multiplayer_menu) {
-        enum menu_component_id
-        {
-            MCI_Default,
-            MCI_Start,
-            MCI_Back,
-            PI_Player1,
-            PI_Player2,
-            PI_Player3,
-            PI_Player4,
+            const char *IDs2[] = {
+                "MCI_Singleplayer",
+                "MCI_LocalMultiplayer",
+            };
             
-            MCI_Count
-        };
-        pair_int_string IDs[] = {
-            pairintstring(MCI_Default),
-            pairintstring(MCI_Start),
-            pairintstring(MCI_Back),
-            pairintstring(PI_Player1),
-            pairintstring(PI_Player2),
-            pairintstring(PI_Player3),
-            pairintstring(PI_Player4),
-        };
-        
-        menu *Menu = GetMenu(GameState, menu_mode::local_multiplayer_menu);
-        if (DoMenu(Menu, "menus/local_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
-        {
-            if (Menu->Events.ButtonClicked == MCI_Start) {
-                int PlayersInGame = 0;
-                for (int i = 0; i < 4; i++) {
-                    menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i + 3);
-                    menu_component_checkbox *CheckBox = (menu_component_checkbox*)Player->Data;
-                    if (CheckBox->ControllerIndex != -1)
-                    {
-                        //GameState->Players[i].Input = CheckBox->Controller;
-                        PlayersInGame++;
-                    }
-                }
-                if (PlayersInGame > 1)
-                {
+            menu *Menu = GetMenu(GameState, menu_mode::main_menu);
+            if (DoMenu(Menu, "menus/main.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController)) 
+            {
+                if (Menu->Events.ButtonClicked == MCI_Singleplayer) {
                     PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
                     SetMenu(GameState, menu_mode::not_in_menu);
                     GameState->ResetGame = true;
-                    GameState->Game = game_mode::local_multiplayer;
+                    GameState->Game = game_mode::singleplayer;
+                    GameState->NumPlayers = 1;
+                    
+                    if (p->Input.ActiveInput == platform_input_index::keyboard || 
+                        p->Input.ActiveInput == platform_input_index::mouse)
+                        PlatformKeyboardToGameController(&p->Input.Keyboard, &GameState->Players[0].Controller);
+                    else if (p->Input.ActiveInput == platform_input_index::controller1)
+                        PlatformControllerToGameController(&p->Input.Controllers[0], &GameState->Players[0].Controller);
+                    
+                    GameState->Players[0].Tag = Tag_Player1;
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Multiplayer) {
+                    SetMenu(GameState, menu_mode::multiplayer_menu);
+                }
+                else if (Menu->Events.ButtonClicked == MCI_LocalMultiplayer) {
+                    for (int i = 0; i < ArrayCount(p->Input.Controllers); i++) {
+                        platform_controller_input *Controller = &p->Input.Controllers[i];
+                        //Controller->IgnoreInputs = false;
+                    }
+                    SetMenu(GameState, menu_mode::local_multiplayer_menu);
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Quit)
+                    p->Quit = true;
+            }
+            
+            DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
+        }
+        else if (GameState->Menu == menu_mode::multiplayer_menu) {
+            enum menu_component_id
+            {
+                MCI_IP,
+                MCI_Port,
+                MCI_Join,
+                MCI_Back,
+                MCI_PortText,
+                MCI_Count
+            };
+            pair_int_string IDs[] = {
+                pairintstring(MCI_IP),
+                pairintstring(MCI_Port),
+                pairintstring(MCI_Join),
+                pairintstring(MCI_Back),
+                pairintstring(MCI_PortText),
+                pairintstring(MCI_Count)
+            };
+            
+            menu *Menu = GetMenu(GameState, menu_mode::multiplayer_menu);
+            if (DoMenu(Menu, "menus/online_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
+            {
+                if (Menu->Events.ButtonClicked == MCI_Join) {
+                    PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                    GameState->ResetGame = true;
+                    SetMenu(GameState, menu_mode::not_in_menu);
+                    GameState->Game = game_mode::multiplayer;
+                    
+                    GameState->IP = MenuGetTextBoxText(Menu, MCI_IP);
+                    GameState->Port = MenuGetTextBoxText(Menu, MCI_Port);
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Back) {
+                    SetMenu(GameState, menu_mode::main_menu);
+                }
+                
+                if (Menu->ScreenDim != GetDim(p)) {
+                    ResizeMenu(Menu, GetDim(p), &GameState->Assets);
+                    UpdateMenu(Menu);
                 }
             }
-            else if (Menu->Events.ButtonClicked == MCI_Back) {
-                SetMenu(GameState, menu_mode::main_menu);
-            }
+            DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
         }
-        DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
+        else if (GameState->Menu == menu_mode::pause_menu) {
+            
+            enum menu_component_id
+            {
+                MCI_Reset,
+                MCI_Menu,
+                MCI_Count
+            };
+            pair_int_string IDs[] = {
+                pairintstring(MCI_Reset),
+                pairintstring(MCI_Menu),
+                pairintstring(MCI_Count)
+            };
+            
+            menu *Menu = GetMenu(GameState, menu_mode::pause_menu);
+            if (DoMenu(Menu, "menus/pause.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
+            {
+                if (Menu->Events.ButtonClicked == MCI_Menu) {
+                    GameState->Game = game_mode::not_in_game;
+                    SetMenu(GameState, menu_mode::main_menu);
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Reset) {
+                    GameState->ResetGame = true;
+                    GameState->Game = game_mode::singleplayer;
+                    SetMenu(GameState, menu_mode::not_in_menu);
+                }
+            }
+            
+            DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
+        }
+        else if (GameState->Menu == menu_mode::game_over_menu) {
+            
+            enum menu_component_id
+            {
+                MCI_Reset,
+                MCI_Menu,
+                MCI_Count
+            };
+            pair_int_string IDs[] = {
+                pairintstring(MCI_Reset),
+                pairintstring(MCI_Menu),
+                pairintstring(MCI_Count)
+            };
+            
+            menu *Menu = GetMenu(GameState, menu_mode::game_over_menu);
+            if (DoMenu(Menu, "menus/game_over.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
+            {
+                if (Menu->Events.ButtonClicked == MCI_Menu) {
+                    GameState->Game = game_mode::not_in_game;
+                    SetMenu(GameState, menu_mode::main_menu);
+                    
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Reset) {
+                    GameState->ResetGame = true;
+                    SetMenu(GameState, menu_mode::not_in_menu);
+                }
+            }
+            
+            DrawMenu(Menu, 100.0f);
+        }
+        else if (GameState->Menu == menu_mode::local_multiplayer_menu) {
+            enum menu_component_id
+            {
+                MCI_Default,
+                MCI_Start,
+                MCI_Back,
+                PI_Player1,
+                PI_Player2,
+                PI_Player3,
+                PI_Player4,
+                
+                MCI_Count
+            };
+            pair_int_string IDs[] = {
+                pairintstring(MCI_Default),
+                pairintstring(MCI_Start),
+                pairintstring(MCI_Back),
+                pairintstring(PI_Player1),
+                pairintstring(PI_Player2),
+                pairintstring(PI_Player3),
+                pairintstring(PI_Player4),
+            };
+            
+            menu *Menu = GetMenu(GameState, menu_mode::local_multiplayer_menu);
+            if (DoMenu(Menu, "menus/local_multiplayer.menu", p, &GameState->Assets, IDs, MCI_Count, &GameState->MenuController))
+            {
+                if (Menu->Events.ButtonClicked == MCI_Start) {
+                    int PlayersInGame = 0;
+                    for (int i = 0; i < 4; i++) {
+                        menu_component *Player = MenuGetComponent(Menu->CheckBoxes, i + 3);
+                        menu_component_checkbox *CheckBox = (menu_component_checkbox*)Player->Data;
+                        if (CheckBox->ControllerIndex != -1)
+                        {
+                            //GameState->Players[i].Input = CheckBox->Controller;
+                            PlayersInGame++;
+                        }
+                    }
+                    if (PlayersInGame > 1)
+                    {
+                        PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
+                        SetMenu(GameState, menu_mode::not_in_menu);
+                        GameState->ResetGame = true;
+                        GameState->Game = game_mode::local_multiplayer;
+                    }
+                }
+                else if (Menu->Events.ButtonClicked == MCI_Back) {
+                    SetMenu(GameState, menu_mode::main_menu);
+                }
+            }
+            DrawMenu(Menu, v2(0, 0), GetDim(p), 100.0f);
+        }
     }
+    // End of Do/Render Menu
     
     
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;

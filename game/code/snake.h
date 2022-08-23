@@ -22,36 +22,25 @@ Make multiplayer actually a game
 #ifndef SNAKE_H
 #define SNAKE_H
 
-#define RIGHT 0
-#define UP 1
-#define LEFT 2
-#define DOWN 3
-#define NODIRECTION 4
-
 enum game_direction
 {
-    Right,
-    Up,
-    Left,
-    Down,
+    RIGHT,
+    UP,
+    LEFT,
+    DOWN,
     
-    NoDirection
+    NODIRECTION
 };
 
-enum ComponentIDs
+typedef platform_button_state game_button;
+struct game_controller
 {
-    Btn1,
-    Btn2,
-    Btn3,
-    Btn4,
-    PORT,
-    IP,
-    Restart,
-    JOIN,
-    GameStart,
-    Quit,
-    Reset,
-    Multiplayer
+    game_button *MoveUp;
+    game_button *MoveLeft;
+    game_button *MoveDown;
+    game_button *MoveRight;
+    
+    game_button *Start;
 };
 
 struct CoffeeCowTail
@@ -87,7 +76,15 @@ struct CoffeeCow
     
     Arr Inputs; // int
     
-    platform_controller_input *Input;
+    asset_tag_id Tag;
+    game_controller Controller;
+};
+
+struct coffee_cow_collision_node
+{
+    u32 NumNodes;
+    v2 Nodes[400];
+    v2 Head;
 };
 
 struct Coffee
@@ -106,22 +103,22 @@ struct Coffee
 enum struct
 menu_mode
 {
-    not_in_menu,
     main_menu,
     multiplayer_menu,
     pause_menu,
     game_over_menu,
     local_multiplayer_menu,
     
-    count
+    not_in_menu
 };
 enum struct
 game_mode
 {
-    not_in_game,
     singleplayer,
     multiplayer,
     local_multiplayer,
+    
+    not_in_game
 };
 
 #define MAX_THREADS 2
@@ -137,17 +134,6 @@ struct thread_param
     client *Client;
 };
 
-typedef platform_button_state game_button;
-struct game_controller
-{
-    game_button *MoveUp;
-    game_button *MoveLeft;
-    game_button *MoveDown;
-    game_button *MoveRight;
-    
-    game_button *Start;
-};
-
 struct game_state
 {
     bool32 Initialized;
@@ -155,13 +141,8 @@ struct game_state
     game_mode Game;
     menu_mode Menu;
     
-    qlib_bool EditMenu;
-    
-    int ActiveControllerIndex;
-    game_controller Controllers[5];
-    
     menu_controller MenuController;
-    menu Menus[(int)menu_mode::count];
+    menu Menus[(int)menu_mode::not_in_menu];
     
     gui Status;
     u32 FPSComponent;
@@ -184,19 +165,11 @@ struct game_state
     thread Thread;
     int8 Disconnect = 0;
     
-    union
-    {
-        CoffeeCow Players[4];
-        struct
-        {
-            CoffeeCow Player1;
-            CoffeeCow Player2;
-            CoffeeCow Player3;
-            CoffeeCow Player4;
-        };
-    };
+    u32 NumPlayers;
+    CoffeeCow Players[4];
     
-    Coffee Collect;
+    u32 NumCoffees;
+    Coffee Coffees[4];
     
     audio_state AudioState;
     
