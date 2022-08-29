@@ -173,6 +173,7 @@ struct game_state
     
     audio_state AudioState;
     
+    
     platform_work_queue *Queue;
     HANDLE ThreadHandle;
 };
