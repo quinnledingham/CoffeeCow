@@ -85,17 +85,9 @@ enum asset_type_id
 #include "snake.h"
 
 internal void
-DrawEnvironment(bitmap_id BackgroundID,
-                bitmap_id InnerBackgroundID,
-                bitmap_id GridID,
-                bitmap_id BorderID,
-                v2 TopLeftCornerCoords,
-                v2 PlatformDim,
-                v2 GridCoords,
-                v2 GridDim,
-                v2 RealGridDim,
-                real32 GridSize,
-                real32 Z)
+DrawEnvironment(bitmap_id BackgroundID, bitmap_id InnerBackgroundID,
+                bitmap_id GridID, bitmap_id BorderID,
+                v2 TopLeftCornerCoords, v2 PlatformDim, v2 GridCoords, v2 GridDim, v2 RealGridDim, real32 GridSize, real32 Z)
 {
     // Draw Background
     v2 BackgroundCoords = TopLeftCornerCoords - 5;
@@ -770,12 +762,13 @@ MakeAssetFile(platform_work_queue *Queue, assets *Assets)
     // Bitmaps
     //
     BuilderAddBitmap(&BuilderAssets, "bitmaps/sand.png", Asset_Background);
+    BuilderAddBitmap(&BuilderAssets, "bitmaps/logo.png", Asset_MenuLogo);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/grass.png", Asset_Grass);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/grid.png", Asset_Grid);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/coffee.png", Asset_Coffee);
     BuilderAddBitmap(&BuilderAssets, "bitmaps/rocks.png", Asset_Rock);
     
-    BuilderAddBitmap(&BuilderAssets, "bitmaps/logo.png", Asset_MenuLogo);
+    
     BuilderAddBitmap(&BuilderAssets, "bitmaps/mainmenuback.png", Asset_MenuBackground);
     
     BuilderAddBitmap(&BuilderAssets, "bitmaps/join.png", Asset_DefaultCheckBox);
@@ -799,12 +792,12 @@ MakeAssetFile(platform_work_queue *Queue, assets *Assets)
     //
     // Sounds
     //
-    BuilderAddSound(&BuilderAssets, "sounds/gulp.wav", Asset_DrinkSound);
-    BuilderAddSound(&BuilderAssets, "sounds/bloop_01.wav", Asset_DrinkSound);
     BuilderAddSound(&BuilderAssets, "sounds/bonk.wav", Asset_Bonk);
     BuilderAddSound(&BuilderAssets, "sounds/Bummin on Tremelo.wav", Asset_Song);
+    //BuilderAddSound(&BuilderAssets, "sounds/bloop_01.wav", Asset_DrinkSound);
     BuilderAddSound(&BuilderAssets, "sounds/Guts and Bourbon.wav", Asset_Song);
     BuilderAddSound(&BuilderAssets, "sounds/Happy Alley.wav", Asset_Song);
+    BuilderAddSound(&BuilderAssets, "sounds/gulp.wav", Asset_DrinkSound);
     
     //
     // Fonts
@@ -1127,17 +1120,9 @@ void UpdateRender(platform* p)
             }
         }
         
-        DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background),
-                        GetFirstBitmap(&GameState->Assets, Asset_Grass),
-                        GetFirstBitmap(&GameState->Assets, Asset_Grid),
-                        GetFirstBitmap(&GameState->Assets, Asset_Rock),
-                        v2(0, 0),
-                        PlatformDim,
-                        GridCoords,
-                        GameState->GridDim,
-                        RealGridDim,
-                        GameState->GridSize,
-                        -1.0f);
+        DrawEnvironment(GetFirstBitmap(&GameState->Assets, Asset_Background), GetFirstBitmap(&GameState->Assets, Asset_Grass),
+                        GetFirstBitmap(&GameState->Assets, Asset_Grid), GetFirstBitmap(&GameState->Assets, Asset_Rock),
+                        v2(0, 0), PlatformDim, GridCoords, GameState->GridDim, RealGridDim, GameState->GridSize, -1.0f);
         
         for (u32 i = 0; i < GameState->NumPlayers; i++)
             DrawCoffeeCow(&GameState->Players[i], GameState->Coffees[0].Coords, &GameState->Assets, GameState->Players[i].Tag, p->Input.WorkSecondsElapsed, GridCoords.x, GridCoords.y, GameState->GridSize);
