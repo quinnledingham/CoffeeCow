@@ -979,7 +979,7 @@ void UpdateRender(platform* p)
         GameState->Game = game_mode::not_in_game;
         GameState->GridDim = v2(17, 17);
         
-        MakeAssetFile(&p->Queue, &GameState->Assets);
+        //MakeAssetFile(&p->Queue, &GameState->Assets);
         LoadAssetFile(&p->Queue, &GameState->Assets);
         
         SetTrue(&p->AudioState.Paused);
@@ -1359,7 +1359,7 @@ void UpdateRender(platform* p)
         GameState->ShowFPS = !GameState->ShowFPS;
     
     if (GameState->ShowFPS) {
-        DrawFPS(p->Input.MillisecondsElapsed, GetDim(p), GetFont(&GameState->Assets, GetFirstFont(&GameState->Assets, Asset_Font)));
+        DrawFPS(p->Input.MillisecondsElapsed, GetDim(p), &GameState->Assets);
         //GUIAdd();
     }
     
