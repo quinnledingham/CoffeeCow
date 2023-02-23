@@ -39,6 +39,9 @@ typedef real64 r64;
 typedef real32 f32;
 typedef real64 f64;
 
+#define TRUE 1
+#define FALSE 0
+
 #define function static
 #define local_persist static
 #define global_variable static
@@ -97,6 +100,15 @@ union v4
     {
         real32 x, y, z, w;
     };
+    f32 E[4];
+};
+
+union quat
+{
+    struct
+    {
+        real32 x, y, z, w;
+    };
     struct
     {
         v3 vector;
@@ -104,11 +116,38 @@ union v4
     };
     f32 E[4];
 };
-typedef v4 quat;
 
 struct m4x4
 {
     f32 E[4][4]; // E[ROW][COLUMN]
+};
+
+struct Bool
+{
+    b32 state;
+    b32 state_changed; // changed since last check of change
+    
+    b32 get() { return state; };
+    
+    void set(b32 new_state) 
+    {
+        if (state != new_state)
+            state_changed = TRUE;
+        state = new_state;
+    };
+    
+    void toggle()
+    {
+        state_changed = TRUE;
+        state = !state;
+    }
+    
+    b32 changed()
+    { 
+        b32 ret = state_changed; 
+        state_changed = FALSE; 
+        return ret; 
+    };
 };
 
 #endif //TYPES_H
