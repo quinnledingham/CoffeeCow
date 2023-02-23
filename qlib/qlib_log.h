@@ -1,3 +1,6 @@
+#ifndef QLIB_LOG_H
+#define QLIB_LOG_H
+
 function void
 log(const char* msg, va_list valist)
 {
@@ -28,3 +31,5 @@ error(const char* msg, ...)
     va_start(valist, msg);
     log(msg, valist);
 }
+
+#endif //QLIB_LOG_H

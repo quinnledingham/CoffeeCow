@@ -105,6 +105,8 @@ main_loop(SDL_Window *window)
         
         do_one_frame(&app);
         
+        if (app.quit) return;
+        
         SDL_GL_SwapWindow(window);
     }
 }
@@ -123,4 +125,6 @@ int main(int argc, char *argv[])
                                           SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     init_opengl(window);
     main_loop(window);
+    
+    return 0;
 }

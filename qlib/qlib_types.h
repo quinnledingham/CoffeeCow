@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef QLIB_TYPES_H
+#define QLIB_TYPES_H
 
 typedef int8_t int8;
 typedef int16_t int16;
@@ -150,4 +150,31 @@ struct Bool
     };
 };
 
-#endif //TYPES_H
+struct Button
+{
+    s32 id;
+    b32 current_state; 
+    b32 previous_state;
+};
+
+inline void
+set(Button *button, s32 id)
+{
+    button->id = id;
+}
+
+inline b32
+on_down(Button button)
+{
+    if (button.current_state && button.current_state != button.previous_state) return true;
+    else return false;
+}
+
+inline b32
+is_down(Button button)
+{
+    if (button.current_state) return true;
+    else return false;
+}
+
+#endif //QLIB_TYPES_H

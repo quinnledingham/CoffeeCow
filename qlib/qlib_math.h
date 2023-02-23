@@ -1,5 +1,5 @@
-#ifndef MATH_H
-#define MATH_H
+#ifndef QLIB_MATH_H
+#define QLIB_MATH_H
 
 #define V2_EPSILON 0.000001f
 #define V3_EPSILON V2_EPSILON
@@ -165,7 +165,71 @@ normalized(const quat &v)
     }
 }
 
+// Returns a quat which contains the rotation between two vectors.
+// The two vectors are treated like they are points in the same sphere.
+function quat
+from_to(const v3& from, const v3& to)
+{
+    v3 f = normalized(from);
+    v3 t = normalized(to);
+    if (f == t)
+    {
+        return { 0, 0, 0, 1 };
+    }
+    else if (f == t * -1.0f)
+    {
+        v3 ortho = { 1, 0, 0 };
+        if (fabsf(f.y) < fabsf(f.x))
+            ortho = { 0, 1, 0 };
+        if (fabsf(f.z) < fabs(f.y) && fabs(f.z) < fabsf(f.x))
+            ortho = { 0, 0, 1 };
+        v3 axis = normalized(cross_product(f, ortho));
+        return { axis.x, axis.y, axis.z, 0.0f };
+    }
+    v3 half = normalized(f + t);
+    v3 axis = cross_product(f, half);
+    return { axis.x, axis.y, axis.z, dot_product(f, half) };
+}
+
+function quat 
+get_rotation_to_direction(const v3& direction, const v3& up)
+{
+    // Find orthonormal basis vectors
+    v3 forward = normalized(direction);
+    v3 norm_up = normalized(up);
+    v3 right = cross_product(norm_up, forward);
+    norm_up = cross_product(forward, right);
+    
+    quat world_to_object = from_to({ 0, 0, 1 }, forward); // From world forward to object forward
+    v3 object_up = { 0, 1, 0 };
+    object_up = world_to_object * object_up; // What direction is the new object up?
+    quat u_to_u = from_to(object_up, norm_up); // From object up to desired up
+    quat result = world_to_object * u_to_u; // Rotate to forward direction then twist to correct up
+    
+    return normalized(result);
+}
+
+quat get_rotation(f32 angle, const v3& axis)
+{
+    v3 norm = normalized(axis);
+    f32 s = sinf(angle * 0.5f);
+    return { norm.x * s, norm.y * s, norm.z * s, cosf(angle * 0.5f) };
+}
+
 // m4x4
+inline void
+print_m4x4(m4x4 matrix)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        s32 row = i / 4;
+        s32 column = i - (row * 4);
+        printf("%f ", matrix.E[row][column]);
+        if ((i + 1) % 4 == 0)
+            printf("\n");
+    }
+}
+
 inline m4x4
 get_frustum(f32 l, f32 r, f32 b, f32 t, f32 n, f32 f)
 {
@@ -241,13 +305,6 @@ look_at(const v3 &position, const v3 &target, const v3 &up)
     };
 }
 
-quat get_rotation(f32 angle, const v3& axis)
-{
-    v3 norm = normalized(axis);
-    f32 s = sinf(angle * 0.5f);
-    return { norm.x * s, norm.y * s, norm.z * s, cosf(angle * 0.5f) };
-}
-
 inline m4x4 
 create_transform_m4x4(v3 position, quat rotation, v3 scale)
 {
@@ -272,61 +329,4 @@ create_transform_m4x4(v3 position, quat rotation, v3 scale)
     };
 }
 
-inline void
-print_m4x4(m4x4 matrix)
-{
-    for (int i = 0; i < 16; i++)
-    {
-        s32 row = i / 4;
-        s32 column = i - (row * 4);
-        printf("%f ", matrix.E[row][column]);
-        if ((i + 1) % 4 == 0)
-            printf("\n");
-    }
-}
-
-// Returns a quat which contains the rotation between two vectors.
-// The two vectors are treated like they are points in the same sphere.
-function quat
-from_to(const v3& from, const v3& to)
-{
-    v3 f = normalized(from);
-    v3 t = normalized(to);
-    if (f == t)
-    {
-        return { 0, 0, 0, 1 };
-    }
-    else if (f == t * -1.0f)
-    {
-        v3 ortho = { 1, 0, 0 };
-        if (fabsf(f.y) < fabsf(f.x))
-            ortho = { 0, 1, 0 };
-        if (fabsf(f.z) < fabs(f.y) && fabs(f.z) < fabsf(f.x))
-            ortho = { 0, 0, 1 };
-        v3 axis = normalized(cross_product(f, ortho));
-        return { axis.x, axis.y, axis.z, 0.0f };
-    }
-    v3 half = normalized(f + t);
-    v3 axis = cross_product(f, half);
-    return { axis.x, axis.y, axis.z, dot_product(f, half) };
-}
-
-function quat 
-get_rotation_to_direction(const v3& direction, const v3& up)
-{
-    // Find orthonormal basis vectors
-    v3 forward = normalized(direction);
-    v3 norm_up = normalized(up);
-    v3 right = cross_product(norm_up, forward);
-    norm_up = cross_product(forward, right);
-    
-    quat world_to_object = from_to({ 0, 0, 1 }, forward); // From world forward to object forward
-    v3 object_up = { 0, 1, 0 };
-    object_up = world_to_object * object_up; // What direction is the new object up?
-    quat u_to_u = from_to(object_up, norm_up); // From object up to desired up
-    quat result = world_to_object * u_to_u; // Rotate to forward direction then twist to correct up
-    
-    return normalized(result);
-}
-
-#endif //MATH_H
+#endif //QLIB_MATH_H
