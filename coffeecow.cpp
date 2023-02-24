@@ -1,3 +1,5 @@
+//#include <glad.h>
+//#include <glad.c>
 #include <gl.h>
 #include <gl.c>
 #include <SDL.h>
