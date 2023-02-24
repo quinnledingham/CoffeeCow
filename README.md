@@ -1,4 +1,4 @@
-# CoffeeCow
+# Coffee Cow
 Work in progress...
 
 Coffee Cow is snake except you play as a cow drinking coffee.
