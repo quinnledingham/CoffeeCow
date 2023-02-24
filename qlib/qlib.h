@@ -6,5 +6,6 @@
 #include <qlib_math.h>
 #include <qlib_tools.h>
 #include <qlib_sdl_keycodes.h>
+#include <qlib_shaders.h>
 
 #endif //QLIB_H

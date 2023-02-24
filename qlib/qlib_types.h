@@ -100,6 +100,10 @@ union v4
     {
         real32 x, y, z, w;
     };
+    struct
+    {
+        real32 r, g, b, a;
+    };
     f32 E[4];
 };
 

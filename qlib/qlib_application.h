@@ -25,6 +25,7 @@ struct Application
 #endif
     
     v2s window_dim;
+    
     f32 run_time_s;
     f32 frame_time_s;
     

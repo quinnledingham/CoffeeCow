@@ -111,6 +111,7 @@ struct Font_String
     char *memory;
     v2 dim;
     f32 pixel_height;
+    v4 color;
 };
 
 struct Font

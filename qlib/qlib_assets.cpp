@@ -97,12 +97,8 @@ load_shader_file(const char* filename)
 }
 
 function bool
-compile_shader(u32 handle, const char *filename, int type)
+compile_shader(u32 handle, const char *file, int type)
 {
-    const char *file = load_shader_file(filename);
-    if (file == 0)
-        return false;
-    
     u32 s =  glCreateShader((GLenum)type);
     glShaderSource(s, 1, &file, NULL);
     glCompileShader(s);
@@ -119,7 +115,6 @@ compile_shader(u32 handle, const char *filename, int type)
         glAttachShader(handle, s);
     
     glDeleteShader(s);
-    free((void*)file);
     
     return compiled_s;
 }
@@ -133,31 +128,46 @@ load_shader(Shader *shader)
     shader->handle = glCreateProgram();
     
     // Compile
-    if (!compile_shader(shader->handle, shader->vs_filename, GL_VERTEX_SHADER))
+    if (shader->vs_filename != 0)
     {
-        printf("vs: %s\n", shader->vs_filename);
-        error("load_opengl_shader() compiling vertex shader failed");
+        const char *vs_file = load_shader_file(shader->vs_filename);
+        if (!compile_shader(shader->handle, vs_file, GL_VERTEX_SHADER))
+            error("load_opengl_shader() compiling vertex shader failed");
+        free((void*)vs_file);
+    }
+    else
+    {
+        error("load_opengl_shader() must have a vertex shader");
         return;
     }
+    
     if (shader->tcs_filename != 0)
     {
-        if (!compile_shader(shader->handle, shader->tcs_filename, GL_TESS_CONTROL_SHADER))
+        const char *tcs_file = load_shader_file(shader->tcs_filename);
+        if (!compile_shader(shader->handle, tcs_file, GL_TESS_CONTROL_SHADER))
             error("load_opengl_shader() compiling tess control shader failed");
+        free((void*)tcs_file);
     }
     if (shader->tes_filename != 0)
     {
-        if (!compile_shader(shader->handle, shader->tes_filename, GL_TESS_EVALUATION_SHADER))
+        const char *tes_file = load_shader_file(shader->tes_filename);
+        if (!compile_shader(shader->handle, tes_file, GL_TESS_EVALUATION_SHADER))
             error("load_opengl_shader() compiling tess_evaluation shader failed");
+        free((void*)tes_file);
     }
     if (shader->gs_filename != 0)
     {
-        if (!compile_shader(shader->handle, shader->gs_filename, GL_GEOMETRY_SHADER))
+        const char *gs_file = load_shader_file(shader->gs_filename);
+        if (!compile_shader(shader->handle, gs_file, GL_GEOMETRY_SHADER))
             error("load_opengl_shader() compiling geometry shader failed");
+        free((void*)gs_file);
     }
     if (shader->fs_filename != 0)
     {
-        if (!compile_shader(shader->handle, shader->fs_filename, GL_FRAGMENT_SHADER))
+        const char *fs_file = load_shader_file(shader->fs_filename);
+        if (!compile_shader(shader->handle, fs_file, GL_FRAGMENT_SHADER))
             error("load_opengl_shader() compiling fragment shader failed");
+        free((void*)fs_file);
     }
     
     // Link
@@ -192,6 +202,43 @@ load_shader(const char *vs_filename,
     shader.fs_filename = copy(fs_filename);
     
     load_shader(&shader);
+    
+    return shader;
+}
+
+// used for loading functions that are string constants
+function Shader
+load_shader(const char *vs_file, const char *fs_file)
+{
+    Shader shader = {};
+    if (!shader.compiled)
+    {
+        shader.compiled = false;
+        if (shader.handle != 0)
+            glDeleteProgram(shader.handle);
+        shader.handle = glCreateProgram();
+        
+        // Compile
+        if (!compile_shader(shader.handle, vs_file, GL_VERTEX_SHADER))
+            error("load_opengl_shader() compiling vertex shader failed");
+        if (!compile_shader(shader.handle, fs_file, GL_FRAGMENT_SHADER))
+            error("load_opengl_shader() compiling fragment shader failed");
+        
+        // Link
+        glLinkProgram(shader.handle);
+        GLint linked_program = 0;
+        glGetProgramiv(shader.handle, GL_LINK_STATUS, &linked_program);
+        if (!linked_program)
+        {
+#ifdef opengl_debug
+            opengl_debug(GL_PROGRAM, shader.handle);
+#endif
+            error("load_opengl_shader() link failed");
+            return shader;
+        }
+        
+        shader.compiled = true;
+    }
     
     return shader;
 }
@@ -270,57 +317,57 @@ create_rect_mesh(Mesh *rect)
 }
 
 function void
-draw_rect(v3 coords, quat rotation, v3 dim, u32 handle,
-          Mesh *rect, Shader *shader, m4x4 projection_matrix, m4x4 view_matrix)
+draw_rect(v3 coords, quat rotation, v3 dim, u32 handle, m4x4 projection_matrix, m4x4 view_matrix)
 {
     m4x4 model = create_transform_m4x4(coords, rotation, dim);
     glUniformMatrix4fv(glGetUniformLocation(handle, "model"), (GLsizei)1, false, (float*)&model);
     glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&projection_matrix);
     glUniformMatrix4fv(glGetUniformLocation(handle, "view"), (GLsizei)1, false, (float*)&view_matrix);
     
-    //local_persist Mesh rect = {};
+    // might not be epic but kinda cool how it
+    // can be all the way down here.
+    local_persist Mesh rect = {};
+    if (rect.vertices_count == 0)
+        create_rect_mesh(&rect);
     
-    draw_mesh(rect);
+    draw_mesh(&rect);
 }
 
 function void
 draw_rect(v3 coords, quat rotation, v3 dim, v4 color,
-          Mesh *rect, Shader *shader, m4x4 projection_matrix, m4x4 view_matrix)
+          m4x4 projection_matrix, m4x4 view_matrix)
 {
-    u32 handle = use_shader(shader);
+    // it makes sense to have the shader local because these functions are tailored to
+    // this shaders.
+    local_persist Shader shader = {};
+    if (!shader.compiled)
+        shader = load_shader(basic_vs, color_fs);
+    
+    u32 handle = use_shader(&shader);
     glUniform4fv(glGetUniformLocation(handle, "user_color"), (GLsizei)1, (float*)&color);
-    draw_rect(coords, rotation, dim, handle, rect, shader, projection_matrix, view_matrix);
+    draw_rect(coords, rotation, dim, handle, projection_matrix, view_matrix);
 }
 
 function void
 draw_rect(v3 coords, quat rotation, v3 dim, Bitmap *bitmap,
-          Mesh *rect, Shader *shader, m4x4 projection_matrix, m4x4 view_matrix)
+          m4x4 projection_matrix, m4x4 view_matrix)
 {
-    u32 handle = use_shader(shader);
+    local_persist Shader shader = {};
+    if (!shader.compiled)
+        shader = load_shader(basic_vs, tex_fs);
+    
+    u32 handle = use_shader(&shader);
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, bitmap->handle);
     glUniform1i(glGetUniformLocation(handle, "tex0"), 0);
     
-    draw_rect(coords, rotation, dim, handle, rect, shader, projection_matrix, view_matrix);
+    draw_rect(coords, rotation, dim, handle, projection_matrix, view_matrix);
 }
 
 //
 // Font
 //
-
-function void
-log_font_chars(Font *font)
-{
-    printf("start log\n");
-    for (u32 i = 0; i < font->font_chars_cached; i++)
-    {
-        Font_Char *fc = &font->font_chars[i];
-        printf("%d, %f, %f, %f, %f, %f, %d, %d\n", fc->codepoint, fc->scale, fc->color.x, fc->color.y,
-               fc->color.z, fc->color.w, fc->ax, fc->lsb);
-    }
-    printf("end log\n");
-}
 
 function Font_Char*
 load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
@@ -329,7 +376,6 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
     for (u32 i = 0; i < font->font_chars_cached; i++)
     {
         Font_Char *font_char = &font->font_chars[i];
-        //printf("wow: %d\n", codepoint);
         if (font_char->codepoint == codepoint && font_char->color == color && font_char->scale == scale)
             return font_char;
     }
@@ -346,7 +392,6 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
     font_char->scale = scale;
     font_char->color = color;
     
-    
     // how wide is this character
     stbtt_GetCodepointHMetrics(&font->info, font_char->codepoint, &font_char->ax, &font_char->lsb);
     
@@ -362,13 +407,13 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
                                                font_char->bitmap.height * 
                                                font_char->bitmap.channels);
     u32 *dest = (u32*)font_char->bitmap.memory;
-    
     for (s32 x = 0; x < font_char->bitmap.width; x++)
     {
         for (s32 y = 0; y < font_char->bitmap.height; y++)
         {
             u8 alpha = *mono_bitmap++;
-            *dest++ = ((alpha << 24) | (alpha << 16) | (alpha <<  8) | (alpha <<  0));
+            u32 real_alpha = u32((f32)alpha * color.a);
+            *dest++ = ((real_alpha << 24) | ((u32)color.r << 16) | ((u32)color.g <<  8) | ((u32)color.b <<  0));
         }
     }
     
@@ -391,7 +436,7 @@ load_font(const char *filename)
 
 function void
 draw_string(Font *font, const char *string, v2 coords, f32 pixel_height, v4 color,
-            Mesh *rect, Shader *shader, m4x4 projection_matrix, m4x4 view_matrix)
+            m4x4 projection_matrix, m4x4 view_matrix)
 {
     f32 scale = stbtt_ScaleForPixelHeight(&font->info, pixel_height);
     
@@ -407,7 +452,7 @@ draw_string(Font *font, const char *string, v2 coords, f32 pixel_height, v4 colo
         v2 dim = { f32(font_char->c_x2 - font_char->c_x1), f32(font_char->c_y2 - font_char->c_y1) };
         
         draw_rect({x, y, 0}, get_rotation(0, {1, 0, 0}), {dim.x, dim.y}, &font_char->bitmap,
-                  rect, shader, projection_matrix, view_matrix);
+                  projection_matrix, view_matrix);
         
         //printf("char: %c\n", font_char->codepoint);
         int kern = stbtt_GetCodepointKernAdvance(&font->info, string[i], string[i + 1]);
@@ -424,7 +469,7 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
     for (u32 i = 0; i < font->strings_cached; i++)
     {
         string = &font->font_strings[i];
-        if (equal(string->memory, in) && string->pixel_height == pixel_height)
+        if (equal(string->memory, in) && string->pixel_height == pixel_height && string->color == color)
             return string->dim;
     }
     
@@ -462,6 +507,7 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
     
     string->pixel_height = pixel_height;
     string->dim = { string_x_coord, string_height };
+    string->color = color;
     
     return string->dim;
 }

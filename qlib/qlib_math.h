@@ -124,7 +124,7 @@ inline f32 length_squared(const v4 &v) { return v.x * v.x + v.y * v.y + v.z * v.
 inline bool
 operator==(const v4 &l, const v4 &r)
 {
-    if (l.x == r.x, l.y == r.y, l.z == r.z, l.w == r.w)
+    if (l.x == r.x && l.y == r.y && l.z == r.z && l.w == r.w)
         return true;
     else
         return false;
