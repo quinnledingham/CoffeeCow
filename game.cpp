@@ -503,9 +503,9 @@ game()
                 {
                     SDL_KeyboardEvent *keyboard_event = &event.key;
                     s32 key_id = keyboard_event->keysym.sym;
-                    b32 state = FALSE;
+                    b32 state = false;
                     if (keyboard_event->state == SDL_PRESSED)
-                        state = TRUE;
+                        state = true;
                     
                     for (u32 i = 0; i < ARRAY_COUNT(controller.buttons); i++)
                     {

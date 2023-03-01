@@ -26,11 +26,11 @@ void output(FILE *stream, const char* msg, va_list valist)
             }
         }
         else
-            fputc(*msg_ptr, stderr);
+            fputc(*msg_ptr, stream);
         msg_ptr++;
     }
     
-    fputc('\n', stderr);
+    fputc('\n', stream);
 }
 
 void log(const char* msg, ...)
