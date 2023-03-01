@@ -11,6 +11,8 @@
 #include <stb_image_resize.h>
 #include <stb_truetype.h>
 
+#include "log.h"
+#include "types.h"
 #include <qlib.h>
 #include <qlib_assets.h>
 #include <qlib_opengl_debug.cpp>
@@ -130,7 +132,7 @@ do_one_frame(Application *app)
     
     // Draw
     
-    orthographic_matrix = orthographic_projection(0.0f, (r32)app->window_dim.Width, (r32)app->window_dim.Height,
+    orthographic_matrix = orthographic_projection(0.0f, (r32)app->window_dim.width, (r32)app->window_dim.height,
                                                   0.0f, -3.0f, 3.0f);
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -252,5 +254,5 @@ init_app(Application *app)
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(opengl_debug_message_callback, 0);
     
-    glViewport(0, 0, app->window_dim.Width, app->window_dim.Height);
+    glViewport(0, 0, app->window_dim.width, app->window_dim.height);
 }

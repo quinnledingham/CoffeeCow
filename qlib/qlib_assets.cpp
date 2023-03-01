@@ -383,7 +383,7 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
     // where to cache new font char
     Font_Char *font_char = &font->font_chars[font->font_chars_cached];
     memset(font_char, 0, sizeof(Font_Char));
-    if (font->font_chars_cached + 1 < array_count(font->font_chars))
+    if (font->font_chars_cached + 1 < ARRAY_COUNT(font->font_chars))
         font->font_chars_cached++;
     else
         font->font_chars_cached = 0;
@@ -426,9 +426,9 @@ function Font
 load_font(const char *filename)
 {
     Font font = {};
-    SDL_memset(font.font_scales, 0, sizeof(Font_Scale) * array_count(font.font_scales));
-    SDL_memset(font.font_chars, 0, sizeof(Font_Char) * array_count(font.font_chars));
-    SDL_memset(font.font_strings, 0, sizeof(Font_String) * array_count(font.font_strings));
+    SDL_memset(font.font_scales, 0, sizeof(Font_Scale) * ARRAY_COUNT(font.font_scales));
+    SDL_memset(font.font_chars, 0, sizeof(Font_Char) * ARRAY_COUNT(font.font_chars));
+    SDL_memset(font.font_strings, 0, sizeof(Font_String) * ARRAY_COUNT(font.font_strings));
     File file = read_file(filename);
     stbtt_InitFont(&font.info, (u8*)file.memory, stbtt_GetFontOffsetForIndex((u8*)file.memory, 0));
     return font;
@@ -474,7 +474,7 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
     }
     
     string = &font->font_strings[font->strings_cached];
-    if (font->strings_cached + 1 < array_count(font->font_strings))
+    if (font->strings_cached + 1 < ARRAY_COUNT(font->font_strings))
         font->strings_cached++;
     else
         font->strings_cached = 0;

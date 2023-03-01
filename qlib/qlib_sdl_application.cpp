@@ -37,7 +37,7 @@ function void
 main_loop(SDL_Window *window)
 {
     Application app = {};
-    SDL_GetWindowSize(window, &app.window_dim.Width, &app.window_dim.Height);
+    SDL_GetWindowSize(window, &app.window_dim.width, &app.window_dim.height);
     init_app(&app);
     
     Controller *controller = &app.input.controller;
@@ -46,7 +46,7 @@ main_loop(SDL_Window *window)
     while(1)
     {
         input->mouse_rel_coords = {};
-        for (u32 i = 0; i < array_count(controller->buttons); i++)
+        for (u32 i = 0; i < ARRAY_COUNT(controller->buttons); i++)
             controller->buttons[i].previous_state = controller->buttons[i].current_state;
         
         SDL_Event event;
@@ -65,9 +65,9 @@ main_loop(SDL_Window *window)
                         case SDL_WINDOWEVENT_RESIZED:
                         case SDL_WINDOWEVENT_SIZE_CHANGED:
                         {
-                            app.window_dim.Width = window_event->data1;
-                            app.window_dim.Height = window_event->data2;
-                            glViewport(0, 0, app.window_dim.Width, app.window_dim.Height);
+                            app.window_dim.width = window_event->data1;
+                            app.window_dim.height = window_event->data2;
+                            glViewport(0, 0, app.window_dim.width, app.window_dim.height);
                         } break;
                     }
                 } break;
@@ -89,7 +89,7 @@ main_loop(SDL_Window *window)
                     if (keyboard_event->state == SDL_PRESSED)
                         state = TRUE;
                     
-                    for (u32 i = 0; i < array_count(controller->buttons); i++)
+                    for (u32 i = 0; i < ARRAY_COUNT(controller->buttons); i++)
                     {
                         if (key_id == controller->buttons[i].id)
                         {
