@@ -19,9 +19,14 @@ void output(FILE *stream, const char* msg, va_list valist)
                 const char *string = va_arg(valist, const char*);
                 fprintf(stream, "%s", string);
             }
+            else if (*msg_ptr == 'd')
+            {
+                int integer = va_arg(valist, int);
+                fprintf(stream, "%d", integer);
+            }
         }
-        
-        fputc(*msg_ptr, stderr);
+        else
+            fputc(*msg_ptr, stderr);
         msg_ptr++;
     }
     
@@ -42,6 +47,50 @@ void error(const char* msg, ...)
     va_list valist;
     va_start(valist, msg);
     output(stdout, msg, valist);
+}
+
+void GLAPIENTRY
+opengl_debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                              GLsizei length, const GLchar* message, const void* userParam )
+{
+    SDL_Log("GL CALLBACK:");
+    SDL_Log("message: %s\n", message);
+    switch (type)
+    {
+        case GL_DEBUG_TYPE_ERROR: log("type: ERROR"); break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: log("type: DEPRECATED_BEHAVIOR"); break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: log("type: UNDEFINED_BEHAVIOR"); break;
+        case GL_DEBUG_TYPE_PORTABILITY: log("type: PORTABILITY"); break;
+        case GL_DEBUG_TYPE_PERFORMANCE: log("type: PERFORMANCE"); break;
+        case GL_DEBUG_TYPE_OTHER: log("type: OTHER"); break;
+    }
+    log("id: %d", id);
+    switch(severity)
+    {
+        case GL_DEBUG_SEVERITY_LOW: log("severity: LOW\n"); break;
+        case GL_DEBUG_SEVERITY_MEDIUM: log("severity: MEDIUM\n"); break;
+        case GL_DEBUG_SEVERITY_HIGH: log("severity: HIGH\n"); break;
+    }
+}
+
+void
+opengl_debug(int type, int id)
+{
+    GLint length;
+    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+    if (length > 0)
+    {
+        GLchar info_log[512];
+        GLint size;
+        
+        switch(type)
+        {
+            case GL_SHADER: glGetShaderInfoLog(id, 512, &size, info_log); break;
+            case GL_PROGRAM: glGetProgramInfoLog(id, 512, &size, info_log); break;
+        }
+        
+        log(info_log);
+    }
 }
 
 #endif //LOG_H

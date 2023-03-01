@@ -44,6 +44,11 @@ union v2
     r32 E[2];
 };
 v2 operator+(const v2 &l, const v2 &r) { return { l.x + r.x, l.y + r.y }; }
+v2 operator+(const v2 &l, const r32 &r) { return { l.x + r, l.y + r }; }
+v2 operator*(const v2 &l, const v2 &r) { return { l.x * r.x, l.y * r.y }; }
+v2 operator*(const v2 &l, const r32 &r) { return { l.x * r, l.y * r }; }
+v2 operator/(const v2 &l, const v2 &r) { return { l.x / r.x, l.y / r.y }; }
+inline void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 inline r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
 inline r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
 
@@ -72,7 +77,10 @@ union v2s
     };
     s32 E[2];
 };
-v2 cv2(const v2s v) { return { (r32)v.x, (r32)v.y }; }
+v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
+inline void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
+inline void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
+v2 cv2(v2s v) { return { (r32)v.x, (r32)v.y }; }
 
 union v3
 {
@@ -91,7 +99,9 @@ inline v3 operator-(const v3 &l, const v3 &r) { return { l.x - r.x, l.y - r.y, l
 inline v3 operator*(const v3 &l, const v3 &r) { return { l.x * r.x, l.y * r.y, l.z * r.z }; }
 inline v3 operator*(const v3 &v, float f) { return {v.x * f, v.y * f, v.z * f}; }
 inline void operator+=(v3 &l, const v3 &r) { l.x = l.x + r.x; l.y = l.y + r.y; l.z = l.z + r.z; }
+inline void operator+=(v3 &l, const r32 &r) { l.x = l.x + r; l.y = l.y + r; l.z = l.z + r; }
 inline void operator-=(v3 &l, const v3 &r) { l.x = l.x - r.x; l.y = l.y - r.y; l.z = l.z - r.z; }
+inline void operator-=(v3 &l, const r32 &r) { l.x = l.x - r; l.y = l.y - r; l.z = l.z - r; }
 inline void operator*=(v3 &l, v3 &r) { l.x *= r.x; l.y *= r.y; l.z *= r.z; }
 inline bool operator==(const v3 &l, const v3 &r) { if (l.x == r.x, l.y == r.y, l.z == r.z) return true; return false; }
 inline bool operator==(const v3 &v, float f) { if (v.x == f, v.y == f, v.z == f) return true; return false; }
@@ -378,6 +388,106 @@ get_length(Str &str)
     while(*ptr != 0) ptr++;
     str.length = ptr - str.memory;
     return str.length;
+}
+
+struct Flag
+{
+    b32 current_state;
+    b32 previous_state;
+};
+
+//
+// string
+//
+
+function b32
+equal(const char *l, const char *r)
+{
+    u32 i = 0;
+    while (l[i] != 0 && r[i] != 0)
+    {
+        if (l[i] != r[i])
+            return false;
+        i++;
+    }
+    
+    if (r[i] != 0)
+        return false;
+    
+    return true;
+}
+
+function u32
+get_length(const char *string)
+{
+    if (string == 0)
+        return 0;
+    
+    u32 length = 0;
+    const char *ptr = string;
+    while(*ptr != 0)
+    {
+        length++;
+        ptr++;
+    }
+    return length;
+}
+
+// copys string into memory
+function const char*
+copy(const char *string)
+{
+    u32 length = get_length(string);
+    if (length == 0)
+        return 0;
+    
+    char *new_string = (char*)SDL_malloc(length + 1);
+    SDL_memset(new_string, 0, length + 1);
+    SDL_memcpy(new_string, string, length);
+    return new_string;
+}
+
+//
+// int
+//
+
+function u32
+get_digits(u32 i)
+{
+    u32 count = 0;
+    u32 t = i;
+    while ((t = t / 10) != 0)
+        count++;
+    count++;
+    return count;
+}
+
+function char*
+u32_to_string(u32 in)
+{
+    char *out;
+    
+    u32 digits = get_digits(in);
+    out = (char*)SDL_malloc(digits + 1);
+    
+    u32 help = 0;
+    for (u32 i = 0; i < digits; i++)
+    {
+        if (help == 0)
+            help++;
+        else
+            help *= 10;
+    }
+    
+    for (u32 i = 0; i < digits; i++)
+    {
+        out[i] = ((char)(in / help) + '0');
+        in = in - ((in / help) * help);
+        help = help / 10;
+    }
+    
+    out[digits] = 0;
+    return out;
 }
 
 #endif //TYPES_H

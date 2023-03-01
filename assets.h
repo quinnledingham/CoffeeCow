@@ -1,5 +1,5 @@
-#ifndef QLIB_ASSETS_H
-#define QLIB_ASSETS_H
+#ifndef ASSETS_H
+#define ASSETS_H
 
 struct File
 {
@@ -11,32 +11,9 @@ struct Bitmap
 {
     u32 handle;
     u8 *memory;
-    s32 width;
-    s32 height;
+    v2s dim;
     s32 pitch;
     s32 channels;
-};
-
-struct Sound
-{
-    SDL_AudioSpec spec;
-    u8 *buffer;
-    u32 length;
-};
-
-struct Playing_Sound
-{
-    u8 *position;
-    u32 length_remaining;
-    SDL_AudioDeviceID device_id;
-};
-
-struct Audio
-{
-    b32 playing;
-    
-    Playing_Sound sounds[10];
-    u32 num_of_playing_sounds;
 };
 
 struct Shader
@@ -47,16 +24,18 @@ struct Shader
     const char *gs_filename; //.gs geometry shader
     const char *fs_filename; //.fs fragment shader
     
+    const char *vs_file;
+    const char *tcs_file;
+    const char *tes_file;
+    const char *gs_file;
+    const char *fs_file;
+    
     b32 compiled;
     u32 handle;
 };
-
-inline u32
-use_shader(Shader *shader)
-{
-    glUseProgram(shader->handle);
-    return shader->handle;
-}
+const char *basic_vs = "#version 330 core\n layout (location = 0) in vec3 position; layout (location = 1) in vec3 normal; layout (location = 2) in vec2 texture_coords; uniform mat4 model; uniform mat4 projection; uniform mat4 view; out vec2 uv; void main(void) { gl_Position = projection * view * model * vec4(position, 1.0f); uv = texture_coords;}";
+const char *color_fs = "#version 330 core\n in vec2 uv; uniform vec4 user_color; out vec4 FragColor; void main() { FragColor  = vec4(user_color.x/255, user_color.y/255, user_color.z/255, user_color.w);}";
+const char *tex_fs = "#version 330 core\n uniform sampler2D tex0; in vec2 uv; out vec4 FragColor; void main() { vec4 tex = texture(tex0, uv); FragColor = tex;}";
 
 struct Vertex
 {
@@ -126,19 +105,4 @@ struct Font
     Font_String font_strings[10];
 };
 
-struct Assets
-{
-    Shader *shaders;
-    u32 num_of_shaders;
-    
-    Sound *sounds;
-    u32 num_of_sounds;
-    
-    Bitmap *bitmaps;
-    u32 num_of_bitmaps;
-    
-    Font *fonts;
-    u32 num_of_fonts;
-};
-
-#endif //QLIB_ASSETS_H
+#endif //ASSETS_H
