@@ -48,9 +48,10 @@ v2 operator+(const v2 &l, const r32 &r) { return { l.x + r, l.y + r }; }
 v2 operator*(const v2 &l, const v2 &r) { return { l.x * r.x, l.y * r.y }; }
 v2 operator*(const v2 &l, const r32 &r) { return { l.x * r, l.y * r }; }
 v2 operator/(const v2 &l, const v2 &r) { return { l.x / r.x, l.y / r.y }; }
-inline void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
-inline r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
-inline r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
+v2 operator/(const v2 &l, const r32 &r) { return { l.x / r, l.y / r }; }
+void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
+r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
+r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
 
 inline v2
 normalized(const v2 &v)
@@ -78,8 +79,10 @@ union v2s
     s32 E[2];
 };
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
-inline void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
-inline void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
+void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
+void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
+bool operator==(const v2s &l, const v2s &r) { if (l.x == r.x && l.y == r.y) return true; return false; }
+bool operator!=(const v2s &l, const v2s &r) { if (l.x != r.x || l.y != r.y) return true; return false; }
 v2 cv2(v2s v) { return { (r32)v.x, (r32)v.y }; }
 
 union v3
@@ -98,13 +101,15 @@ inline v3 operator+(const v3 &l, const v3 &r) { return { l.x + r.x, l.y + r.y, l
 inline v3 operator-(const v3 &l, const v3 &r) { return { l.x - r.x, l.y - r.y, l.z - r.z }; }
 inline v3 operator*(const v3 &l, const v3 &r) { return { l.x * r.x, l.y * r.y, l.z * r.z }; }
 inline v3 operator*(const v3 &v, float f) { return {v.x * f, v.y * f, v.z * f}; }
+inline v3 operator/(const v3 &l, const v3 &r) { return { l.x / r.x, l.y / r.y, l.z / r.z }; }
+inline v3 operator/(const v3 &l, const r32 &r) { return { l.x / r, l.y / r, l.z / r }; }
 inline void operator+=(v3 &l, const v3 &r) { l.x = l.x + r.x; l.y = l.y + r.y; l.z = l.z + r.z; }
 inline void operator+=(v3 &l, const r32 &r) { l.x = l.x + r; l.y = l.y + r; l.z = l.z + r; }
 inline void operator-=(v3 &l, const v3 &r) { l.x = l.x - r.x; l.y = l.y - r.y; l.z = l.z - r.z; }
 inline void operator-=(v3 &l, const r32 &r) { l.x = l.x - r; l.y = l.y - r; l.z = l.z - r; }
 inline void operator*=(v3 &l, v3 &r) { l.x *= r.x; l.y *= r.y; l.z *= r.z; }
-inline bool operator==(const v3 &l, const v3 &r) { if (l.x == r.x, l.y == r.y, l.z == r.z) return true; return false; }
-inline bool operator==(const v3 &v, float f) { if (v.x == f, v.y == f, v.z == f) return true; return false; }
+inline bool operator==(const v3 &l, const v3 &r) { if (l.x == r.x && l.y == r.y && l.z == r.z) return true; return false; }
+inline bool operator==(const v3 &v, float f) { if (v.x == f && v.y == f && v.z == f) return true; return false; }
 inline r32 dot_product(const v3 &l, const v3 &r) { return (l.x * r.x) + (l.y * r.y) + (l.z * r.z); }
 inline r32 length_squared(const v3 &v) { return (v.x * v.x) + (v.y * v.y) + (v.z * v.z); }
 

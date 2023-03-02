@@ -67,20 +67,16 @@ init_rect_mesh(Mesh *rect)
 {
     rect->vertices_count = 4;
     rect->vertices = (Vertex*)SDL_malloc(sizeof(Vertex) * rect->vertices_count);
-    
-    
+    /*
     rect->vertices[0] = { {0, 0, 0}, {0, 0, 1}, {0, 0} };
     rect->vertices[1] = { {0, 1, 0}, {0, 0, 1}, {0, 1} };
     rect->vertices[2] = { {1, 0, 0}, {0, 0, 1}, {1, 0} };
     rect->vertices[3] = { {1, 1, 0}, {0, 0, 1}, {1, 1} };
-    
-    
-    /*
+    */
     rect->vertices[0] = { {-0.5, -0.5, 0}, {0, 0, 1}, {0, 0} };
     rect->vertices[1] = { {-0.5, 0.5, 0}, {0, 0, 1}, {0, 1} };
     rect->vertices[2] = { {0.5, -0.5, 0}, {0, 0, 1}, {1, 0} };
     rect->vertices[3] = { {0.5, 0.5, 0}, {0, 0, 1}, {1, 1} };
-    */
     
     rect->indices_count = 6;
     rect->indices = (u32*)SDL_malloc(sizeof(u32) * rect->indices_count);
@@ -92,8 +88,6 @@ init_rect_mesh(Mesh *rect)
 function void
 draw_rect(v3 coords, quat rotation, v3 dim, u32 handle, m4x4 projection_matrix, m4x4 view_matrix)
 {
-    //coords.x += ((r32)global_window_dim.x / 2.0f);
-    //coords.y -= ((r32)global_window_dim.y / 2.0f);
     m4x4 model = create_transform_m4x4(coords, rotation, dim);
     glUniformMatrix4fv(glGetUniformLocation(handle, "model"), (GLsizei)1, false, (float*)&model);
     glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&projection_matrix);
@@ -149,6 +143,7 @@ draw_rect(v3 coords, quat rotation, v3 dim, Bitmap *bitmap,
 function void
 draw_rect(v2 coords, r32 rotation, v2 dim, v4 color)
 {
+    coords += dim / 2.0f;
     draw_rect({ coords.x, coords.y, 0 }, get_rotation(rotation, { 0, 0, 1 }), 
               { dim.x, dim.y, 1 }, color, orthographic_matrix, identity_m4x4());
 }
@@ -156,6 +151,7 @@ draw_rect(v2 coords, r32 rotation, v2 dim, v4 color)
 function void
 draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap)
 {
+    coords += dim / 2.0f;
     draw_rect({ coords.x, coords.y, 0 }, get_rotation(-rotation, { 0, 0, 1 }), 
               { dim.x, dim.y, 1 }, bitmap, orthographic_matrix, identity_m4x4());
 }
@@ -278,6 +274,8 @@ get_centered_coords(r32 percent, v2 window_dim)
     r32 size = 0.0f;
     if (window_dim.y <= window_dim.x)
         size = window_dim.y * percent;
+    if (window_dim.y > window_dim.x)
+        size = window_dim.x * percent;
     rect.dim = { size, size };
     rect.coords = get_center_menu_coords(rect.dim, window_dim);
     return rect;
@@ -315,6 +313,9 @@ struct Coffee_Cow
     r32 transition; // 0.0f - 1.0f
     v2s direction;
     
+    v2s inputs[5];
+    u32 num_of_inputs;
+    
     Bitmap bitmaps[6];
 };
 
@@ -329,13 +330,20 @@ add_node(Coffee_Cow *cow, v2s grid_coords)
 function b8
 coffee_cow_check_bounds(Coffee_Cow *cow, v2s grid_dim)
 {
-    Coffee_Cow_Node *node = &cow->nodes[0];
-    v2s head = node->coords;
+    Coffee_Cow_Node *head_node = &cow->nodes[0];
+    v2s head = head_node->coords;
     head += cow->direction;
     if (head.x < 0 || head.x > (grid_dim.x - 1))
         return false;
     else if (head.y < 0 || head.y > (grid_dim.y - 1))
         return false;
+    
+    for (u32 i = 1; i < cow->num_of_nodes; i++)
+    {
+        Coffee_Cow_Node *node = &cow->nodes[i];
+        if (head == node->coords)
+            return false;
+    }
     
     return true;
 }
@@ -343,13 +351,24 @@ coffee_cow_check_bounds(Coffee_Cow *cow, v2s grid_dim)
 function void
 update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
 {
+    if (cow->num_of_inputs != 0)
+    {
+        cow->direction = cow->inputs[0];
+        for (u32 i = 0; i < cow->num_of_inputs - 2; i++)
+        {
+            cow->inputs[i] = cow->inputs[i + 1];
+        }
+        cow->num_of_inputs--;
+    }
+    
     if (!coffee_cow_check_bounds(cow, grid_dim))
         return;
     
-    cow->nodes[0].direction = cow->direction;
-    cow->transition += 2.0f * frame_time_s;
+    cow->transition += 4.0f * frame_time_s;
     if (cow->transition >= 1.0f)
     {
+        cow->nodes[0].direction = cow->direction;
+        
         cow->transition = 0.0f;
         for (u32 i = 0; i < cow->num_of_nodes; i++)
         {
@@ -367,21 +386,129 @@ v2toDeg(v2s v)
     return tanf((r32)v.y/(r32)v.x);
 }
 
+enum Direction
+{
+    RIGHT,
+    UP,
+    LEFT,
+    DOWN
+};
+
+#define RIGHT_V v2s{ 1, 0 }
+#define UP_V v2s{ 0, -1 }
+#define LEFT_V v2s{ -1, 0 }
+#define DOWN_V v2s{ 0, 1 }
+
+function u32
+get_direction(v2s dir)
+{
+    if (dir.x == 1 && dir.y == 0)
+        return RIGHT;
+    else if (dir.x == 0 && dir.y == -1)
+        return UP;
+    else if (dir.x == -1 && dir.y == 0)
+        return LEFT;
+    else 
+        return DOWN;
+}
+
+function v2s
+get_direction(u32 dir)
+{
+    if (dir == RIGHT)
+        return { 1, 0 };
+    if (dir == UP)
+        return { 0, 1 };
+    if (dir == LEFT)
+        return { -1, 0 };
+    else // DOWN
+        return { 0, -1 };
+}
+
+function r32
+get_rot(u32 dir)
+{
+    r32 rotation = 0.0f;
+    if (dir == RIGHT)
+        rotation = 90.0f;
+    else if (dir == UP)
+        rotation = 180.0f;
+    else if (dir == LEFT)
+        rotation = 270.0f;
+    else if (dir == DOWN)
+        rotation = 0.0f;
+    return rotation * DEG2RAD;
+}
+
+function Rect
+get_centered_rect(r32 percent_x, r32 percent_y, v2 dim)
+{
+    Rect rect = {};
+    rect.dim.x = dim.x * percent_x;
+    rect.dim.y = dim.y * percent_y;
+    rect.coords = get_center_menu_coords(rect.dim, dim);
+    return rect;
+}
+
+function Rect
+get_body_rect(u32 dir, r32 min, r32 max, v2 grid_s, v2 coords)
+{
+    Rect cow_node = {};
+    if (dir == RIGHT)
+        cow_node = get_centered_rect(max, min, grid_s);
+    else if (dir == UP)
+        cow_node = get_centered_rect(min, max, grid_s);
+    else if (dir == LEFT)
+        cow_node = get_centered_rect(max, min, grid_s);
+    else if (dir == DOWN)
+        cow_node = get_centered_rect(min, max, grid_s);
+    cow_node.coords += coords;
+    return cow_node;
+}
+
 function void
 draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {
-    {
-        v2s *node = &cow->nodes[0].coords;
-        v2 coords = { node->x * grid_size, node->y * grid_size };
-        v2 grid_s = { grid_size, grid_size };
-        draw_rect(grid_coords + coords, 90.0f * DEG2RAD, grid_s, &cow->bitmaps[ASSET_COW_HEAD]);
-    }
+    v2 grid_s = { grid_size, grid_size };
     
-    for (u32 i = 1; i < cow->num_of_nodes; i++)
+    u32 head_index = 0;
+    u32 tail_index =  cow->num_of_nodes - 1;
+    for (s32 i = tail_index; i >= 0; i--)
     {
-        v2s *node = &cow->nodes[i].coords;
-        v2 coords = { node->x * grid_size, node->y * grid_size };
-        draw_rect(grid_coords + coords, 0, { grid_size, grid_size }, { 0, 0, 255, 1 });
+        Coffee_Cow_Node *node = &cow->nodes[i];
+        v2 coords = { node->coords.x * grid_size, node->coords.y * grid_size };
+        coords += grid_coords;
+        
+        
+        if (i == head_index)
+        {
+            r32 rot = get_rot(get_direction(cow->direction));
+            draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD_OUTLINE]);
+            draw_rect(coords, rot, grid_s, { 0, 0, 0, 1 });
+            Rect cow_node = get_body_rect(get_direction(cow->direction), 0.9f, 1.0f, grid_s, coords);
+            draw_rect(cow_node.coords, 0, cow_node.dim, { 255, 255, 255, 1 });
+            draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD]);
+        }
+        else if (i == tail_index)
+        {
+            draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+            draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
+        }
+        else
+        {
+            r32 rot = get_rot(get_direction(node->direction));
+            if (cow->nodes[i + 1].direction != node->direction)
+            {
+                draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
+            }
+            else
+            {
+                draw_rect(coords, rot, grid_s, { 0, 0, 0, 1 });
+                Rect cow_node = get_body_rect(get_direction(node->direction), 0.9f, 1.0f, grid_s, coords);
+                draw_rect(cow_node.coords, 0, cow_node.dim, { 255, 255, 255, 1 });
+            }
+        }
     }
 }
 
@@ -424,6 +551,7 @@ game()
     Bitmap grass = load_and_init_bitmap("../assets/bitmaps/grass.png");
     Bitmap rocks = load_and_init_bitmap("../assets/bitmaps/rocks.png");
     Bitmap grid = load_and_init_bitmap("../assets/bitmaps/grid.png");
+    Bitmap test = load_and_init_bitmap("../assets/bitmaps/testimg.jpg");
     
     Font rubik = load_font("../assets/fonts/Rubik-Medium.ttf");
     
@@ -533,15 +661,18 @@ game()
         }
         if (game_mode == IN_GAME)
         {
-            if (on_down(controller.right))
-                cow.direction = { 1, 0 };
-            if (on_down(controller.up))
-                cow.direction = { 0, -1 };
-            if (on_down(controller.left))
-                cow.direction = { -1, 0 };
-            if (on_down(controller.down))
-                cow.direction = { 0, 1 };
-            
+            Coffee_Cow_Node *head = &cow.nodes[0];
+            if (cow.num_of_inputs != 4)
+            {
+                if (on_down(controller.right) && head->direction != LEFT_V)
+                    cow.inputs[cow.num_of_inputs++] = RIGHT_V; //cow.direction = RIGHT_V;
+                if (on_down(controller.up) && head->direction != DOWN_V)
+                    cow.inputs[cow.num_of_inputs++] = UP_V; //cow.direction = UP_V;
+                if (on_down(controller.left) && head->direction != RIGHT_V)
+                    cow.inputs[cow.num_of_inputs++] = LEFT_V; //cow.direction = LEFT_V;
+                if (on_down(controller.down) && head->direction != UP_V)
+                    cow.inputs[cow.num_of_inputs++] = DOWN_V; //cow.direction = DOWN_V;
+            }
             update_coffee_cow(&cow, frame_time_s, grid_dim);
         }
         
@@ -551,10 +682,6 @@ game()
         orthographic_matrix = orthographic_projection(0.0f, (r32)window_dim.width, (r32)window_dim.height,
                                                       0.0f, -3.0f, 3.0f);
         global_window_dim = window_dim;
-        
-        draw_rect( { 0, 0 }, 0, { 100, 100 }, { 255, 0, 0, 1 } );
-        draw_rect( { 100, 100 }, 0, cv2(logo.dim) * 0.5f, &logo );
-        draw_string(&rubik, "yooo", { 200, 200 }, 50, { 0, 255, 0, 1 });
         
         Menu main_menu = {};
         v2 menu_logo_dim = {550, 274};
@@ -567,8 +694,15 @@ game()
         main_menu.button.text_color = {255, 255, 255, 1};
         main_menu.button.active_text_color = {0, 0, 0, 1};
         main_menu.button.pixel_height = 50;
-        
-        if (game_mode == MAIN_MENU)
+        if (0)
+        {
+            //draw_rect( { 0, 0 }, 0, { 100, 100 }, { 255, 0, 0, 1 } );
+            //Rect test_rect = get_centered_coords(0.5f, cv2(window_dim));
+            //draw_rect( test_rect, &test );
+            //draw_rect( { (r32)window_dim.x/2.0f, (r32)window_dim.y/2.0f }, 90 * DEG2RAD, {100, 100}, &test );
+            //draw_string(&rubik, "yooo", { 200, 200 }, 50, { 0, 255, 0, 1 });
+        }
+        else if (game_mode == MAIN_MENU)
         {
             main_menu.dim.x = menu_logo_dim.x;
             main_menu.dim.y = menu_logo_dim.y + (main_menu.button.dim.y * 2.0f) + (main_menu.padding.y * 2.0f);
