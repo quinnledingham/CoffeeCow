@@ -314,10 +314,36 @@ struct Coffee_Cow
     v2s direction;
     
     v2s inputs[5];
-    u32 num_of_inputs;
+    s32 num_of_inputs;
     
     Bitmap bitmaps[6];
 };
+
+enum Direction
+{
+    RIGHT,
+    UP,
+    LEFT,
+    DOWN
+};
+
+#define RIGHT_V v2s{ 1, 0 }
+#define UP_V v2s{ 0, -1 }
+#define LEFT_V v2s{ -1, 0 }
+#define DOWN_V v2s{ 0, 1 }
+
+function u32
+get_direction(v2s dir)
+{
+    if (dir.x == 1 && dir.y == 0)
+        return RIGHT;
+    else if (dir.x == 0 && dir.y == -1)
+        return UP;
+    else if (dir.x == -1 && dir.y == 0)
+        return LEFT;
+    else 
+        return DOWN;
+}
 
 function void
 add_node(Coffee_Cow *cow, v2s grid_coords)
@@ -351,25 +377,26 @@ coffee_cow_check_bounds(Coffee_Cow *cow, v2s grid_dim)
 function void
 update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
 {
-    if (cow->num_of_inputs != 0)
+    r32 speed = 7.0f;
+    if (cow->transition + (speed * frame_time_s) >= 1.0f)
     {
-        cow->direction = cow->inputs[0];
-        for (u32 i = 0; i < cow->num_of_inputs - 2; i++)
+        if (cow->num_of_inputs != 0)
         {
-            cow->inputs[i] = cow->inputs[i + 1];
+            cow->direction = cow->inputs[0];
+            for (s32 i = 0; i < cow->num_of_inputs - 1; i++)
+            {
+                cow->inputs[i] = cow->inputs[i + 1];
+            }
+            cow->num_of_inputs--;
         }
-        cow->num_of_inputs--;
-    }
-    
-    if (!coffee_cow_check_bounds(cow, grid_dim))
-        return;
-    
-    cow->transition += 4.0f * frame_time_s;
-    if (cow->transition >= 1.0f)
-    {
+        
+        if (!coffee_cow_check_bounds(cow, grid_dim))
+            return;
+        
+        cow->transition = (cow->transition + (speed * frame_time_s)) - 1.0f;
+        
         cow->nodes[0].direction = cow->direction;
         
-        cow->transition = 0.0f;
         for (u32 i = 0; i < cow->num_of_nodes; i++)
         {
             cow->nodes[i].coords += cow->nodes[i].direction;
@@ -378,38 +405,14 @@ update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
                 cow->nodes[i].direction = cow->nodes[i - 1].last_direction;
         }
     }
+    else
+        cow->transition += speed * frame_time_s;
 }
 
 function r32
 v2toDeg(v2s v)
 {
     return tanf((r32)v.y/(r32)v.x);
-}
-
-enum Direction
-{
-    RIGHT,
-    UP,
-    LEFT,
-    DOWN
-};
-
-#define RIGHT_V v2s{ 1, 0 }
-#define UP_V v2s{ 0, -1 }
-#define LEFT_V v2s{ -1, 0 }
-#define DOWN_V v2s{ 0, 1 }
-
-function u32
-get_direction(v2s dir)
-{
-    if (dir.x == 1 && dir.y == 0)
-        return RIGHT;
-    else if (dir.x == 0 && dir.y == -1)
-        return UP;
-    else if (dir.x == -1 && dir.y == 0)
-        return LEFT;
-    else 
-        return DOWN;
 }
 
 function v2s
@@ -662,15 +665,15 @@ game()
         if (game_mode == IN_GAME)
         {
             Coffee_Cow_Node *head = &cow.nodes[0];
-            if (cow.num_of_inputs != 4)
+            if (cow.num_of_inputs < 4)
             {
-                if (on_down(controller.right) && head->direction != LEFT_V)
+                if (on_down(controller.right) && cow.inputs[cow.num_of_inputs] != LEFT_V)
                     cow.inputs[cow.num_of_inputs++] = RIGHT_V; //cow.direction = RIGHT_V;
-                if (on_down(controller.up) && head->direction != DOWN_V)
+                if (on_down(controller.up) && cow.inputs[cow.num_of_inputs] != DOWN_V)
                     cow.inputs[cow.num_of_inputs++] = UP_V; //cow.direction = UP_V;
-                if (on_down(controller.left) && head->direction != RIGHT_V)
+                if (on_down(controller.left) && cow.inputs[cow.num_of_inputs] != RIGHT_V)
                     cow.inputs[cow.num_of_inputs++] = LEFT_V; //cow.direction = LEFT_V;
-                if (on_down(controller.down) && head->direction != UP_V)
+                if (on_down(controller.down) && cow.inputs[cow.num_of_inputs] != UP_V)
                     cow.inputs[cow.num_of_inputs++] = DOWN_V; //cow.direction = DOWN_V;
             }
             update_coffee_cow(&cow, frame_time_s, grid_dim);
