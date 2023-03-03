@@ -24,6 +24,12 @@ void output(FILE *stream, const char* msg, va_list valist)
                 int integer = va_arg(valist, int);
                 fprintf(stream, "%d", integer);
             }
+            else if (*msg_ptr == 'f')
+            {
+                
+                double f = va_arg(valist, double);
+                fprintf(stream, "%f", f);
+            }
         }
         else
             fputc(*msg_ptr, stream);

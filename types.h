@@ -52,6 +52,9 @@ v2 operator/(const v2 &l, const v2 &r) { return { l.x / r.x, l.y / r.y }; }
 v2 operator/(const v2 &l, const r32 &r) { return { l.x / r, l.y / r }; }
 void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator-=(v2 &l, const v2 &r) { l.x = l.x - r.x; l.y = l.y - r.y; }
+void operator*=(v2 &l, const r32 &r) { l.x = l.x * r; l.y = l.y * r; }
+void operator/=(v2 &l, const v2 &r) { l.x = l.x / r.x; l.y = l.y / r.y; }
+void operator/=(v2 &l, const r32 &r) { l.x = l.x / r; l.y = l.y / r; }
 r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
 r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
 
@@ -63,6 +66,8 @@ normalized(const v2 &v)
     r32 inverse_length = 1.0f / sqrtf(len_sq);
     return { v.x * inverse_length, v.y * inverse_length };
 }
+
+void log(const v2 &v) { log("v2: %f, %f", v.x, v.y); }
 
 union v2s
 {
@@ -81,6 +86,7 @@ union v2s
     s32 E[2];
 };
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
+v2s operator-(const v2s &l, const v2s &r) { return { l.x - r.x, l.y - r.y }; }
 void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
 v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
@@ -88,6 +94,27 @@ void operator*=(v2s &l, const s32 &r) { l.x = l.x * r; l.y = l.y * r; }
 bool operator==(const v2s &l, const v2s &r) { if (l.x == r.x && l.y == r.y) return true; return false; }
 bool operator!=(const v2s &l, const v2s &r) { if (l.x != r.x || l.y != r.y) return true; return false; }
 v2 cv2(v2s v) { return { (r32)v.x, (r32)v.y }; }
+void log(const v2s &v) { log("v2s: %d, %d", v.x, v.y); }
+
+inline v2s
+normalized(const v2s &v)
+{
+    v2s n = {};
+    if (v.x > 0)
+        n.x = 1;
+    else if (v.x == 0)
+        n.x = 0;
+    else if (v.x < 0)
+        n.x = -1;
+    
+    if (v.y > 0)
+        n.y = 1;
+    else if (v.y == 0)
+        n.y = 0;
+    else if (v.y < 0)
+        n.y = -1;
+    return n;
+}
 
 union v3
 {

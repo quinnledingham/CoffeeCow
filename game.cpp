@@ -228,6 +228,12 @@ menu_update_active(s32 *active, s32 lower, s32 upper, Button increase, Button de
 }
 
 function v2
+get_centered_coords(v2 coords, v2 dim)
+{
+    return coords + (dim / 2.0f);
+}
+
+function v2
 get_center_menu_coords(v2 menu_dim, v2 window_dim)
 {
     return
@@ -342,6 +348,19 @@ enum Direction
 #define DOWN_V v2s{ 0, 1 }
 
 function u32
+get_direction(v2 dir)
+{
+    if (dir.x == 1.0f && dir.y == 0.0f)
+        return RIGHT;
+    else if (dir.x == 0.0f && dir.y == -1.0f)
+        return UP;
+    else if (dir.x == -1.0f && dir.y == 0.0f)
+        return LEFT;
+    else 
+        return DOWN;
+}
+
+function u32
 get_direction(v2s dir)
 {
     if (dir.x == 1 && dir.y == 0)
@@ -354,12 +373,14 @@ get_direction(v2s dir)
         return DOWN;
 }
 
+
 function void
 add_node(Coffee_Cow *cow, v2s grid_coords)
 {
     Coffee_Cow_Node *new_node = &cow->nodes[cow->num_of_nodes++];
     new_node->coords = grid_coords;
     new_node->direction = cow->direction;
+    new_node->last_direction = cow->direction;
 }
 
 function b8
@@ -463,53 +484,54 @@ get_centered_rect(r32 percent_x, r32 percent_y, v2 dim)
 }
 
 function Rect
-get_body_rect(u32 dir, r32 min, r32 max, v2 grid_s, v2 coords)
+get_body_rect(u32 dir, r32 min, r32 max, v2 dim, v2 coords)
 {
     Rect cow_node = {};
     if (dir == RIGHT)
-        cow_node = get_centered_rect(max, min, grid_s);
+        cow_node = get_centered_rect(max, min, dim);
     else if (dir == UP)
-        cow_node = get_centered_rect(min, max, grid_s);
+        cow_node = get_centered_rect(min, max, dim);
     else if (dir == LEFT)
-        cow_node = get_centered_rect(max, min, grid_s);
+        cow_node = get_centered_rect(max, min, dim);
     else if (dir == DOWN)
-        cow_node = get_centered_rect(min, max, grid_s);
+        cow_node = get_centered_rect(min, max, dim);
     cow_node.coords += coords;
     return cow_node;
 }
 
 function Rect
-get_body_half_rect(u32 dir, v2 coords, v2 dim)
+get_cc_body_rect(v2 point, v2 current, v2 last, r32 grid_size)
 {
     Rect rect = {};
-    if (dir == RIGHT || dir == LEFT)
-        rect.dim = { dim.x / 2.0f, dim.y };
-    else if (dir == UP || dir == DOWN)
-        rect.dim = { dim.x, dim.y / 2.0f };
-    
-    rect.coords = coords;
-    if (dir == LEFT)
-        rect.coords.x += rect.dim.x;
-    else if (dir == UP)
-        rect.coords.y += rect.dim.y;
+    if (point.x == 0 && point.y < 0)
+    {
+        rect.dim = { grid_size, -point.y };
+        rect.coords.x = current.x - (grid_size/2.0f);
+        rect.coords.y = current.y;
+    }
+    else if (point.x == 0 && point.y > 0)
+    {
+        rect.dim = { grid_size, point.y };
+        rect.coords.x = last.x - (grid_size/2.0f);
+        rect.coords.y = last.y;
+    }
+    else if (point.x > 0 && point.y == 0)
+    {
+        rect.dim = { point.x, grid_size };
+        rect.coords.x = last.x;
+        rect.coords.y = last.y - (grid_size / 2.0f);
+    }
+    else if (point.x < 0 && point.y == 0)
+    {
+        rect.dim = { -point.x, grid_size };
+        rect.coords.x = current.x;
+        rect.coords.y = current.y - (grid_size / 2.0f);
+    }
     
     return rect;
 }
 
-function void
-draw_cc_tail(Coffee_Cow *cow, Coffee_Cow_Node *node, v2 coords, v2 grid_s)
-{
-    u32 dir = get_direction(node->direction * -1);
-    
-    Rect outline_half = get_body_half_rect(dir, coords, grid_s);
-    Rect rect = get_body_rect(dir, 0.9f, 1.0f, grid_s, coords);
-    Rect half = get_body_half_rect(dir, rect.coords, rect.dim);
-    
-    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-    draw_rect(outline_half, { 0, 0, 0, 1 });
-    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-    draw_rect(half, {255, 255, 255, 1});
-}
+
 
 function void
 draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
@@ -518,78 +540,114 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     
     s32 head_index = 0;
     s32 tail_index =  cow->num_of_nodes - 1;
-    for (s32 i = tail_index; i >= 0; i--)
+    
+    v2s grid_coords_last = { 0, 0 };
+    v2 coords_of_last_cir = { 0, 0 };
+    
+    for (s32 o = 0; o < 2; o++)
     {
-        Coffee_Cow_Node *node = &cow->nodes[i];
-        v2 coords = { node->coords.x * grid_size, node->coords.y * grid_size };
-        coords += grid_coords;
+        u32 circle = 0;
+        u32 head = 0;
+        v4 color = {};
+        if (o == 0)
+        {
+            circle = ASSET_COW_CIRCLE_OUTLINE;
+            head = ASSET_COW_HEAD_OUTLINE;
+            color = { 0, 0, 0, 1 };
+        }
+        else if (o == 1)
+        {
+            circle = ASSET_COW_CIRCLE;
+            head = ASSET_COW_HEAD;
+            color = {255, 255, 255, 1};
+        }
         
-        if (i == head_index)
+        for (s32 i = tail_index; i >= 0; i--)
         {
-            //coords -= (cv2(node->direction) * (1.0f - cow->transition)) * grid_size;
+            Coffee_Cow_Node *node = &cow->nodes[i];
+            v2 coords = cv2(node->coords);
+            coords *= grid_size;
+            coords += grid_coords;
+            v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
             
-            u32 dir = get_direction(cow->direction);
-            r32 rot = get_rot(dir);
+            u32 dir = get_direction(node->direction);
+            u32 rev_dir = get_direction(node->direction * -1);
             
-            Rect outline_half = get_body_half_rect(dir, coords, grid_s);
-            Rect rect = get_body_rect(dir, 0.9f, 1.0f, grid_s, coords);
-            Rect half = get_body_half_rect(dir, rect.coords, rect.dim);
-            
-            draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD_OUTLINE]);
-            draw_rect(outline_half, { 0, 0, 0, 1 });
-            draw_rect(half, {255, 255, 255, 1});
-            draw_rect(coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD]);
-        }
-        else if (i == tail_index)
-        {
-            draw_rect(coords, 0, grid_s, { 0, 0, 0, 1 });
-            Rect cow_node = get_body_rect(get_direction(node->direction), 0.9f, 1.0f, grid_s, coords);
-            draw_rect(cow_node.coords, 0, cow_node.dim, { 255, 255, 255, 1 });
-            
-            //coords -= (cv2(node->direction) * (1.0f - cow->transition)) * grid_size;
-            
-            //draw_cc_tail(cow, node, coords, grid_s);
-            
-            u32 dir = get_direction(node->direction * -1);
-            
-            Rect outline_half = get_body_half_rect(dir, coords, grid_s);
-            Rect rect = get_body_rect(dir, 0.9f, 1.0f, grid_s, coords);
-            Rect half = get_body_half_rect(dir, rect.coords, rect.dim);
-            
-            draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-            draw_rect(outline_half, { 0, 0, 0, 1 });
-            draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-            draw_rect(half, {255, 255, 255, 1});
-            
-        }
-        else
-        {
-            if (cow->nodes[i + 1].direction != node->direction)
+            if (i == head_index)
             {
-                u32 dir = get_direction(node->direction * -1);
-                u32 n_dir = get_direction(cow->nodes[i + 1].direction);
+                r32 rot = get_rot(dir);
                 
-                Rect rect = get_body_rect(dir, 0.9f, 1.0f, grid_s, coords);
-                Rect outline_half = get_body_half_rect(dir, coords, grid_s);
-                Rect half = get_body_half_rect(dir, rect.coords, rect.dim);
+                v2 coords_of_cir = get_centered_coords(t_coords, grid_s);
+                v2 point = coords_of_cir - coords_of_last_cir;
+                Rect rect = get_cc_body_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
+                v2s point_dir = normalized(grid_coords_last - node->coords);
                 
-                Rect n_rect = get_body_rect(dir, 1.0f, 0.9f, grid_s, coords);
-                Rect n_outline_half = get_body_half_rect(n_dir, coords, grid_s);
-                Rect n_half = get_body_half_rect(n_dir, n_rect.coords, n_rect.dim);
+                if (o == 0)
+                {
+                    draw_rect(t_coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD_OUTLINE]);
+                    draw_rect(rect, { 0, 0, 0, 1 });
+                }
+                else if (o == 1)
+                {
+                    Rect w = get_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect.dim, rect.coords);
+                    draw_rect(w, {255, 255, 255, 1});
+                    draw_rect(t_coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD]);
+                }
                 
-                draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                draw_rect(outline_half, { 0, 0, 0, 1 });
-                draw_rect(n_outline_half, { 0, 0, 0, 1 });
-                
-                draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-                draw_rect(half, {255, 255, 255, 1});
-                draw_rect(n_half, {255, 255, 255, 1});
+                coords_of_last_cir = coords_of_cir;
+                grid_coords_last = node->coords;
             }
-            else
+            else if (i == tail_index)
             {
-                draw_rect(coords, 0, grid_s, { 0, 0, 0, 1 });
-                Rect cow_node = get_body_rect(get_direction(node->direction), 0.9f, 1.0f, grid_s, coords);
-                draw_rect(cow_node.coords, 0, cow_node.dim, { 255, 255, 255, 1 });
+                b32 add = true;
+                
+                v2 next_coords = get_centered_coords(coords, grid_s);
+                v2 current_coords = get_centered_coords(t_coords, grid_s);
+                
+                v2 point = next_coords - current_coords;
+                Rect gap = get_cc_body_rect(point, next_coords, current_coords, grid_size);
+                u32 last_dir = get_direction(node->last_direction);
+                Rect w = get_body_rect(last_dir, 0.9f, 1.0f, gap.dim, gap.coords);
+                
+                if (o == 0)
+                {
+                    draw_rect(t_coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(gap, { 0, 0, 0, 1 });
+                }
+                else if (o == 1)
+                {
+                    draw_rect(t_coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(w, {255, 255, 255, 1});
+                }
+                
+                coords_of_last_cir = next_coords;
+                grid_coords_last = node->coords;
+            }
+            else if (cow->nodes[i + 1].direction != node->direction)
+            {
+                u32 n_dir = get_direction(cow->nodes[i + 1].last_direction);
+                
+                v2 coords_of_cir = get_centered_coords(coords, grid_s);
+                v2 point = coords_of_cir - coords_of_last_cir;
+                Rect rect = get_cc_body_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
+                v2s point_dir = normalized(grid_coords_last - node->coords);
+                Rect w = get_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect.dim, rect.coords);
+                
+                if (o == 0)
+                {
+                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(rect, { 0, 0, 0, 1 });
+                }
+                else if (o == 1)
+                {
+                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(w, {255, 255, 255, 1});
+                }
+                
+                coords_of_last_cir = coords_of_cir;
+                grid_coords_last = node->coords;
             }
         }
     }
@@ -657,10 +715,10 @@ game()
     v2s grid_dim = { 10, 10 };
     Coffee_Cow cow = {};
     cow.direction = { 0, 1 };
+    add_node(&cow, { 0, 4 });
     add_node(&cow, { 0, 3 });
     add_node(&cow, { 0, 2 });
     add_node(&cow, { 0, 1 });
-    add_node(&cow, { 0, 0 });
     
     cow.bitmaps[ASSET_COW_HEAD] = load_and_init_bitmap("../assets/bitmaps/cow1/cowhead.png");
     cow.bitmaps[ASSET_COW_HEAD_OUTLINE]= load_and_init_bitmap("../assets/bitmaps/cow1/cowheadoutline.png");
@@ -788,15 +846,7 @@ game()
         main_menu.button.active_text_color = {0, 0, 0, 1};
         main_menu.button.pixel_height = 50;
         
-        if (0)
-        {
-            //draw_rect( { 0, 0 }, 0, { 100, 100 }, { 255, 0, 0, 1 } );
-            //Rect test_rect = get_centered_coords(0.5f, cv2(window_dim));
-            //draw_rect( test_rect, &test );
-            //draw_rect( { (r32)window_dim.x/2.0f, (r32)window_dim.y/2.0f }, 90 * DEG2RAD, {100, 100}, &test );
-            //draw_string(&rubik, "yooo", { 200, 200 }, 50, { 0, 255, 0, 1 });
-        }
-        else if (game_mode == MAIN_MENU)
+        if (game_mode == MAIN_MENU)
         {
             main_menu.dim.x = menu_logo_dim.x;
             main_menu.dim.y = menu_logo_dim.y + (main_menu.button.dim.y * 2.0f) + (main_menu.padding.y * 2.0f);
