@@ -261,7 +261,7 @@ function Font_Char*
 load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
 {
     // search cache for font char
-    for (u32 i = 0; i < font->font_chars_cached; i++)
+    for (s32 i = 0; i < font->font_chars_cached; i++)
     {
         Font_Char *font_char = &font->font_chars[i];
         if (font_char->codepoint == codepoint && font_char->color == color && font_char->scale == scale)
@@ -271,7 +271,7 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
     // where to cache new font char
     Font_Char *font_char = &font->font_chars[font->font_chars_cached];
     memset(font_char, 0, sizeof(Font_Char));
-    if (font->font_chars_cached + 1 < ARRAY_COUNT(font->font_chars))
+    if (font->font_chars_cached + 1 < (s32)ARRAY_COUNT(font->font_chars))
         font->font_chars_cached++;
     else
         font->font_chars_cached = 0;
@@ -316,7 +316,7 @@ function v2
 get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
 {
     Font_String *string = 0;
-    for (u32 i = 0; i < font->strings_cached; i++)
+    for (s32 i = 0; i < font->strings_cached; i++)
     {
         string = &font->font_strings[i];
         if (equal(string->memory, in) && string->pixel_height == pixel_height && string->color == color)
@@ -324,7 +324,7 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
     }
     
     string = &font->font_strings[font->strings_cached];
-    if (font->strings_cached + 1 < ARRAY_COUNT(font->font_strings))
+    if (font->strings_cached + 1 < (s32)ARRAY_COUNT(font->font_strings))
         font->strings_cached++;
     else
         font->strings_cached = 0;
@@ -343,7 +343,7 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
         Font_Char *font_char = load_font_char(font, string->memory[i], scale, color);
         
         f32 y = -1 * font_char->c_y1;
-        f32 x = string_x_coord + (font_char->lsb * scale);
+        //f32 x = string_x_coord + (font_char->lsb * scale);
         
         if (y > string_height)
             string_height = y;

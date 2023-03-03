@@ -45,11 +45,13 @@ union v2
 };
 v2 operator+(const v2 &l, const v2 &r) { return { l.x + r.x, l.y + r.y }; }
 v2 operator+(const v2 &l, const r32 &r) { return { l.x + r, l.y + r }; }
+v2 operator-(const v2 &l, const v2 &r) { return { l.x - r.x, l.y - r.y }; }
 v2 operator*(const v2 &l, const v2 &r) { return { l.x * r.x, l.y * r.y }; }
 v2 operator*(const v2 &l, const r32 &r) { return { l.x * r, l.y * r }; }
 v2 operator/(const v2 &l, const v2 &r) { return { l.x / r.x, l.y / r.y }; }
 v2 operator/(const v2 &l, const r32 &r) { return { l.x / r, l.y / r }; }
 void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
+void operator-=(v2 &l, const v2 &r) { l.x = l.x - r.x; l.y = l.y - r.y; }
 r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
 r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
 
@@ -81,6 +83,8 @@ union v2s
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
 void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
+v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
+void operator*=(v2s &l, const s32 &r) { l.x = l.x * r; l.y = l.y * r; }
 bool operator==(const v2s &l, const v2s &r) { if (l.x == r.x && l.y == r.y) return true; return false; }
 bool operator!=(const v2s &l, const v2s &r) { if (l.x != r.x || l.y != r.y) return true; return false; }
 v2 cv2(v2s v) { return { (r32)v.x, (r32)v.y }; }
