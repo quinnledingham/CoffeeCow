@@ -432,6 +432,37 @@ struct Flag
     b32 previous_state;
 };
 
+struct Button
+{
+    s32 id;
+    
+    s32 ids[3];
+    u32 num_of_ids;
+    
+    b32 current_state; 
+    b32 previous_state;
+};
+void set(Button *button, s32 id) 
+{
+    if (button->num_of_ids > 2)
+        error("set() too many ids trying to be assigned to button");
+    
+    button->ids[button->num_of_ids++] = id;
+    button->id = id; 
+}
+b32 is_down(Button button) { if (button.current_state) return true; return false; }
+b32 on_down(Button button)
+{
+    if (button.current_state && button.current_state != button.previous_state) return true;
+    return false;
+}
+
+struct Rect
+{
+    v2 coords;
+    v2 dim;
+};
+
 //
 // string
 //
