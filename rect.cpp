@@ -154,3 +154,35 @@ get_centered_rect(Rect og, r32 x_percent, r32 y_percent)
     rect.coords += og.coords;
     return rect;
 }
+
+function Rect
+get_centered_rect_pad(Rect og, v2 pad)
+{
+    Rect rect = {};
+    rect.dim.x = og.dim.x + pad.x;
+    rect.dim.y = og.dim.y + pad.y;
+    rect.coords = get_centered(rect, og);
+    rect.coords += og.coords;
+    return rect;
+}
+
+function Rect
+get_centered_square(Rect og, r32 percent)
+{
+    Rect rect = {};
+    if (og.dim.x <= og.dim.y)
+    {
+        rect.dim.x = og.dim.x * percent;
+        rect.dim.y = rect.dim.x;
+    }
+    else
+    {
+        rect.dim.y = og.dim.y * percent;
+        rect.dim.x = rect.dim.y;
+    }
+    
+    //log("%f %f\n", rect.dim.x, rect.dim.y);
+    rect.coords = get_centered(rect, og);
+    rect.coords += og.coords;
+    return rect;
+}

@@ -58,7 +58,6 @@ global_variable v2s global_window_dim;
 
 /*
  TODO:
-- make menus resize
 - add coffee spots to cow
 - add coffee
 - add game controller support
@@ -145,17 +144,13 @@ game()
     cow.bitmaps[ASSET_COW_STRAIGHT_OUTLINE]= load_and_init_bitmap("../assets/bitmaps/cow1/straightoutline.png");
     
     // default menu
-    Menu main_menu = {};
-    v2 menu_logo_dim = {550, 274};
-    main_menu.padding = {10, 10};
-    main_menu.font = &rubik;
+    Menu default_menu = {};
+    default_menu.font = &rubik;
     
-    main_menu.button.dim = {550, 75};
-    main_menu.button.back_color = {0, 0, 0, 1};
-    main_menu.button.active_back_color = {222, 201, 179, 1};
-    main_menu.button.text_color = {255, 255, 255, 1};
-    main_menu.button.active_text_color = {0, 0, 0, 1};
-    main_menu.button.pixel_height = 50;
+    default_menu.button.back_color = {0, 0, 0, 1};
+    default_menu.button.active_back_color = {222, 201, 179, 1};
+    default_menu.button.text_color = {255, 255, 255, 1};
+    default_menu.button.active_text_color = {0, 0, 0, 1};
     
     // init opengl vars
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -266,15 +261,23 @@ game()
         
         if (game_mode == MAIN_MENU)
         {
+            Menu main_menu = default_menu;
+            Rect bounds = get_centered_square(window_rect, 0.7f);
+            
+            main_menu.button.dim = { bounds.dim.width, bounds.dim.height * 0.15f };
+            main_menu.button.pixel_height = main_menu.button.dim.height * 0.6f;
+            main_menu.padding = bounds.dim * 0.0179f;
+            v2 logo_dim = { bounds.dim.width, logo.dim.height * (bounds.dim.width / logo.dim.width) };
+            
             Rect menu_rect = {};
-            menu_rect.dim.x = menu_logo_dim.x;
-            menu_rect.dim.y = menu_logo_dim.y + (main_menu.button.dim.y * 2.0f) + (main_menu.padding.y * 2.0f);
+            menu_rect.dim.x = main_menu.button.dim.width;
+            menu_rect.dim.y = logo_dim.y + (main_menu.button.dim.y * 2.0f) + (main_menu.padding.y * 2.0f);
             menu_rect.coords = get_centered(menu_rect, window_rect);
             
             draw_rect(window_rect, &main_menu_back);
-            draw_rect(menu_rect.coords, 0, menu_logo_dim, &logo);
+            draw_rect(menu_rect.coords, 0, logo_dim, &logo);
             
-            menu_rect.coords.y += menu_logo_dim.y + main_menu.padding.y;
+            menu_rect.coords.y += logo_dim.y + main_menu.padding.y;
             
             if (menu_button(&main_menu, menu_rect.coords, "Play", 0, active, on_down(controller.select)))
             {
@@ -293,7 +296,7 @@ game()
         {
             draw_rect(window_rect, &game_back);
             
-            Rect rocks_rect = get_centered_rect(window_rect, 0.9f, 0.9f);
+            Rect rocks_rect = get_centered_square(window_rect, 0.9f);
             Rect grass_rect = get_centered_rect(rocks_rect, 0.75265f, 0.75265f);
             
             draw_rect(grass_rect, &grass);
@@ -315,30 +318,35 @@ game()
             
             if (game_mode == PAUSED)
             {
-                Menu pause_menu = main_menu;
-                pause_menu.button.dim = {200, 75};
+                Menu pause_menu = default_menu;
+                Rect bounds = get_centered_square(window_rect, 0.6f);
+                
+                pause_menu.button.dim = { bounds.dim.width, bounds.dim.height * 0.15f };
+                pause_menu.button.pixel_height = pause_menu.button.dim.height * 0.6f;
+                pause_menu.padding = bounds.dim * 0.0179f;
                 pause_menu.button.back_color = { 0, 0, 0, 0.5f };
                 pause_menu.button.active_back_color = { 0, 0, 0, 1.0f };
                 pause_menu.button.text_color = { 255, 255, 255, 1 };
                 pause_menu.button.active_text_color = { 255, 255, 255, 1 };
                 
-                pause_menu.dim.x = pause_menu.button.dim.x;
-                pause_menu.dim.y = (pause_menu.button.dim.y * 2.0f) + (pause_menu.padding.y * 2.0f);;
-                v2 menu_coords = get_centered(Rect{{0,0},pause_menu.dim}, window_rect);
+                Rect menu_rect = {};
+                menu_rect.dim.x = pause_menu.button.dim.x;
+                menu_rect.dim.y = (pause_menu.button.dim.y * 2.0f) + (pause_menu.padding.y * 1.0f);
+                menu_rect.coords = get_centered(menu_rect, window_rect);
                 
-                Rect pause_rect = get_centered_rect(window_rect, 0.5f, 0.4f);
-                draw_rect(pause_rect, { 0, 0, 0, 0.5f });
+                Rect back_rect = get_centered_rect_pad(menu_rect, pause_menu.padding * 2);
+                draw_rect(back_rect, { 0, 0, 0, 0.5f });
                 
                 u32 index = 0;
                 
-                if (menu_button(&pause_menu, menu_coords, "Restart", index++, active, on_down(controller.select)))
+                if (menu_button(&pause_menu, menu_rect.coords, "Restart", index++, active, on_down(controller.select)))
                 {
                     
                 }
                 
-                menu_coords.y += pause_menu.button.dim.y + pause_menu.padding.y;
+                menu_rect.coords.y += pause_menu.button.dim.y + pause_menu.padding.y;
                 
-                if (menu_button(&pause_menu, menu_coords, "Menu", index++, active, on_down(controller.select)))
+                if (menu_button(&pause_menu, menu_rect.coords, "Menu", index++, active, on_down(controller.select)))
                 {
                     game_mode = MAIN_MENU;
                     active = 0;

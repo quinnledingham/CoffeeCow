@@ -11,12 +11,7 @@ struct Menu_Button
 struct Menu
 {
     Menu_Button button;
-    
-    Menu_Button buttons[10];
-    u32 num_of_buttons;
-    
     v2 padding;
-    v2 dim;
     Font *font;
 };
 
