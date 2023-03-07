@@ -14,7 +14,7 @@ read_file(const char *filename)
         result.size = ftell(in);
         fseek(in, 0, SEEK_SET);
         
-        result.memory = malloc(result.size);
+        result.memory = SDL_malloc(result.size);
         fread(result.memory, result.size, 1, in);
         fclose(in);
     }
@@ -50,8 +50,9 @@ init_bitmap_handle(Bitmap *bitmap)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bitmap->dim.width, bitmap->dim.height, 0, GL_RGB, GL_UNSIGNED_BYTE, bitmap->memory);
     }
     else if (bitmap->channels == 4)
+    {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->dim.width, bitmap->dim.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->memory);
-    
+    }
     glGenerateMipmap(GL_TEXTURE_2D);
     
     // Tile
@@ -138,7 +139,7 @@ load_shader(Shader *shader)
     if (shader->fs_filename != 0)
     {
         if (shader->fs_file != 0)
-            free((void*)shader->fs_file);
+            SDL_free((void*)shader->fs_file);
         shader->fs_file = load_shader_file(shader->fs_filename);
     }
 }

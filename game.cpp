@@ -42,8 +42,6 @@ enum Asset_Tags
     ASSET_COW_HEAD_OUTLINE,
     ASSET_COW_CIRCLE,
     ASSET_COW_CIRCLE_OUTLINE,
-    ASSET_COW_STRAIGHT,
-    ASSET_COW_STRAIGHT_OUTLINE,
 };
 
 global_variable m4x4 orthographic_matrix;
@@ -59,9 +57,11 @@ global_variable v2s global_window_dim;
 /*
  TODO:
 - add coffee spots to cow
+- add random cow placement
 - add coffee
 - add game controller support
 - add multiplayer
+- create 3 more cow designs
 */
 
 function u32
@@ -126,22 +126,28 @@ game()
     
     u32 game_mode = MAIN_MENU;
     s32 active = 0;
-    
     v2s grid_dim = { 10, 10 };
+    
+    Coffee_Cow_Design designs[4];
+    designs[0].bitmaps[ASSET_COW_HEAD] = load_and_init_bitmap("../assets/bitmaps/cow1/cowhead.png");
+    designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = load_and_init_bitmap("../assets/bitmaps/cow1/cowheadoutline.png");
+    designs[0].bitmaps[ASSET_COW_CIRCLE] = load_and_init_bitmap("../assets/bitmaps/cow1/circle.png");
+    designs[0].bitmaps[ASSET_COW_CIRCLE_OUTLINE] = load_and_init_bitmap("../assets/bitmaps/cow1/circleoutline.png");
+    designs[0].color = { 255, 255, 255, 1 };
+    designs[0].outline_color = { 0, 0, 0, 1 };
+    
+    Coffee_Cow players[4]; // stores the players in the game
+    u32 num_of_players = 0;
+    players[0].first_input_of_transition = false;
+    
     Coffee_Cow cow = {};
+    cow.design = designs[0];
     cow.first_input_of_transition = true;
     cow.direction = { 0, 1 };
     add_node(&cow, { 0, 4 });
     add_node(&cow, { 0, 3 });
     add_node(&cow, { 0, 2 });
     add_node(&cow, { 0, 1 });
-    
-    cow.bitmaps[ASSET_COW_HEAD] = load_and_init_bitmap("../assets/bitmaps/cow1/cowhead.png");
-    cow.bitmaps[ASSET_COW_HEAD_OUTLINE]= load_and_init_bitmap("../assets/bitmaps/cow1/cowheadoutline.png");
-    cow.bitmaps[ASSET_COW_CIRCLE]= load_and_init_bitmap("../assets/bitmaps/cow1/circle.png");
-    cow.bitmaps[ASSET_COW_CIRCLE_OUTLINE]= load_and_init_bitmap("../assets/bitmaps/cow1/circleoutline.png");
-    cow.bitmaps[ASSET_COW_STRAIGHT]= load_and_init_bitmap("../assets/bitmaps/cow1/straight.png");
-    cow.bitmaps[ASSET_COW_STRAIGHT_OUTLINE]= load_and_init_bitmap("../assets/bitmaps/cow1/straightoutline.png");
     
     // default menu
     Menu default_menu = {};

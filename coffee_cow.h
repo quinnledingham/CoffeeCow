@@ -8,18 +8,28 @@ struct Coffee_Cow_Node
     v2s last_direction;
 };
 
+struct Coffee_Cow_Design
+{
+    Bitmap bitmaps[4];
+    v4 color;
+    v4 outline_color;
+};
+
 struct Coffee_Cow
 {
+    // game info
     Coffee_Cow_Node nodes[400];  // 0 = head
     u32 num_of_nodes;
     r32 transition; // 0.0f - 1.0f
     v2s direction;
     
+    // input
+    Controller *controller;
     v2s inputs[5];
     s32 num_of_inputs;
     b8 first_input_of_transition;
     
-    Bitmap bitmaps[6];
+    Coffee_Cow_Design design;
 };
 
 enum Direction

@@ -20,13 +20,15 @@ function b8
 cc_check_bounds(Coffee_Cow *cow, v2s grid_dim)
 {
     Coffee_Cow_Node *head_node = &cow->nodes[0];
-    v2s head = head_node->coords;
-    head += cow->direction;
+    v2s head = head_node->coords + cow->direction;
+    
+    // checking if it will hit the wall
     if (head.x < 0 || head.x > (grid_dim.x - 1))
         return false;
     else if (head.y < 0 || head.y > (grid_dim.y - 1))
         return false;
     
+    // checking if it will hit itself
     for (u32 i = 1; i < cow->num_of_nodes; i++)
     {
         Coffee_Cow_Node *node = &cow->nodes[i];
@@ -77,11 +79,13 @@ update_cc(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
 function void
 cc_add_input(Coffee_Cow *cow, v2s dir)
 {
+    /*
     if (cow->first_input_of_transition)
     {
         cow->num_of_inputs = 0;
         cow->first_input_of_transition = false;
     }
+*/
     cow->inputs[cow->num_of_inputs++] = dir;
 }
 
@@ -140,18 +144,10 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     v2s grid_coords_last = { 0, 0 };
     v2 coords_of_last_cir = { 0, 0 };
     
+    // o = 0 drawing the outline - first layer
+    // o = 1 drawing the body - second layer
     for (s32 o = 0; o < 2; o++)
     {
-        v4 color = {};
-        if (o == 0)
-        {
-            color = { 0, 0, 0, 1 };
-        }
-        else if (o == 1)
-        {
-            color = {255, 255, 255, 1};
-        }
-        
         for (s32 i = tail_index; i >= 0; i--)
         {
             Coffee_Cow_Node *node = &cow->nodes[i];
@@ -181,14 +177,14 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0)
                 {
-                    draw_rect(t_coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD_OUTLINE]);
-                    draw_rect(rect, color);
+                    draw_rect(t_coords, rot, grid_s, &cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
+                    draw_rect(rect, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
                     Rect w = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect);
-                    draw_rect(w, color);
-                    draw_rect(t_coords, rot, grid_s, &cow->bitmaps[ASSET_COW_HEAD]);
+                    draw_rect(w, cow->design.color);
+                    draw_rect(t_coords, rot, grid_s, &cow->design.bitmaps[ASSET_COW_HEAD]);
                 }
                 
                 coords_of_last_cir = coords_of_cir;
@@ -208,15 +204,15 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0)
                 {
-                    draw_rect(t_coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(gap, color);
+                    draw_rect(t_coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(gap, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
-                    draw_rect(t_coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(w, color);
+                    draw_rect(t_coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(w, cow->design.color);
                 }
                 
                 coords_of_last_cir = next_coords;
@@ -234,13 +230,13 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0)
                 {
-                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(rect, color);
+                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(rect, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
-                    draw_rect(coords, 0, grid_s, &cow->bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(w, color);
+                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(w, cow->design.color);
                 }
                 
                 coords_of_last_cir = coords_of_cir;
