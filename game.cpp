@@ -64,6 +64,20 @@ global_variable v2s global_window_dim;
 - create 3 more cow designs
 */
 
+function void
+controller_process_input(Controller *controller, s32 id, b32 state)
+{
+    for (u32 i = 0; i < ARRAY_COUNT(controller->buttons); i++)
+    {
+        // loop through all ids associated with button
+        for (u32 j = 0; j < controller->buttons[i].num_of_ids; j++)
+        {
+            if (id == controller->buttons[i].ids[j])
+                controller->buttons[i].current_state = state;
+        }
+    }
+}
+
 function u32
 game()
 {
@@ -90,7 +104,7 @@ game()
     
     // Check OpenGL properties
     gladLoadGL((GLADloadfunc) SDL_GL_GetProcAddress);
-    log("OpenGL loaded");
+    log("OpenGL loaded:");
     log("Vendor:   %s", glGetString(GL_VENDOR));
     log("Renderer: %s", glGetString(GL_RENDERER));
     log("Version:  %s", glGetString(GL_VERSION));
@@ -108,17 +122,47 @@ game()
     Font rubik = load_font("../assets/fonts/Rubik-Medium.ttf");
     
     // init_vars()
-    Controller controller = {};
-    set(&controller.right, SDLK_d);
-    set(&controller.right, SDLK_RIGHT);
-    set(&controller.up, SDLK_w);
-    set(&controller.up, SDLK_UP);
-    set(&controller.left, SDLK_a);
-    set(&controller.left, SDLK_LEFT);
-    set(&controller.down, SDLK_s);
-    set(&controller.down, SDLK_DOWN);
-    set(&controller.select, SDLK_RETURN);
-    set(&controller.pause, SDLK_ESCAPE);
+    Controller controllers[4] = {};
+    u32 num_of_controllers = 0;
+    Controller *menu_controller = &controllers[0];
+    
+    Controller *keyboard = &controllers[0];
+    set(&keyboard->right, SDLK_d);
+    set(&keyboard->right, SDLK_RIGHT);
+    set(&keyboard->up, SDLK_w);
+    set(&keyboard->up, SDLK_UP);
+    set(&keyboard->left, SDLK_a);
+    set(&keyboard->left, SDLK_LEFT);
+    set(&keyboard->down, SDLK_s);
+    set(&keyboard->down, SDLK_DOWN);
+    set(&keyboard->select, SDLK_RETURN);
+    set(&keyboard->pause, SDLK_ESCAPE);
+    num_of_controllers++;
+    
+    log("Game Controllers:");
+    SDL_Joystick *joysticks[4] = {};
+    SDL_GameController *game_controllers[4] = {};
+    u32 num_of_joysticks = SDL_NumJoysticks();
+    for (u32 i = 0; i < num_of_joysticks; i++)
+    {
+        joysticks[i] = SDL_JoystickOpen(i);
+        if (SDL_IsGameController(i))
+        {
+            log("%s", SDL_JoystickName(joysticks[i]));
+            
+            game_controllers[i] = SDL_GameControllerOpen(i);
+            
+            Controller *c = &controllers[i + 1];
+            set(&c->right, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+            set(&c->up, SDL_CONTROLLER_BUTTON_DPAD_UP);
+            set(&c->left, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+            set(&c->down, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            set(&c->select, SDL_CONTROLLER_BUTTON_A);
+            set(&c->pause, SDL_CONTROLLER_BUTTON_START);
+            
+            num_of_controllers++;
+        }
+    }
     
     u32 last_run_time_ms = 0;
     v2s window_dim = {};
@@ -171,8 +215,11 @@ game()
     while(1)
     {
         // input()
-        for (u32 i = 0; i < ARRAY_COUNT(controller.buttons); i++)
-            controller.buttons[i].previous_state = controller.buttons[i].current_state;
+        for (u32 i = 0; i < num_of_controllers; i++)
+        {
+            for (u32 j = 0; j < ARRAY_COUNT(controllers[i].buttons); j++)
+                controllers[i].buttons[j].previous_state = controllers[i].buttons[j].current_state;
+        }
         
         SDL_Event event;
         while(SDL_PollEvent(&event))
@@ -200,18 +247,31 @@ game()
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
                 {
+                    menu_controller = &controllers[0];
                     SDL_KeyboardEvent *keyboard_event = &event.key;
                     s32 key_id = keyboard_event->keysym.sym;
                     b32 state = false;
                     if (keyboard_event->state == SDL_PRESSED)
                         state = true;
                     
-                    for (u32 i = 0; i < ARRAY_COUNT(controller.buttons); i++)
+                    controller_process_input(&controllers[0], key_id, state);
+                } break;
+                
+                case SDL_CONTROLLERBUTTONUP:
+                case SDL_CONTROLLERBUTTONDOWN:
+                {
+                    SDL_ControllerButtonEvent *button_event = &event.cbutton;
+                    for (u32 i = 0; i < num_of_joysticks; i++)
                     {
-                        for (u32 j = 0; j < controller.buttons[i].num_of_ids; j++)
+                        if (SDL_JoystickInstanceID(joysticks[i]) == button_event->which)
                         {
-                            if (key_id == controller.buttons[i].ids[j])
-                                controller.buttons[i].current_state = state;
+                            s32 button_id = button_event->button;
+                            b32 state = false;
+                            if (button_event->state == SDL_PRESSED)
+                                state = true;
+                            
+                            controller_process_input(&controllers[i + 1], button_id, state);
+                            menu_controller = &controllers[i + 1];
                         }
                     }
                 } break;
@@ -225,34 +285,39 @@ game()
         r32 frame_time_s = (f32)frame_time_ms / 1000.0f;
         last_run_time_ms = run_time_ms;
         
+        f32 fps = 1000.0f;
+        if (frame_time_s > 0.0f)
+            fps = 1.0f / frame_time_s;
+        //log("%f", fps);
+        
         // update()
         if (game_mode == MAIN_MENU)
         {
-            menu_update_active(&active, 0, 1, controller.down, controller.up);
+            menu_update_active(&active, 0, 2, menu_controller->down, menu_controller->up);
         }
         else if (game_mode == PAUSED)
         {
-            menu_update_active(&active, 0, 1, controller.down, controller.up);
+            menu_update_active(&active, 0, 1, menu_controller->down, menu_controller->up);
             
-            if (on_down(controller.pause))
+            if (on_down(menu_controller->pause))
                 game_mode = IN_GAME;
         }
         else if (game_mode == IN_GAME)
         {
             if (cow.num_of_inputs < 4)
             {
-                if (on_down(controller.right) && cow.inputs[cow.num_of_inputs] != LEFT_V)
+                if (on_down(menu_controller->right) && cow.inputs[cow.num_of_inputs] != LEFT_V)
                     cc_add_input(&cow, RIGHT_V);
-                if (on_down(controller.up) && cow.inputs[cow.num_of_inputs] != DOWN_V)
+                if (on_down(menu_controller->up) && cow.inputs[cow.num_of_inputs] != DOWN_V)
                     cc_add_input(&cow, UP_V);
-                if (on_down(controller.left) && cow.inputs[cow.num_of_inputs] != RIGHT_V)
+                if (on_down(menu_controller->left) && cow.inputs[cow.num_of_inputs] != RIGHT_V)
                     cc_add_input(&cow, LEFT_V);
-                if (on_down(controller.down) && cow.inputs[cow.num_of_inputs] != UP_V)
+                if (on_down(menu_controller->down) && cow.inputs[cow.num_of_inputs] != UP_V)
                     cc_add_input(&cow, DOWN_V);
             }
             update_cc(&cow, frame_time_s, grid_dim);
             
-            if (on_down(controller.pause))
+            if (on_down(menu_controller->pause))
                 game_mode = PAUSED;
         }
         
@@ -269,6 +334,7 @@ game()
         {
             Menu main_menu = default_menu;
             Rect bounds = get_centered_square(window_rect, 0.7f);
+            b32 select = on_down(menu_controller->select);
             
             main_menu.button.dim = { bounds.dim.width, bounds.dim.height * 0.15f };
             main_menu.button.pixel_height = main_menu.button.dim.height * 0.6f;
@@ -277,7 +343,7 @@ game()
             
             Rect menu_rect = {};
             menu_rect.dim.x = main_menu.button.dim.width;
-            menu_rect.dim.y = logo_dim.y + (main_menu.button.dim.y * 2.0f) + (main_menu.padding.y * 2.0f);
+            menu_rect.dim.y = logo_dim.y + (main_menu.button.dim.y * 3.0f) + (main_menu.padding.y * 3.0f);
             menu_rect.coords = get_centered(menu_rect, window_rect);
             
             draw_rect(window_rect, &main_menu_back);
@@ -285,15 +351,22 @@ game()
             
             menu_rect.coords.y += logo_dim.y + main_menu.padding.y;
             
-            if (menu_button(&main_menu, menu_rect.coords, "Play", 0, active, on_down(controller.select)))
+            u32 index = 0;
+            if (menu_button(&main_menu, menu_rect.coords, "Play", index++, active, select))
             {
                 game_mode = IN_GAME;
                 active = 0;
             }
-            
             menu_rect.coords.y += main_menu.button.dim.y + main_menu.padding.y;
             
-            if (menu_button(&main_menu, menu_rect.coords, "Quit", 1, active, on_down(controller.select)))
+            if (menu_button(&main_menu, menu_rect.coords, "Multiplayer", index++, active, select))
+            {
+                game_mode = IN_GAME;
+                active = 0;
+            }
+            menu_rect.coords.y += main_menu.button.dim.y + main_menu.padding.y;
+            
+            if (menu_button(&main_menu, menu_rect.coords, "Quit", index++, active, select))
             {
                 return 0;
             }
@@ -326,6 +399,7 @@ game()
             {
                 Menu pause_menu = default_menu;
                 Rect bounds = get_centered_square(window_rect, 0.6f);
+                b32 select = on_down(menu_controller->select);
                 
                 pause_menu.button.dim = { bounds.dim.width, bounds.dim.height * 0.15f };
                 pause_menu.button.pixel_height = pause_menu.button.dim.height * 0.6f;
@@ -345,14 +419,14 @@ game()
                 
                 u32 index = 0;
                 
-                if (menu_button(&pause_menu, menu_rect.coords, "Restart", index++, active, on_down(controller.select)))
+                if (menu_button(&pause_menu, menu_rect.coords, "Restart", index++, active, select))
                 {
                     
                 }
                 
                 menu_rect.coords.y += pause_menu.button.dim.y + pause_menu.padding.y;
                 
-                if (menu_button(&pause_menu, menu_rect.coords, "Menu", index++, active, on_down(controller.select)))
+                if (menu_button(&pause_menu, menu_rect.coords, "Menu", index++, active, select))
                 {
                     game_mode = MAIN_MENU;
                     active = 0;

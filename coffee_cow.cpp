@@ -136,6 +136,8 @@ get_cc_outline_rect(v2 point, v2 current, v2 last, r32 grid_size)
 function void
 draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    
     v2 grid_s = { grid_size, grid_size };
     
     s32 head_index = 0;
@@ -161,6 +163,8 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             
             if (i == head_index)
             {
+                dir = get_direction(cow->direction);
+                
                 r32 rot = 0.0f; // DOWN
                 switch(dir)
                 {
@@ -175,7 +179,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 Rect rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
                 v2s point_dir = normalized(grid_coords_last - node->coords);
                 
-                if (o == 0)
+                if (o == 0) 
                 {
                     draw_rect(t_coords, rot, grid_s, &cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
                     draw_rect(rect, cow->design.outline_color);
@@ -244,4 +248,6 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             }
         }
     }
+    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
