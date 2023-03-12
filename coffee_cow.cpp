@@ -17,6 +17,34 @@ add_node(Coffee_Cow *cow, v2s grid_coords)
 }
 
 function b8
+valid_cc_coords(v2s coords, Coffee_Cow *other)
+{
+    for (u32 i = 0; i < other->num_of_nodes; i++)
+    {
+        Coffee_Cow_Node *o = &other->nodes[i];
+        if (o->coords == coords)
+            return false;
+    }
+    return true;
+}
+
+function b8
+cc_check_on_cc(Coffee_Cow *cow, Coffee_Cow *other)
+{
+    for (u32 i = 0; i < cow->num_of_nodes; i++)
+    {
+        for (u32 j = 0; j < other->num_of_nodes; j++)
+        {
+            Coffee_Cow_Node *c = &cow->nodes[i];
+            Coffee_Cow_Node *o = &other->nodes[j];
+            if (c->coords == o->coords)
+                return false;
+        }
+    }
+    return true;
+}
+
+function b8
 cc_check_bounds(Coffee_Cow *cow, v2s grid_dim)
 {
     Coffee_Cow_Node *head_node = &cow->nodes[0];
@@ -85,7 +113,7 @@ cc_add_input(Coffee_Cow *cow, v2s dir)
         cow->num_of_inputs = 0;
         cow->first_input_of_transition = false;
     }
-*/
+    */
     cow->inputs[cow->num_of_inputs++] = dir;
 }
 
@@ -250,4 +278,59 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     }
     
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+function s32
+random(s32 lower, s32 upper)
+{
+    return lower + (rand() % (upper - lower));
+}
+
+function void
+random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s grid_dim)
+{
+    b8 valid_location = false;
+    v2s locations[4] = {};
+    
+    while(!valid_location)
+    {   
+        locations[0].x = random(4, grid_dim.x - 4);
+        locations[0].y = random(4, grid_dim.y - 4);
+        valid_location = true;
+
+        if (locations[0].x < grid_dim.x / 2.0f)
+        {
+            player->direction = RIGHT_V;
+            locations[1] = locations[0] - v2s{ 1, 0 };
+            locations[2] = locations[0] - v2s{ 2, 0 };
+            locations[3] = locations[0] - v2s{ 3, 0 };
+        }
+        else
+        {
+            player->direction = LEFT_V;
+            locations[1] = locations[0] + v2s{ 1, 0 };
+            locations[2] = locations[0] + v2s{ 2, 0 };
+            locations[3] = locations[0] + v2s{ 3, 0 };
+        }
+    
+        for (u32 i = 0; i < num_of_cows; i++)
+        {
+            Coffee_Cow *other = &all[i];
+            valid_cc_coords(locations[0], other);
+            valid_cc_coords(locations[1], other);
+            valid_cc_coords(locations[2], other);
+            valid_cc_coords(locations[3], other);
+        }
+    }
+
+    add_node(player, locations[0]);
+    add_node(player, locations[1]);
+    add_node(player, locations[2]);
+    add_node(player, locations[3]);
+}
+
+function void
+random_coffee_locaton(v2s *coffee)
+{
+    
 }

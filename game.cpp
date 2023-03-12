@@ -7,6 +7,7 @@
 #include <gl.h>
 #include <gl.c>
 #include <SDL.h>
+#include <ctime>
 
 #include "log.h"
 #include "types.h"
@@ -117,6 +118,7 @@ game()
     Bitmap grass = load_and_init_bitmap("../assets/bitmaps/grass.png");
     Bitmap rocks = load_and_init_bitmap("../assets/bitmaps/rocks.png");
     Bitmap grid = load_and_init_bitmap("../assets/bitmaps/grid.png");
+    Bitmap coffee = load_and_init_bitmap("../assets/bitmaps/coffee.png");
     //Bitmap test = load_and_init_bitmap("../assets/bitmaps/testimg.jpg");
     
     Font rubik = load_font("../assets/fonts/Rubik-Medium.ttf");
@@ -183,15 +185,19 @@ game()
     Coffee_Cow players[4]; // stores the players in the game
     u32 num_of_players = 0;
     players[0].first_input_of_transition = false;
+
+    players[0].design = designs[0];
+    random_cc_location(&players[0], players, 0, grid_dim);
+    num_of_players++;
     
-    Coffee_Cow cow = {};
-    cow.design = designs[0];
-    cow.first_input_of_transition = true;
-    cow.direction = { 0, 1 };
-    add_node(&cow, { 0, 4 });
-    add_node(&cow, { 0, 3 });
-    add_node(&cow, { 0, 2 });
-    add_node(&cow, { 0, 1 });
+    v2s coffees[10];
+    u32 num_of_coffees;
+
+    time_t t;
+    srand((unsigned) time(&t));
+
+    s32 test_rand = random(5, 10);
+    log("rand: %d", test_rand);
     
     // default menu
     Menu default_menu = {};
@@ -304,6 +310,24 @@ game()
         }
         else if (game_mode == IN_GAME)
         {
+            for (u32 i = 0; i < num_of_players; i++)
+            {
+                Coffee_Cow *c = &players[i];
+                v2s *ci = players[i].inputs;
+                if (players[i].num_of_inputs < 4)
+                {
+                    if (on_down(menu_controller->right) && ci[c->num_of_inputs] != LEFT_V)
+                        cc_add_input(c, RIGHT_V);
+                    if (on_down(menu_controller->up) && ci[c->num_of_inputs] != DOWN_V)
+                        cc_add_input(c, UP_V);
+                    if (on_down(menu_controller->left) && ci[c->num_of_inputs] != RIGHT_V)
+                        cc_add_input(c, LEFT_V);
+                    if (on_down(menu_controller->down) && ci[c->num_of_inputs] != UP_V)
+                        cc_add_input(c, DOWN_V);
+                }
+                update_cc(c, frame_time_s, grid_dim);
+            }
+            /*
             if (cow.num_of_inputs < 4)
             {
                 if (on_down(menu_controller->right) && cow.inputs[cow.num_of_inputs] != LEFT_V)
@@ -316,7 +340,7 @@ game()
                     cc_add_input(&cow, DOWN_V);
             }
             update_cc(&cow, frame_time_s, grid_dim);
-            
+            */
             if (on_down(menu_controller->pause))
                 game_mode = PAUSED;
         }
@@ -393,7 +417,12 @@ game()
             }
             
             draw_rect(rocks_rect, &rocks);
-            draw_coffee_cow(&cow, grass_rect.coords, grid_size.x);
+            //draw_coffee_cow(&cow, grass_rect.coords, grid_size.x);
+
+            for (u32 i = 0; i < num_of_players; i++)
+            {
+                draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
+            }
             
             if (game_mode == PAUSED)
             {
@@ -421,7 +450,9 @@ game()
                 
                 if (menu_button(&pause_menu, menu_rect.coords, "Restart", index++, active, select))
                 {
-                    
+                    random_cc_location(&players[0], players, 0, grid_dim);
+                    game_mode = IN_GAME;
+                    active = 0;
                 }
                 
                 menu_rect.coords.y += pause_menu.button.dim.y + pause_menu.padding.y;

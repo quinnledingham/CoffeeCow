@@ -88,6 +88,7 @@ union v2s
 v2s operator+(const v2s &l, const v2s &r) { return { l.x + r.x, l.y + r.y }; }
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
 v2s operator-(const v2s &l, const v2s &r) { return { l.x - r.x, l.y - r.y }; }
+v2s operator-(const v2s &l, const r32 &r) { return { l.x - r, l.y - r }; }
 void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
 v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
