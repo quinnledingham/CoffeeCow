@@ -105,4 +105,166 @@ struct Font
     Font_String font_strings[10];
 };
 
+//
+// Storing Assets
+//
+
+enum asset_types
+{
+    FONT,
+    BITMAP,
+    SHADER,
+};
+
+struct Asset
+{
+    u32 type;
+    const char *tag;
+    union
+    {
+        Font font;
+        Bitmap bitmap;
+        Shader shader;
+    };
+};
+
+struct Asset_Load_Info
+{
+    int type;
+    int index;
+    const char *tag;
+    const char *filename;
+};
+
+struct Assets
+{
+    u32 num_of_assets;
+    
+    Asset_Load_Info *info;
+    u32 num_of_info_loaded;
+    
+    // Storage of assets
+    Asset *fonts;
+    u32 num_of_fonts;
+    
+    Asset *bitmaps;
+    u32 num_of_bitmaps;
+    
+    Asset *shaders;
+    u32 num_of_shaders;
+};
+
+function void
+add_asset(void *data, void *args)
+{
+    Assets *assets = (Assets*)data;
+    Asset_Load_Info *info = (Asset_Load_Info*)args;
+    
+    if (info->type == FONT) info->index = assets->num_of_fonts;
+    else if (info->type == BITMAP) info->index = assets->num_of_bitmaps;
+    else if (info->type == SHADER) info->index = assets->num_of_shaders;
+    
+    if (info->type == FONT) assets->num_of_fonts++;
+    else if (info->type == BITMAP) assets->num_of_bitmaps++;
+    else if (info->type == SHADER) assets->num_of_shaders++;
+    
+    assets->info[assets->num_of_info_loaded++] = *info;
+}
+
+function void
+count_asset(void *data, void *args)
+{
+    Assets *assets = (Assets*)data;
+    assets->num_of_assets++;
+}
+
+function Font*
+find_font(Assets *assets, const char *tag)
+{
+    for (u32 i = 0; i < assets->num_of_fonts; i++)
+        if (equal(tag, assets->fonts[i].tag)) return &assets->fonts[i].font;
+    
+    warning(0, "Could not find font with tag: %s", tag);
+    
+    return 0;
+}
+
+function Bitmap*
+find_bitmap(Assets *assets, const char *tag)
+{
+    for (u32 i = 0; i < assets->num_of_bitmaps; i++)
+        if (equal(tag, assets->bitmaps[i].tag)) return &assets->bitmaps[i].bitmap;
+    
+    warning(0, "Could not find bitmap with tag: %s", tag);
+    
+    return 0;
+}
+
+//
+// Parsing Asset File
+//
+
+function bool
+is_ascii_digit(int ch)
+{
+    if (isdigit(ch)) return true;
+    return false;
+}
+
+function bool
+is_ascii_letter(int ch)
+{
+    if (ch >= 'A' && ch <= 'Z') return true; // uppercase
+    else if (ch >= 'a' && ch <= 'z') return true; // lowercase
+    else return false;
+}
+
+function b32
+is_file_path_ch(s32 ch)
+{
+    if (ch == '.' || ch == '/' || ch == '-' || ch == '_') return true;
+    else return false;
+}
+
+function b32
+is_valid_body_ch(s32 ch)
+{
+    if (is_ascii_letter(ch) || is_ascii_digit(ch) || is_file_path_ch(ch)) return true;
+    else return false;
+}
+
+function b32
+is_valid_start_ch(s32 ch)
+{
+    if (is_ascii_letter(ch) || is_file_path_ch(ch)) return true;
+    else return false;
+}
+
+enum Asset_Token_Type
+{
+    KEYWORD,
+    ID,
+    SEPERATOR,
+    
+    ERROR,
+    WARNING,
+    END
+};
+
+struct Asset_Token
+{
+    s32 type;
+    const char *lexeme;
+};
+
+const char *asset_keywords[3] = { "FONTS", "BITMAPS", "SHADERS" };
+
+function b32
+is_asset_keyword(const char *word)
+{
+    for (u32 i = 0; i < ARRAY_COUNT(asset_keywords); i++) 
+        if (equal(word, asset_keywords[i])) return true;
+    return false;
+}
+
 #endif //ASSETS_H

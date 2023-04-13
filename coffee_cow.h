@@ -8,9 +8,17 @@ struct Coffee_Cow_Node
     v2s last_direction;
 };
 
+enum Asset_Tags
+{
+    ASSET_COW_HEAD,
+    ASSET_COW_HEAD_OUTLINE,
+    ASSET_COW_CIRCLE,
+    ASSET_COW_CIRCLE_OUTLINE,
+};
+
 struct Coffee_Cow_Design
 {
-    Bitmap bitmaps[4];
+    Bitmap *bitmaps[4];
     v4 color;
     v4 outline_color;
 };

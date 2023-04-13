@@ -19,10 +19,31 @@ read_file(const char *filename)
         fclose(in);
     }
     else 
-        log("ERROR: Cannot open file %s.\n", filename);
+        error(0, "Cannot open file %s", filename);
     
     return result;
 }
+
+// copies the next n = length of chars from the input file
+// and returns them in a string
+function const char*
+copy_from_file(FILE *input_file, int length)
+{
+    char *string = (char*)malloc(length + 1);
+    memset(string, 0, length + 1);
+    for (int i = 0; i < length; i++)
+    {
+        int ch = fgetc(input_file);
+        if (ch == EOF)
+        {
+            warning(0, "copy_from_file hit the EOF");
+            break;
+        }
+        string[i] = ch;
+    }
+    return string;
+}
+
 
 //
 // Bitmap
@@ -361,4 +382,161 @@ get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
     string->color = color;
     
     return string->dim;
+}
+
+//
+// Asset File Reading
+//
+
+function Asset_Token
+scan_asset_file(FILE *file, s32 *line_num, Asset_Token last_token)
+{
+    X:
+    
+    s32 ch;
+    while((ch = fgetc(file)) != EOF && (ch == 32 || ch == 9 || ch == 13)); // remove whitespace
+    
+    switch(ch)
+    {
+        case EOF:
+        {
+            return { -1, 0 };
+        } break;
+        
+        case '\n':
+        {
+            (*line_num)++;
+            goto X;
+        } break;
+        
+        case ':':
+        case ',':
+        {
+            return { SEPERATOR, chtos(1, ch) };
+        } break;
+        
+        default:
+        {
+            if (is_valid_start_ch(ch)) // must start with valid start ch
+            {
+                int length = 0;
+                do
+                {
+                    ch = fgetc(file);
+                    length++;
+                } while(is_valid_body_ch(ch));
+                ungetc(ch, file);
+                
+                fseek(file, -length, SEEK_CUR);
+                const char *sequence = copy_from_file(file, length);
+                
+                if (is_asset_keyword(sequence))
+                    return { KEYWORD, sequence };
+                
+                return { ID, sequence };
+            }
+            
+            error(*line_num, "not a valid ch");
+        } break;
+    }
+    
+    return { ERROR, 0 };
+}
+
+// action is what happens when all the parts of an asset are found
+function void
+parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *args))
+{
+    int type = 0;
+    const char *tag;
+    const char *filename;
+    
+    Asset_Token last_token = {};
+    Asset_Token tok = {};
+    s32 line_num = 1;
+    while (tok.type != -1)
+    {
+        last_token = tok;
+        tok = scan_asset_file(file, &line_num, tok);
+        //printf("%d, %s\n", tok.type, tok.lexeme);
+        
+        if (tok.type == KEYWORD)
+        {
+            if (equal(tok.lexeme, "FONTS")) type = FONT;
+            else if (equal(tok.lexeme, "BITMAPS")) type = BITMAP;
+            else if (equal(tok.lexeme, "SHADERS")) type = SHADER;
+            
+            tok = scan_asset_file(file, &line_num, tok);
+            if (!equal(tok.lexeme, ":")) 
+            {
+                error(line_num, "expected ':'");
+                break;
+            }
+        }
+        else if (tok.type == ID)
+        {
+            if (!equal(last_token.lexeme, ","))
+            {
+                tag = tok.lexeme;
+                
+                tok = scan_asset_file(file, &line_num, tok);
+                if (!equal(tok.lexeme, ",")) 
+                {
+                    error(line_num, "expected ','");
+                    break;
+                }
+            }
+            else
+            {
+                filename = tok.lexeme;
+                
+                Asset_Load_Info info = { type, 0,  tag, filename };
+                action((void*)assets, (void*)&info);
+            }
+        }
+        else if (tok.type == SEPERATOR)
+        {
+            error(line_num, "unexpected seperator");
+        }
+    }
+}
+
+function void
+load_assets(Assets *assets, const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    parse_asset_file(assets, file, count_asset);
+    assets->info = ARRAY_MALLOC(Asset_Load_Info, assets->num_of_assets);
+    fseek(file, 0, SEEK_SET);
+    parse_asset_file(assets, file, add_asset);
+    fclose(file);
+    
+    assets->fonts = ARRAY_MALLOC(Asset, assets->num_of_fonts);
+    assets->bitmaps = ARRAY_MALLOC(Asset, assets->num_of_bitmaps);
+    assets->shaders = ARRAY_MALLOC(Asset, assets->num_of_shaders);
+    
+    for (u32 i = 0; i < assets->num_of_assets; i++)
+    {
+        Asset_Load_Info *info = &assets->info[i];
+        //printf("asset: %d, %s, %s\n", info->type, info->tag, info->filename);
+        
+        Asset asset = {};
+        asset.type = info->type;
+        asset.tag = info->tag;
+        
+        switch(asset.type)
+        {
+            case FONT: 
+            {
+                asset.font = load_font(info->filename); 
+                assets->fonts[info->index] = asset;
+            } break;
+            
+            case BITMAP: 
+            {
+                asset.bitmap = load_and_init_bitmap(info->filename); 
+                assets->bitmaps[info->index] = asset;
+            } break;
+        }
+    }
 }

@@ -1,3 +1,14 @@
+global_variable m4x4 orthographic_matrix;
+
+function void
+set_orthographic_matrix(v2s window_dim)
+{
+    orthographic_matrix = orthographic_projection(0.0f,
+                                                  (r32)window_dim.width, 
+                                                  (r32)window_dim.height,
+                                                  0.0f, -3.0f, 3.0f);
+}
+
 function void
 init_rect_indices(u32 *indices, 
                   u32 top_left, 

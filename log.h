@@ -35,8 +35,6 @@ void output(FILE *stream, const char* msg, va_list valist)
             fputc(*msg_ptr, stream);
         msg_ptr++;
     }
-    
-    fputc('\n', stream);
 }
 
 void log(const char* msg, ...)
@@ -44,15 +42,40 @@ void log(const char* msg, ...)
     va_list valist;
     va_start(valist, msg);
     output(stdout, msg, valist);
+    fputc('\n', stdout);
 }
 
-void error(const char* msg, ...)
+void error(int line_num, const char* msg, ...)
 {
     fprintf(stderr, "error: ");
     
     va_list valist;
     va_start(valist, msg);
-    output(stdout, msg, valist);
+    output(stderr, msg, valist);
+    
+    if (line_num != 0) fprintf(stderr, " @ or near line %d ", line_num);
+    fputc('\n', stderr);
+}
+
+void error(const char* msg, ...) 
+{ 
+    fprintf(stderr, "error: ");
+    va_list valist;
+    va_start(valist, msg);
+    output(stderr, msg, valist);
+    fputc('\n', stderr);
+}
+
+void warning(int line_num, const char* msg, ...)
+{
+    fprintf(stderr, "warning: ");
+    
+    va_list valist;
+    va_start(valist, msg);
+    output(stderr, msg, valist);
+    
+    if (line_num != 0) fprintf(stderr, "@ or near line %d ", line_num);
+    fputc('\n', stderr);
 }
 
 void GLAPIENTRY

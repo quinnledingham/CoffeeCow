@@ -25,7 +25,9 @@ typedef r64 f64;
 #define DEG2RAD 0.0174533f
 #define PI 3.14159265359f
 #define EPSILON 0.00001f
+
 #define ARRAY_COUNT(n) (sizeof(n) / sizeof(n[0]))
+#define ARRAY_MALLOC(t, n) ((t*)malloc(n * sizeof(t)))
 
 union v2
 {
@@ -88,7 +90,7 @@ union v2s
 v2s operator+(const v2s &l, const v2s &r) { return { l.x + r.x, l.y + r.y }; }
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
 v2s operator-(const v2s &l, const v2s &r) { return { l.x - r.x, l.y - r.y }; }
-v2s operator-(const v2s &l, const r32 &r) { return { l.x - r, l.y - r }; }
+v2s operator-(const v2s &l, const int &r) { return { l.x - r, l.y - r }; }
 void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
 v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
@@ -470,21 +472,23 @@ struct Rect
 //
 
 function b32
-equal(const char *l, const char *r)
+equal(const char* a, const char *b)
 {
-    u32 i = 0;
-    while (l[i] != 0 && r[i] != 0)
-    {
-        if (l[i] != r[i])
-            return false;
-        i++;
-    }
-    
-    if (r[i] != 0)
+    if (a == 0 && b == 0)
+        return true;
+    if (a == 0 || b == 0)
         return false;
+    //printf("%s == %s\n", a, b);
+    int i = 0;
+    do
+    {
+        if (a[i] != b[i])
+            return false;
+    } while(a[i] != 0 && b[i++] != 0);
     
     return true;
 }
+
 
 function u32
 get_length(const char *string)
@@ -500,6 +504,40 @@ get_length(const char *string)
         ptr++;
     }
     return length;
+}
+
+// converts n number of chars to a string
+// ex) chtos(3, a, b, c) returns "abc"
+function char*
+chtos(int n, ...)
+{
+    char* s = (char*)malloc(n + 1);
+    memset(s, 0, n + 1);
+    
+    va_list ptr;
+    va_start(ptr, n);
+    for (int i = 0; i < n; i++)
+    {
+        s[i] = va_arg(ptr, int);
+    }
+    
+    return s;
+}
+
+function char*
+ftos(f32 f)
+{
+    u32 size = 64;
+    char *buffer = (char*)malloc(size);
+    memset(buffer, 0, size);
+    u32 ret = snprintf(buffer, size, "%f", f);
+    if (ret < 0)
+    {
+        error(0, "ftos(): failed");
+        return 0;
+    }
+    if (ret >= size) warning(0, "ftos(): result was truncated");
+    return buffer;
 }
 
 // copys string into memory

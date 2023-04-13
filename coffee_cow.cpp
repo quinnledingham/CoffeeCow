@@ -209,14 +209,14 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0) 
                 {
-                    draw_rect(t_coords, rot, grid_s, &cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
+                    draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
                     draw_rect(rect, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
                     Rect w = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect);
                     draw_rect(w, cow->design.color);
-                    draw_rect(t_coords, rot, grid_s, &cow->design.bitmaps[ASSET_COW_HEAD]);
+                    draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_HEAD]);
                 }
                 
                 coords_of_last_cir = coords_of_cir;
@@ -236,14 +236,14 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0)
                 {
-                    draw_rect(t_coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(t_coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
                     draw_rect(gap, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
-                    draw_rect(t_coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(t_coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE]);
                     draw_rect(w, cow->design.color);
                 }
                 
@@ -262,12 +262,12 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (o == 0)
                 {
-                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
                     draw_rect(rect, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
-                    draw_rect(coords, 0, grid_s, &cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE]);
                     draw_rect(w, cow->design.color);
                 }
                 
@@ -297,7 +297,7 @@ random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s gri
         locations[0].x = random(4, grid_dim.x - 4);
         locations[0].y = random(4, grid_dim.y - 4);
         valid_location = true;
-
+        
         if (locations[0].x < grid_dim.x / 2.0f)
         {
             player->direction = RIGHT_V;
@@ -312,7 +312,7 @@ random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s gri
             locations[2] = locations[0] + v2s{ 2, 0 };
             locations[3] = locations[0] + v2s{ 3, 0 };
         }
-    
+        
         for (u32 i = 0; i < num_of_cows; i++)
         {
             Coffee_Cow *other = &all[i];
@@ -322,7 +322,7 @@ random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s gri
             valid_cc_coords(locations[3], other);
         }
     }
-
+    
     add_node(player, locations[0]);
     add_node(player, locations[1]);
     add_node(player, locations[2]);
