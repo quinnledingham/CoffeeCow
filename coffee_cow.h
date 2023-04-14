@@ -6,6 +6,8 @@ struct Coffee_Cow_Node
     v2s coords;
     v2s direction;
     v2s last_direction;
+    
+    b8 max_transition;
 };
 
 enum Asset_Tags
@@ -31,13 +33,26 @@ struct Coffee_Cow
     r32 transition; // 0.0f - 1.0f
     v2s direction;
     
+    u32 score;
+    b8 dead;
+    
     // input
     Controller *controller;
     v2s inputs[5];
     s32 num_of_inputs;
     b8 first_input_of_transition;
     
+    b32 add;
+    v2s add_coords;
+    v2s add_direction;
+    
     Coffee_Cow_Design design;
+};
+
+struct Coffee
+{
+    v2s coords;
+    r32 rotation;
 };
 
 enum Direction

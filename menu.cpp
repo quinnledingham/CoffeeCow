@@ -8,11 +8,24 @@ struct Menu_Button
     f32 pixel_height;
 };
 
+struct Menu_Bitmap
+{
+    v2 dim;
+};
+
 struct Menu
 {
     Menu_Button button;
+    Menu_Bitmap bitmap;
     v2 padding;
+    
+    r32 window_percent;
+    r32 button_percent;
+    r32 padding_percent;
+    r32 pixel_height_percent;
+    
     Font *font;
+    Rect rect;
 };
 
 function void
@@ -33,9 +46,10 @@ menu_update_active(s32 *active, s32 lower, s32 upper, Button increase, Button de
 }
 
 function b32
-menu_button(Menu *menu, v2 coords, const char *text, u32 index, u32 active, u32 press)
+menu_button(Menu *menu, const char *text, u32 index, u32 active, u32 press)
 {
     Menu_Button *button = &menu->button;
+    v2 coords = menu->rect.coords;
     b32 button_pressed = false;
     
     v4 b_color = button->back_color;
@@ -58,5 +72,27 @@ menu_button(Menu *menu, v2 coords, const char *text, u32 index, u32 active, u32 
     
     draw_string(menu->font, text, { text_x_coord, text_y_coord }, button->pixel_height, t_color);
     
+    menu->rect.coords.y += menu->button.dim.y + menu->padding.y;
+    
     return button_pressed;
+}
+
+function void
+resize_menu(Menu *menu, 
+            Rect window_rect, 
+            v2s bitmap_dim,
+            u32 num_of_bitmaps,
+            u32 num_of_buttons)
+{
+    Rect bounds = get_centered_square(window_rect, menu->window_percent);
+    menu->padding = bounds.dim * menu->padding_percent;
+    
+    menu->bitmap.dim = { bounds.dim.width, bitmap_dim.height * (bounds.dim.width / bitmap_dim.width) };
+    
+    menu->button.dim = { bounds.dim.width, bounds.dim.height * menu->button_percent };
+    menu->button.pixel_height = menu->button.dim.height * menu->pixel_height_percent;
+    
+    menu->rect.dim.x = menu->button.dim.width;
+    menu->rect.dim.y = (menu->bitmap.dim.y * (r32)num_of_bitmaps) + (menu->button.dim.y * (r32)num_of_buttons) + (menu->padding.y * (r32)(num_of_buttons - 1));
+    menu->rect.coords = get_centered(menu->rect, window_rect);
 }
