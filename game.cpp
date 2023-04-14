@@ -214,7 +214,7 @@ update(Application *app)
                 data->game_mode = IN_GAME;
                 data->active = 0;
                 
-                init_cc(&players[0], players, data->designs[0], &app->input.controllers[0], data->grid_dim);
+                init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
                 data->num_of_players = 1;
                 
                 random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
@@ -296,7 +296,7 @@ update(Application *app)
                     data->game_mode = IN_GAME;
                     data->active = 0;
                     
-                    init_cc(&players[0], players, data->designs[0], &app->input.controllers[0], data->grid_dim);
+                    init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
                     
                     random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
                     data->num_of_coffees = 1;
@@ -309,7 +309,7 @@ update(Application *app)
                     
                     players[0] = {};
                     
-                    init_cc(&players[0], players, data->designs[0], &app->input.controllers[0], data->grid_dim);
+                    init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
                     
                     random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
                     data->num_of_coffees = 1;
