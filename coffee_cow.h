@@ -40,7 +40,6 @@ struct Coffee_Cow
     Controller *controller;
     v2s inputs[5];
     s32 num_of_inputs;
-    b8 first_input_of_transition;
     
     b32 add;
     v2s add_coords;
@@ -53,6 +52,7 @@ struct Coffee
 {
     v2s coords;
     r32 rotation;
+    b32 consumed;
 };
 
 enum Direction

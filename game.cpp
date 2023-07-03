@@ -144,6 +144,8 @@ update(Application *app)
     Coffee_Cow *players = data->players;
     v2s window_dim = app->window.dim;
     
+    //log("%f", app->time.frames_per_s);
+
     // what to update
     switch(data->game_mode)
     {
@@ -157,14 +159,15 @@ update(Application *app)
         {
             menu_update_active(&data->active, 0, 1, menu_controller->down, menu_controller->up);
             
-            if (on_down(menu_controller->pause))
-                data->game_mode = IN_GAME;
+            if (on_down(menu_controller->pause)) data->game_mode = IN_GAME;
         } break;
         
         case IN_GAME:
         {
             update_coffee_cows(players, num_of_players, app->time.frame_time_s, data->grid_dim);
-            
+            update_coffees(data->coffees, data->num_of_coffees);
+            coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim);
+
             for (u32 i = 0; i < num_of_players; i++) 
             {
                 if (players[i].dead) 
@@ -173,12 +176,8 @@ update(Application *app)
                     players[i].dead = false;
                 }
             }
-            
-            update_coffees(data->coffees, data->num_of_coffees);
-            coffee_cows_collsions(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim);
-            
-            if (on_down(menu_controller->pause))
-                data->game_mode = PAUSED;
+                                 
+            if (on_down(menu_controller->pause)) data->game_mode = PAUSED;
         } break;
     }
     
@@ -263,15 +262,18 @@ update(Application *app)
             
             draw_rect(rocks_rect, rocks);
             
+            Font *rubik = find_font(&app->assets, "RUBIK");
             r32 score_pixel_height = window_dim.y * 0.1f;
             r32 score_pixel_height_outline  = score_pixel_height + 5.0f; 
-            Font *rubik = find_font(&app->assets, "RUBIK");
-            draw_string(rubik, u32_to_string(players[0].score), { 5, score_pixel_height_outline - 10 }, score_pixel_height_outline, { 0, 0, 0, 1 });
-            draw_string(rubik, u32_to_string(players[0].score), { 10, score_pixel_height - 10 }, score_pixel_height, { 255, 255, 255, 1 });
+            
+            const char *score = u32_to_string(players[0].score);
+            v2 score_dim = get_string_dim(rubik, score, score_pixel_height, { 0, 0, 0, 1 });
+            draw_string(rubik, score, { 5, score_dim.y + 10 }, score_pixel_height_outline, { 0, 0, 0, 1 });
+            //draw_string(rubik, score, { 7, score_pixel_height - 10 }, score_pixel_height, { 255, 255, 255, 1 });
             
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
-            
+            for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
                 Menu pause_menu = data->default_menu;
@@ -509,4 +511,3 @@ application()
 }
 
 int main(int argc, char *argv[]) { return application();}
-

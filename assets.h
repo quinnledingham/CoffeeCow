@@ -9,20 +9,21 @@ struct File
 
 struct Bitmap
 {
-    u32 handle;
     u8 *memory;
     v2s dim;
     s32 pitch;
     s32 channels;
+
+    u32 handle; // opengl handle
 };
 
 struct Shader
 {
-    const char *vs_filename; //.vs vertex_shader
+    const char *vs_filename;  //.vs vertex_shader
     const char *tcs_filename; //.tcs tessellation control shader
     const char *tes_filename; //.tes tessellation evaluation shader
-    const char *gs_filename; //.gs geometry shader
-    const char *fs_filename; //.fs fragment shader
+    const char *gs_filename;  //.gs geometry shader
+    const char *fs_filename;  //.fs fragment shader
     
     const char *vs_file;
     const char *tcs_file;
@@ -111,9 +112,9 @@ struct Font
 
 enum asset_types
 {
-    FONT,
-    BITMAP,
-    SHADER,
+    ASSET_TYPE_FONT,
+    ASSET_TYPE_BITMAP,
+    ASSET_TYPE_SHADER,
 };
 
 struct Asset
@@ -160,13 +161,13 @@ add_asset(void *data, void *args)
     Assets *assets = (Assets*)data;
     Asset_Load_Info *info = (Asset_Load_Info*)args;
     
-    if (info->type == FONT) info->index = assets->num_of_fonts;
-    else if (info->type == BITMAP) info->index = assets->num_of_bitmaps;
-    else if (info->type == SHADER) info->index = assets->num_of_shaders;
+    if (info->type == ASSET_TYPE_FONT) info->index = assets->num_of_fonts;
+    else if (info->type == ASSET_TYPE_BITMAP) info->index = assets->num_of_bitmaps;
+    else if (info->type == ASSET_TYPE_SHADER) info->index = assets->num_of_shaders;
     
-    if (info->type == FONT) assets->num_of_fonts++;
-    else if (info->type == BITMAP) assets->num_of_bitmaps++;
-    else if (info->type == SHADER) assets->num_of_shaders++;
+    if (info->type == ASSET_TYPE_FONT) assets->num_of_fonts++;
+    else if (info->type == ASSET_TYPE_BITMAP) assets->num_of_bitmaps++;
+    else if (info->type == ASSET_TYPE_SHADER) assets->num_of_shaders++;
     
     assets->info[assets->num_of_info_loaded++] = *info;
 }
@@ -242,13 +243,12 @@ is_valid_start_ch(s32 ch)
 
 enum Asset_Token_Type
 {
-    KEYWORD,
-    ID,
-    SEPERATOR,
-    
-    ERROR,
-    WARNING,
-    END
+    ATT_KEYWORD,
+    ATT_ID,
+    ATT_SEPERATOR,
+    ATT_ERROR,
+    ATT_WARNING,
+    ATT_END
 };
 
 struct Asset_Token

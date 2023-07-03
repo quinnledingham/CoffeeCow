@@ -45,21 +45,25 @@ union v2
     };
     r32 E[2];
 };
-v2 operator+(const v2 &l, const v2 &r) { return { l.x + r.x, l.y + r.y }; }
-v2 operator+(const v2 &l, const r32 &r) { return { l.x + r, l.y + r }; }
-v2 operator-(const v2 &l, const v2 &r) { return { l.x - r.x, l.y - r.y }; }
-v2 operator*(const v2 &l, const v2 &r) { return { l.x * r.x, l.y * r.y }; }
-v2 operator*(const v2 &l, const r32 &r) { return { l.x * r, l.y * r }; }
-v2 operator/(const v2 &l, const v2 &r) { return { l.x / r.x, l.y / r.y }; }
-v2 operator/(const v2 &l, const r32 &r) { return { l.x / r, l.y / r }; }
-void operator+=(v2 &l, const v2 &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
-void operator-=(v2 &l, const v2 &r) { l.x = l.x - r.x; l.y = l.y - r.y; }
-void operator-=(v2 &l, const r32 &r) { l.x = l.x - r; l.y = l.y - r; }
-void operator*=(v2 &l, const r32 &r) { l.x = l.x * r; l.y = l.y * r; }
-void operator/=(v2 &l, const v2 &r) { l.x = l.x / r.x; l.y = l.y / r.y; }
-void operator/=(v2 &l, const r32 &r) { l.x = l.x / r; l.y = l.y / r; }
+
+v2 operator+(const v2 &l, const v2  &r) { return { l.x + r.x, l.y + r.y }; }
+v2 operator+(const v2 &l, const r32 &r) { return { l.x + r, l.y + r };     }
+v2 operator-(const v2 &l, const v2  &r) { return { l.x - r.x, l.y - r.y }; }
+v2 operator*(const v2 &l, const v2  &r) { return { l.x * r.x, l.y * r.y }; }
+v2 operator*(const v2 &l, const r32 &r) { return { l.x * r, l.y * r };     }
+v2 operator/(const v2 &l, const v2  &r) { return { l.x / r.x, l.y / r.y }; }
+v2 operator/(const v2 &l, const r32 &r) { return { l.x / r, l.y / r };     }
+
+void operator+=(v2 &l, const v2  &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
+void operator-=(v2 &l, const v2  &r) { l.x = l.x - r.x; l.y = l.y - r.y; }
+void operator-=(v2 &l, const r32 &r) { l.x = l.x - r; l.y = l.y - r;     }
+void operator*=(v2 &l, const r32 &r) { l.x = l.x * r; l.y = l.y * r;     }
+void operator/=(v2 &l, const v2  &r) { l.x = l.x / r.x; l.y = l.y / r.y; }
+void operator/=(v2 &l, const r32 &r) { l.x = l.x / r; l.y = l.y / r;     }
+
 r32 dot_product(const v2 &l, const v2 &r) { return (l.x * r.x) + (l.y * r.y); }
 r32 length_squared(const v2 &v) { return (v.x * v.x) + (v.y * v.y); }
+void log(const v2 &v) { log("v2: %f, %f", v.x, v.y); }
 
 inline v2
 normalized(const v2 &v)
@@ -69,8 +73,6 @@ normalized(const v2 &v)
     r32 inverse_length = 1.0f / sqrtf(len_sq);
     return { v.x * inverse_length, v.y * inverse_length };
 }
-
-void log(const v2 &v) { log("v2: %f, %f", v.x, v.y); }
 
 union v2s
 {
@@ -88,16 +90,19 @@ union v2s
     };
     s32 E[2];
 };
+
 v2s operator+(const v2s &l, const v2s &r) { return { l.x + r.x, l.y + r.y }; }
 v2s operator+(const v2s &l, const s32 &r) { return { l.x + r, l.y + r }; }
 v2s operator-(const v2s &l, const v2s &r) { return { l.x - r.x, l.y - r.y }; }
 v2s operator-(const v2s &l, const int &r) { return { l.x - r, l.y - r }; }
+v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
+
 void operator+=(v2s &l, const v2s &r) { l.x = l.x + r.x; l.y = l.y + r.y; }
 void operator+=(v2s &l, const s32 &r) { l.x = l.x + r; l.y = l.y + r; }
-v2s operator*(const v2s &l, const s32 &r) { return { l.x * r, l.y * r }; }
 void operator*=(v2s &l, const s32 &r) { l.x = l.x * r; l.y = l.y * r; }
 bool operator==(const v2s &l, const v2s &r) { if (l.x == r.x && l.y == r.y) return true; return false; }
 bool operator!=(const v2s &l, const v2s &r) { if (l.x != r.x || l.y != r.y) return true; return false; }
+
 v2 cv2(v2s v) { return { (r32)v.x, (r32)v.y }; }
 void log(const v2s &v) { log("v2s: %d, %d", v.x, v.y); }
 
@@ -105,19 +110,15 @@ inline v2s
 normalized(const v2s &v)
 {
     v2s n = {};
-    if (v.x > 0)
-        n.x = 1;
-    else if (v.x == 0)
-        n.x = 0;
-    else if (v.x < 0)
-        n.x = -1;
+
+    if      (v.x > 0)  n.x = 1;
+    else if (v.x == 0) n.x = 0;
+    else if (v.x < 0)  n.x = -1;
     
-    if (v.y > 0)
-        n.y = 1;
-    else if (v.y == 0)
-        n.y = 0;
-    else if (v.y < 0)
-        n.y = -1;
+    if      (v.y > 0)  n.y = 1;
+    else if (v.y == 0) n.y = 0;
+    else if (v.y < 0)  n.y = -1;
+
     return n;
 }
 
@@ -133,12 +134,14 @@ union v3
     };
     r32 E[3];
 };
-inline v3 operator+(const v3 &l, const v3 &r) { return { l.x + r.x, l.y + r.y, l.z + r.z }; }
-inline v3 operator-(const v3 &l, const v3 &r) { return { l.x - r.x, l.y - r.y, l.z - r.z }; }
-inline v3 operator*(const v3 &l, const v3 &r) { return { l.x * r.x, l.y * r.y, l.z * r.z }; }
-inline v3 operator*(const v3 &v, float f) { return {v.x * f, v.y * f, v.z * f}; }
-inline v3 operator/(const v3 &l, const v3 &r) { return { l.x / r.x, l.y / r.y, l.z / r.z }; }
+
+inline v3 operator+(const v3 &l, const v3  &r) { return { l.x + r.x, l.y + r.y, l.z + r.z }; }
+inline v3 operator-(const v3 &l, const v3  &r) { return { l.x - r.x, l.y - r.y, l.z - r.z }; }
+inline v3 operator*(const v3 &l, const v3  &r) { return { l.x * r.x, l.y * r.y, l.z * r.z }; }
+inline v3 operator*(const v3 &l, float      r) { return {l.x * r, l.y * r, l.z * r}; }
+inline v3 operator/(const v3 &l, const v3  &r) { return { l.x / r.x, l.y / r.y, l.z / r.z }; }
 inline v3 operator/(const v3 &l, const r32 &r) { return { l.x / r, l.y / r, l.z / r }; }
+
 inline void operator+=(v3 &l, const v3 &r) { l.x = l.x + r.x; l.y = l.y + r.y; l.z = l.z + r.z; }
 inline void operator+=(v3 &l, const r32 &r) { l.x = l.x + r; l.y = l.y + r; l.z = l.z + r; }
 inline void operator-=(v3 &l, const v3 &r) { l.x = l.x - r.x; l.y = l.y - r.y; l.z = l.z - r.z; }
@@ -146,6 +149,7 @@ inline void operator-=(v3 &l, const r32 &r) { l.x = l.x - r; l.y = l.y - r; l.z 
 inline void operator*=(v3 &l, v3 &r) { l.x *= r.x; l.y *= r.y; l.z *= r.z; }
 inline bool operator==(const v3 &l, const v3 &r) { if (l.x == r.x && l.y == r.y && l.z == r.z) return true; return false; }
 inline bool operator==(const v3 &v, float f) { if (v.x == f && v.y == f && v.z == f) return true; return false; }
+
 inline r32 dot_product(const v3 &l, const v3 &r) { return (l.x * r.x) + (l.y * r.y) + (l.z * r.z); }
 inline r32 length_squared(const v3 &v) { return (v.x * v.x) + (v.y * v.y) + (v.z * v.z); }
 
@@ -192,6 +196,7 @@ union v4
     };
     r32 E[4];
 };
+
 inline v4 operator*(const v4 &l, const v4 &r) { return { l.x * r.x, l.y * r.y, l.z * r.z, l.w * r.w }; }
 inline f32 length_squared(const v4 &v) { return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w; }
 inline bool operator==(const v4 &l, const v4 &r) { if (l.x == r.x && l.y == r.y && l.z == r.z && l.w == r.w) return true; return false; }
@@ -209,6 +214,7 @@ union quat
     };
     r32 E[4];
 };
+
 inline r32 length_squared(const quat &v) { return v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w; }
 
 inline quat 
@@ -581,10 +587,8 @@ u32_to_string(u32 in)
     u32 help = 0;
     for (u32 i = 0; i < digits; i++)
     {
-        if (help == 0)
-            help++;
-        else
-            help *= 10;
+        if (help == 0) help++;
+        else           help *= 10;
     }
     
     for (u32 i = 0; i < digits; i++)
@@ -596,6 +600,22 @@ u32_to_string(u32 in)
     
     out[digits] = 0;
     return out;
+}
+
+struct String
+{
+    const char *data;
+    u32 length;
+    v2 dim;
+};
+
+function void
+u32_to_string(String *string, u32 in)
+{
+    if (string->data != 0) SDL_free((void*)string->data);
+    
+    string->data = u32_to_string(in);
+    string->length = get_digits(in);
 }
 
 #endif //TYPES_H

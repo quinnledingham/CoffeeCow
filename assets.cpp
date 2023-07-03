@@ -18,8 +18,7 @@ read_file(const char *filename)
         fread(result.memory, result.size, 1, in);
         fclose(in);
     }
-    else 
-        error(0, "Cannot open file %s", filename);
+    else error(0, "Cannot open file %s", filename);
     
     return result;
 }
@@ -29,8 +28,9 @@ read_file(const char *filename)
 function const char*
 copy_from_file(FILE *input_file, int length)
 {
-    char *string = (char*)malloc(length + 1);
+    char *string = (char*)SDL_malloc(length + 1);
     memset(string, 0, length + 1);
+
     for (int i = 0; i < length; i++)
     {
         int ch = fgetc(input_file);
@@ -41,6 +41,7 @@ copy_from_file(FILE *input_file, int length)
         }
         string[i] = ch;
     }
+    
     return string;
 }
 
@@ -62,31 +63,45 @@ load_bitmap(const char *filename)
 function void
 init_bitmap_handle(Bitmap *bitmap)
 {
-    glGenTextures(1, &bitmap->handle);
-    glBindTexture(GL_TEXTURE_2D, bitmap->handle);
+    GLenum target = GL_TEXTURE_2D;
     
-    if (bitmap->channels == 3)
+    glGenTextures(1, &bitmap->handle);
+    glBindTexture(target, bitmap->handle);
+
+    GLint internal_format;
+    GLenum data_format;
+    GLint pixel_unpack_alignment;
+    
+    switch(bitmap->channels)
     {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bitmap->dim.width, bitmap->dim.height, 0, GL_RGB, GL_UNSIGNED_BYTE, bitmap->memory);
+        case 3:
+            internal_format = GL_RGB;
+            data_format = GL_RGB;
+            pixel_unpack_alignment = 1;
+        break;
+        
+        case 4:
+            internal_format = GL_RGBA;
+            data_format = GL_RGBA;
+            pixel_unpack_alignment = 0;
+        break;
     }
-    else if (bitmap->channels == 4)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->dim.width, bitmap->dim.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->memory);
-    }
-    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    glPixelStorei(GL_UNPACK_ALIGNMENT, pixel_unpack_alignment);
+    glTexImage2D(target, 0, internal_format, bitmap->dim.width, bitmap->dim.height, 0, data_format, GL_UNSIGNED_BYTE, bitmap->memory);
+    glGenerateMipmap(target);
     
     // Tile
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(target, 0);
 }
 
 function Bitmap
@@ -126,43 +141,25 @@ load_shader_file(const char* filename)
 function void
 load_shader(Shader *shader)
 {
-    // Load files
-    if (shader->vs_filename != 0)
-    {
-        if (shader->vs_file != 0)
-            free((void*)shader->vs_file);
-        shader->vs_file = load_shader_file(shader->vs_filename);
-    }
-    else
+    if (shader->vs_filename == 0)
     {
         error("load_opengl_shader() must have a vertex shader");
         return;
     }
     
-    if (shader->tcs_filename != 0)
-    {
-        if (shader->tcs_file != 0)
-            free((void*)shader->tcs_file);
-        shader->tcs_file = load_shader_file(shader->tcs_filename);
-    }
-    if (shader->tes_filename != 0)
-    {
-        if (shader->tes_file != 0)
-            free((void*)shader->tes_file);
-        shader->tes_file = load_shader_file(shader->tes_filename);
-    }
-    if (shader->gs_filename != 0)
-    {
-        if (shader->gs_file != 0)
-            free((void*)shader->gs_file);
-        shader->gs_file = load_shader_file(shader->gs_filename);
-    }
-    if (shader->fs_filename != 0)
-    {
-        if (shader->fs_file != 0)
-            SDL_free((void*)shader->fs_file);
-        shader->fs_file = load_shader_file(shader->fs_filename);
-    }
+    // Free all files
+    if (shader->vs_file  != 0) free((void*)shader->vs_file);
+    if (shader->tcs_file != 0) free((void*)shader->tcs_file);
+    if (shader->tes_file != 0) free((void*)shader->tes_file);
+    if (shader->gs_file  != 0) free((void*)shader->gs_file);
+    if (shader->fs_file  != 0) free((void*)shader->fs_file);
+    
+    // Load files
+    if (shader->vs_filename  != 0) shader->vs_file  = load_shader_file(shader->vs_filename);
+    if (shader->tcs_filename != 0) shader->tcs_file = load_shader_file(shader->tcs_filename);
+    if (shader->tes_filename != 0) shader->tes_file = load_shader_file(shader->tes_filename);
+    if (shader->gs_filename  != 0) shader->gs_file  = load_shader_file(shader->gs_filename);
+    if (shader->fs_filename  != 0) shader->fs_file  = load_shader_file(shader->fs_filename);
 }
 
 function bool
@@ -173,14 +170,16 @@ compile_shader(u32 handle, const char *file, int type)
     glCompileShader(s);
     
     GLint compiled_s = 0;
-    glGetShaderiv(s, GL_COMPILE_STATUS, &compiled_s);
+    glGetShaderiv(s, GL_COMPILE_STATUS, &compiled_s);  
     if (!compiled_s)
     {
         opengl_debug(GL_SHADER, s);
         error("compile_shader() could not compile %s", glGetString(type));
     }
     else
+    {
         glAttachShader(handle, s);
+    }
     
     glDeleteShader(s);
     
@@ -191,20 +190,14 @@ function void
 compile_shader(Shader *shader)
 {
     shader->compiled = false;
-    if (shader->handle != 0)
-        glDeleteProgram(shader->handle);
+    if (shader->handle != 0) glDeleteProgram(shader->handle);
     shader->handle = glCreateProgram();
     
-    if (shader->vs_file != 0)
-        compile_shader(shader->handle, shader->vs_file, GL_VERTEX_SHADER);
-    if (shader->tcs_file != 0)
-        compile_shader(shader->handle, shader->tcs_file, GL_TESS_CONTROL_SHADER);
-    if (shader->tes_file != 0)
-        compile_shader(shader->handle, shader->tes_file, GL_TESS_EVALUATION_SHADER);
-    if (shader->gs_file != 0)
-        compile_shader(shader->handle, shader->gs_file, GL_GEOMETRY_SHADER);
-    if (shader->fs_file != 0)
-        compile_shader(shader->handle, shader->fs_file,GL_FRAGMENT_SHADER);
+    if (shader->vs_file  != 0) compile_shader(shader->handle, shader->vs_file,  GL_VERTEX_SHADER);
+    if (shader->tcs_file != 0) compile_shader(shader->handle, shader->tcs_file, GL_TESS_CONTROL_SHADER);
+    if (shader->tes_file != 0) compile_shader(shader->handle, shader->tes_file, GL_TESS_EVALUATION_SHADER);
+    if (shader->gs_file  != 0) compile_shader(shader->handle, shader->gs_file,  GL_GEOMETRY_SHADER);
+    if (shader->fs_file  != 0) compile_shader(shader->handle, shader->fs_file,  GL_FRAGMENT_SHADER);
     
     // Link
     glLinkProgram(shader->handle);
@@ -218,7 +211,6 @@ compile_shader(Shader *shader)
     }
     
     shader->compiled = true;
-    
 }
 
 function u32
@@ -335,53 +327,26 @@ load_font_char(Font *font, u32 codepoint, f32 scale, v4 color)
 }
 
 function v2
-get_string_dim(Font *font, const char *in, f32 pixel_height, v4 color)
+get_string_dim(Font *font, const char *string, f32 pixel_height, v4 color)
 {
-    Font_String *string = 0;
-    for (s32 i = 0; i < font->strings_cached; i++)
-    {
-        string = &font->font_strings[i];
-        if (equal(string->memory, in) && string->pixel_height == pixel_height && string->color == color)
-            return string->dim;
-    }
-    
-    string = &font->font_strings[font->strings_cached];
-    if (font->strings_cached + 1 < (s32)ARRAY_COUNT(font->font_strings))
-        font->strings_cached++;
-    else
-        font->strings_cached = 0;
-    
+    v2 dim = {};
     f32 scale = stbtt_ScaleForPixelHeight(&font->info, pixel_height);
-    string->memory = (char*)SDL_malloc(get_length(in) + 1);
-    SDL_memset(string->memory, 0, get_length(in) + 1);
     
-    f32 string_x_coord = 0.0f;
-    f32 string_height = 0.0f;
-    
-    int i = 0;
-    while (in[i] != 0)
+    u32 i = 0;
+    while (string[i] != 0)
     {
-        string->memory[i] = in[i];
-        Font_Char *font_char = load_font_char(font, string->memory[i], scale, color);
+        Font_Char *font_char = load_font_char(font, string[i], scale, color);
         
         f32 y = -1 * font_char->c_y1;
-        //f32 x = string_x_coord + (font_char->lsb * scale);
+        if (dim.y < y) dim.y = y;
         
-        if (y > string_height)
-            string_height = y;
-        
-        int kern = stbtt_GetCodepointKernAdvance(&font->info, string->memory[i], string->memory[i + 1]);
-        string_x_coord += ((kern + font_char->ax) * scale);
+        int kern = stbtt_GetCodepointKernAdvance(&font->info, string[i], string[i + 1]);
+        dim.x += ((kern + font_char->ax) * scale);
         
         i++;
     }
-    string->memory[i] = 0;
     
-    string->pixel_height = pixel_height;
-    string->dim = { string_x_coord, string_height };
-    string->color = color;
-    
-    return string->dim;
+    return dim;
 }
 
 //
@@ -412,7 +377,7 @@ scan_asset_file(FILE *file, s32 *line_num, Asset_Token last_token)
         case ':':
         case ',':
         {
-            return { SEPERATOR, chtos(1, ch) };
+            return { ATT_SEPERATOR, chtos(1, ch) };
         } break;
         
         default:
@@ -431,9 +396,9 @@ scan_asset_file(FILE *file, s32 *line_num, Asset_Token last_token)
                 const char *sequence = copy_from_file(file, length);
                 
                 if (is_asset_keyword(sequence))
-                    return { KEYWORD, sequence };
+                    return { ATT_KEYWORD, sequence };
                 
-                return { ID, sequence };
+                return { ATT_ID, sequence };
             }
             
             error(*line_num, "not a valid ch");
@@ -460,11 +425,11 @@ parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *arg
         tok = scan_asset_file(file, &line_num, tok);
         //printf("%d, %s\n", tok.type, tok.lexeme);
         
-        if (tok.type == KEYWORD)
+        if (tok.type == ATT_KEYWORD)
         {
-            if (equal(tok.lexeme, "FONTS")) type = FONT;
-            else if (equal(tok.lexeme, "BITMAPS")) type = BITMAP;
-            else if (equal(tok.lexeme, "SHADERS")) type = SHADER;
+            if (equal(tok.lexeme, "FONTS")) type = ASSET_TYPE_FONT;
+            else if (equal(tok.lexeme, "BITMAPS")) type = ASSET_TYPE_BITMAP;
+            else if (equal(tok.lexeme, "SHADERS")) type = ASSET_TYPE_SHADER;
             
             tok = scan_asset_file(file, &line_num, tok);
             if (!equal(tok.lexeme, ":")) 
@@ -473,7 +438,7 @@ parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *arg
                 break;
             }
         }
-        else if (tok.type == ID)
+        else if (tok.type == ATT_ID)
         {
             if (!equal(last_token.lexeme, ","))
             {
@@ -494,7 +459,7 @@ parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *arg
                 action((void*)assets, (void*)&info);
             }
         }
-        else if (tok.type == SEPERATOR)
+        else if (tok.type == ATT_SEPERATOR)
         {
             error(line_num, "unexpected seperator");
         }
@@ -526,13 +491,13 @@ load_assets(Assets *assets, const char *filename)
         
         switch(asset.type)
         {
-            case FONT: 
+            case ASSET_TYPE_FONT: 
             {
                 asset.font = load_font(info->filename); 
                 assets->fonts[info->index] = asset;
             } break;
             
-            case BITMAP: 
+            case ASSET_TYPE_BITMAP: 
             {
                 asset.bitmap = load_and_init_bitmap(info->filename); 
                 assets->bitmaps[info->index] = asset;
