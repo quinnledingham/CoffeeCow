@@ -2,6 +2,7 @@ FONTS:
 RUBIK, ../assets/fonts/Rubik-Medium.ttf
 
 BITMAPS:
+ICON, ../assets/bitmaps/icon.png
 LOGO, ../assets/bitmaps/logo.png
 MAIN_MENU_BACK, ../assets/bitmaps/mainmenuback.png
 GAME_BACK, ../assets/bitmaps/sand.png
@@ -14,3 +15,4 @@ COW1_HEAD, ../assets/bitmaps/cow1/cowhead.png
 COW1_HEAD_OUTLINE, ../assets/bitmaps/cow1/cowheadoutline.png
 COW1_CIRCLE, ../assets/bitmaps/cow1/circle.png
 COW1_CIRCLE_OUTLINE, ../assets/bitmaps/cow1/circleoutline.png
+COW1_MOUTH, ../assets/bitmaps/cow1/mouth.png

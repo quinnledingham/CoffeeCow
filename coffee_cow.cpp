@@ -348,7 +348,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     // o = 1 drawing the body - second layer
     for (s32 o = 0; o < 2; o++)
     {
-        for (s32 i = tail_index; i >= 0; i--)
+        for (s32 i = tail_index; i >= 0; i--) // gos froms tail to head
         {
             Coffee_Cow_Node *node = &cow->nodes[i];
             v2 coords = cv2(node->coords);
@@ -359,6 +359,9 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             u32 dir = get_direction(node->direction);
             u32 rev_dir = get_direction(node->direction * -1);
             
+            Rect rect = Rect{coords, grid_s};
+            Rect t_rect = Rect{t_coords, grid_s};
+
             if (i == head_index)
             {
                 dir = get_direction(cow->direction);
@@ -372,21 +375,23 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                     case DOWN: rot = 0.0f; break;
                 }
                 
-                v2 coords_of_cir = get_center(Rect{t_coords, grid_s});
+                v2 coords_of_cir = get_center(t_rect);
                 v2 point = coords_of_cir - coords_of_last_cir;
                 Rect rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
                 v2s point_dir = normalized(grid_coords_last - node->coords);
-                
+
+                Rect bigger_head = get_centered_square(t_rect, 1.05f);              
+
                 if (o == 0) 
                 {
-                    draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
+                    draw_rect(bigger_head.coords, rot, bigger_head.dim, cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
                     draw_rect(rect, cow->design.outline_color);
                 }
                 else if (o == 1)
                 {
                     Rect w = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect);
                     draw_rect(w, cow->design.color);
-                    draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_HEAD]);
+                    draw_rect(bigger_head.coords, rot, bigger_head.dim, cow->design.bitmaps[ASSET_COW_HEAD]);
                 }
                 
                 coords_of_last_cir = coords_of_cir;
@@ -397,18 +402,20 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 b32 add = true;
                 v2 size = grid_s;
 
-                v2 second_layer_coords = t_coords;
+                v2 second_layer_coords = coords;
                 v2 second_layer_size = size;              
                 
                 if (node->max_transition) 
                 {
-                    Rect new_tail = get_centered_square(Rect{t_coords, grid_s}, cow->transition);
+                    Rect new_tail = get_centered_square(Rect{coords, grid_s}, cow->transition);
                     second_layer_coords = new_tail.coords;
-                    second_layer_size = size * cow->transition;          
+                    second_layer_size = size * cow->transition;
+                    t_coords = coords;
+                    t_rect = Rect{t_coords, grid_s};
                 }
 
-                v2 next_coords = get_center(Rect{coords, grid_s});
-                v2 current_coords = get_center(Rect{t_coords, grid_s});
+                v2 next_coords = get_center(rect);
+                v2 current_coords = get_center(t_rect);
                 
                 v2 point = next_coords - current_coords;
                 Rect gap = get_cc_outline_rect(point, next_coords, current_coords, grid_size);
@@ -423,19 +430,19 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 }
                 else if (o == 1)
                 {
+                    if (!node->max_transition) draw_rect(t_coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
                     draw_rect(second_layer_coords, 0, second_layer_size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
                     draw_rect(w, cow->design.color);
                 }
                 
                 coords_of_last_cir = next_coords;
                 grid_coords_last = node->coords;
             }
-            else if (cow->nodes[i + 1].direction != node->direction)
+            else if (cow->nodes[i + 1].direction != node->direction) // joint
             {
                 u32 n_dir = get_direction(cow->nodes[i + 1].last_direction);
                 
-                v2 coords_of_cir = get_center(Rect{coords, grid_s});
+                v2 coords_of_cir = get_center(rect);
                 v2 point = coords_of_cir - coords_of_last_cir;
                 Rect rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
                 v2s point_dir = normalized(grid_coords_last - node->coords);

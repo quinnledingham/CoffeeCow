@@ -16,6 +16,7 @@ enum Asset_Tags
     ASSET_COW_HEAD_OUTLINE,
     ASSET_COW_CIRCLE,
     ASSET_COW_CIRCLE_OUTLINE,
+    ASSET_COW_MOUTH,
 };
 
 struct Coffee_Cow_Design

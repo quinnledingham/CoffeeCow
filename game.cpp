@@ -44,6 +44,8 @@ struct Game_Data
     s32 active;
     Menu default_menu;
     
+    Bitmap *icon;
+
     Menu menus[NUM_OF_GAME_MODES];
 };
 
@@ -114,6 +116,7 @@ init_game_data(Assets *assets)
     designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW1_HEAD_OUTLINE");
     designs[0].bitmaps[ASSET_COW_CIRCLE] = find_bitmap(assets, "COW1_CIRCLE");
     designs[0].bitmaps[ASSET_COW_CIRCLE_OUTLINE] = find_bitmap(assets, "COW1_CIRCLE_OUTLINE");
+    designs[0].bitmaps[ASSET_COW_MOUTH] = find_bitmap(assets, "COW1_MOUTH");
     designs[0].color = { 255, 255, 255, 1 };
     designs[0].outline_color = { 0, 0, 0, 1 };
     
@@ -263,7 +266,7 @@ update(Application *app)
             draw_rect(rocks_rect, rocks);
             
             Font *rubik = find_font(&app->assets, "RUBIK");
-            r32 score_pixel_height = window_dim.y * 0.1f;
+            r32 score_pixel_height = window_dim.y * 0.07f;
             r32 score_pixel_height_outline  = score_pixel_height + 5.0f; 
             
             const char *score = u32_to_string(players[0].score);
@@ -273,7 +276,7 @@ update(Application *app)
             
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
-            for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
+            //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
                 Menu pause_menu = data->default_menu;
@@ -430,7 +433,11 @@ main_loop(Application *app)
 {
     init_controllers(&app->input);
     app->data = init_game_data(&app->assets);
-    
+
+    Bitmap *icon = find_bitmap(&app->assets, "ICON");
+    SDL_Surface *icon_surface = SDL_CreateRGBSurfaceFrom(icon->memory, icon->dim.width, icon->dim.height, 32, icon->pitch, 0x00000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    SDL_SetWindowIcon(app->window.sdl, icon_surface);
+
     while(1)
     {
         if (process_input(&app->window.dim, &app->input)) return 0; // quit if input to quit
@@ -490,7 +497,7 @@ init_window(Window *window)
         SDL_WINDOW_OPENGL;
     
     SDL_Init(sdl_init_flags);
-    
+
     window->sdl = SDL_CreateWindow("Coffee Cow", 
                                    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                    800, 800, 

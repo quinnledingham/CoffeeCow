@@ -57,6 +57,7 @@ load_bitmap(const char *filename)
     bitmap.memory = stbi_load(filename, &bitmap.dim.width, &bitmap.dim.height, &bitmap.channels, 0);
     if (bitmap.memory == 0) error("load_bitmap() could not load bitmap");
     //log("file: %s %d %d %d\n", filename, bitmap.dim.width, bitmap.dim.height, bitmap.channels);
+    bitmap.pitch = bitmap.dim.width * bitmap.channels;
     return bitmap;
 }
 
