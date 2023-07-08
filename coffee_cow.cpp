@@ -1,3 +1,9 @@
+function s32
+random(s32 lower, s32 upper)
+{
+    return lower + (rand() % (upper - lower));
+}
+
 function void
 add_node(Coffee_Cow *cow, v2s grid_coords)
 {
@@ -5,6 +11,9 @@ add_node(Coffee_Cow *cow, v2s grid_coords)
     new_node->coords = grid_coords;
     new_node->direction = cow->direction;
     new_node->last_direction = cow->direction;
+
+    s32 spot = random(0, 10);
+    new_node->spot = (u32)spot;
 }
 
 function void
@@ -17,12 +26,6 @@ add_node_to_end(Coffee_Cow *cow)
     new_node->last_direction = cow->add_direction;
     new_node->max_transition = true;
     cow->add = false;
-}
-
-function s32
-random(s32 lower, s32 upper)
-{
-    return lower + (rand() % (upper - lower));
 }
 
 function v2s
@@ -167,21 +170,35 @@ coffee_cows_on_coffee(Coffee_Cow *cows, u32 num_of_cows, Coffee *coffees, u32 nu
             Coffee_Cow_Node *head = &cow->nodes[0];
             Coffee_Cow_Node *next_to_head = &cow->nodes[1];
             
-            if (head->coords == *coffee_coords && !coffee->consumed)
+            if (head->coords + cow->direction == *coffee_coords) // going towards a coffee
             {
-                coffee->consumed = true;
-                cow->score++;
-                
-                // adding node to end of coffee
-                Coffee_Cow_Node *tail = &cow->nodes[cow->num_of_nodes - 1];
-                cow->add = true;   
-                cow->add_coords = tail->coords;
-                cow->add_direction = tail->direction;
+                cow->open_mouth = true;
             }
-            else if (next_to_head->coords == *coffee_coords)
+            else if (head->coords == *coffee_coords) // head on coffee
             {
+                cow->open_mouth = true;
+
+                if (!coffee->consumed)
+                {
+                    coffee->consumed = true;
+                    cow->score++;
+                
+                    // adding node to end of coffee
+                    Coffee_Cow_Node *tail = &cow->nodes[cow->num_of_nodes - 1];
+                    cow->add = true;   
+                    cow->add_coords = tail->coords;
+                    cow->add_direction = tail->direction;
+                }
+            }
+            else if (next_to_head->coords == *coffee_coords) // head just past coffee
+            {
+                cow->open_mouth = false;
                 coffee->consumed = false;
                 random_coffee_locaton(coffee_coords, grid_dim, cows, num_of_cows);
+            }
+            else
+            {
+                cow->open_mouth = false;
             }
         }
     }
@@ -207,6 +224,8 @@ coffee_cow_next_direction(Coffee_Cow *cow)
 function void
 update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
 {
+
+
     // read new inputs for cow
     Controller *controller = cow->controller;
 
@@ -228,6 +247,13 @@ update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
     r32 next_transition                   = cow->transition + (speed * frame_time_s);
     r32 next_transition_with_slight_boost = cow->transition + (slight_boost_speed * frame_time_s);
     
+    // Mouth transition
+    if (cow->open_mouth) cow->mouth_transition += (speed * frame_time_s);
+    else cow->mouth_transition -= (speed * frame_time_s);
+    if (cow->mouth_transition > 1.0f) cow->mouth_transition = 1.0f;
+    else if (cow->mouth_transition < 0.0f) cow->mouth_transition = 0.0f;
+
+    // Body transition
     if (next_transition >= 1.0f) // changes cells
     { 
         cow->direction = coffee_cow_next_direction(cow);        
@@ -331,6 +357,39 @@ get_direction(v2s dir)
     else  return DOWN;
 }
 
+function r32
+get_rotation(v2s dir_vec)
+{
+    u32 dir = get_direction(dir_vec);
+    
+    r32 rot = 0.0f; // DOWN
+    switch(dir)
+    {
+        case RIGHT: rot = DEG2RAD * 90.0f; break;
+        case UP: rot = DEG2RAD * 180.0f; break;
+        case LEFT: rot = DEG2RAD * 270.0f; break;
+        case DOWN: rot = 0.0f; break;
+    }
+
+    return rot;
+}
+
+function v2
+grid_coords_to_screen_coords(v2s coords, v2 coords_of_grid, r32 grid_size)
+{
+    v2 screen_coords = cv2(coords);
+    screen_coords *= grid_size;
+    screen_coords += coords_of_grid;
+    return screen_coords;
+}
+
+// in direction 
+function v2
+transition(v2s dir_vec, r32 amount, r32 distance) // distance: when amount = 1.0f how much
+{
+    return ((cv2(dir_vec) * amount) * distance);
+}
+
 function void
 draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {
@@ -351,9 +410,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
         for (s32 i = tail_index; i >= 0; i--) // gos froms tail to head
         {
             Coffee_Cow_Node *node = &cow->nodes[i];
-            v2 coords = cv2(node->coords);
-            coords *= grid_size;
-            coords += grid_coords;
+            v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
             v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
             
             u32 dir = get_direction(node->direction);
@@ -364,16 +421,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 
             if (i == head_index)
             {
-                dir = get_direction(cow->direction);
-                
-                r32 rot = 0.0f; // DOWN
-                switch(dir)
-                {
-                    case RIGHT: rot = DEG2RAD * 90.0f; break;
-                    case UP: rot = DEG2RAD * 180.0f; break;
-                    case LEFT: rot = DEG2RAD * 270.0f; break;
-                    case DOWN: rot = 0.0f; break;
-                }
+                r32 rot = get_rotation(cow->direction);
                 
                 v2 coords_of_cir = get_center(t_rect);
                 v2 point = coords_of_cir - coords_of_last_cir;
@@ -465,17 +513,44 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
         }
     }
     
+    // drawing the spots on the cow (layer 3)
+    v2 spot_s = grid_s * 0.8;
+
+    for (u32 i = 1; i < cow->num_of_nodes; i++)
+    {
+            if (cow->nodes[i].spot <= 2)
+            {
+                Coffee_Cow_Node *node = &cow->nodes[i];
+                v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
+                v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
+
+                r32 rot = 0.0f;
+                // r32 rot = get_rotation(node->direction);
+
+                draw_rect(t_coords, rot, spot_s, cow->design.bitmaps[ASSET_COW_SPOT + cow->nodes[i].spot]);
+            }
+    }
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-function v2
-grid_coords_to_screen_coords(v2s coords, v2 coords_of_grid, r32 grid_size)
-{
-    v2 screen_coords = cv2(coords);
-    screen_coords *= grid_size;
-    screen_coords += coords_of_grid;
-    return screen_coords;
+function void
+draw_coffee_cow_mouth(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
+{    
+    if (cow->dead) return;
+
+    v2 grid_s = { grid_size, grid_size };
+    Coffee_Cow_Node *node = &cow->nodes[0];
+    v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
+    v2 t_coords = coords - transition(node->last_direction, 1.0f - cow->transition, grid_size);
+    t_coords = t_coords + transition(node->last_direction, cow->mouth_transition, grid_size / 4.0f);
+
+    r32 rot = get_rotation(cow->direction);
+
+    draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_MOUTH]);
 }
+
+
 
 function void
 draw_coffee_cow_debug(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)

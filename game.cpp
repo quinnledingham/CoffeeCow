@@ -117,6 +117,9 @@ init_game_data(Assets *assets)
     designs[0].bitmaps[ASSET_COW_CIRCLE] = find_bitmap(assets, "COW1_CIRCLE");
     designs[0].bitmaps[ASSET_COW_CIRCLE_OUTLINE] = find_bitmap(assets, "COW1_CIRCLE_OUTLINE");
     designs[0].bitmaps[ASSET_COW_MOUTH] = find_bitmap(assets, "COW1_MOUTH");
+    designs[0].bitmaps[ASSET_COW_SPOT] = find_bitmap(assets, "COW1_SPOT1");
+    designs[0].bitmaps[ASSET_COW_SPOT + 1] = find_bitmap(assets, "COW1_SPOT2");
+    designs[0].bitmaps[ASSET_COW_SPOT + 2] = find_bitmap(assets, "COW1_SPOT3");
     designs[0].color = { 255, 255, 255, 1 };
     designs[0].outline_color = { 0, 0, 0, 1 };
     
@@ -274,6 +277,7 @@ update(Application *app)
             draw_string(rubik, score, { 5, score_dim.y + 10 }, score_pixel_height_outline, { 0, 0, 0, 1 });
             //draw_string(rubik, score, { 7, score_pixel_height - 10 }, score_pixel_height, { 255, 255, 255, 1 });
             
+            for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
             //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);

@@ -6,22 +6,25 @@ struct Coffee_Cow_Node
     v2s coords;
     v2s direction;
     v2s last_direction;
+    u32 spot; // 0, 1, 2 are spots. 2 > is no spot
     
     b8 max_transition;
 };
 
 enum Asset_Tags
 {
-    ASSET_COW_HEAD,
+    ASSET_COW_HEAD, // 0
     ASSET_COW_HEAD_OUTLINE,
     ASSET_COW_CIRCLE,
     ASSET_COW_CIRCLE_OUTLINE,
     ASSET_COW_MOUTH,
+
+    ASSET_COW_SPOT, // 5 - 7
 };
 
 struct Coffee_Cow_Design
 {
-    Bitmap *bitmaps[4];
+    Bitmap *bitmaps[8];
     v4 color;
     v4 outline_color;
 };
@@ -46,6 +49,9 @@ struct Coffee_Cow
     v2s add_coords;
     v2s add_direction;
     
+    b8 open_mouth;
+    r32 mouth_transition; // 0.0f - 1.0f
+
     Coffee_Cow_Design design;
 };
 
