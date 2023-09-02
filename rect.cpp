@@ -115,6 +115,7 @@ draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap)
 
 function void draw_rect(Rect rect, v4 color) { draw_rect(rect.coords, 0.0f, rect.dim, color); }
 function void draw_rect(Rect rect, Bitmap *bitmap) { draw_rect(rect.coords, 0.0f, rect.dim, bitmap); }
+function void draw_rect(Rect rect, r32 rotation, Bitmap *bitmap) { draw_rect(rect.coords, rotation, rect.dim, bitmap); }
 
 function void
 draw_string(Font *font, const char *string, v2 coords, f32 pixel_height, v4 color)

@@ -53,8 +53,9 @@ struct Game_Data
  TODO:
 - add coffee spots to cow
 - add random cow placement
-- add coffee
 - add game controller support
+- add tail
+
 - add multiplayer
 - create 3 more cow designs
 */
@@ -117,6 +118,7 @@ init_game_data(Assets *assets)
     designs[0].bitmaps[ASSET_COW_CIRCLE] = find_bitmap(assets, "COW1_CIRCLE");
     designs[0].bitmaps[ASSET_COW_CIRCLE_OUTLINE] = find_bitmap(assets, "COW1_CIRCLE_OUTLINE");
     designs[0].bitmaps[ASSET_COW_MOUTH] = find_bitmap(assets, "COW1_MOUTH");
+    designs[0].bitmaps[ASSET_COW_TAIL] = find_bitmap(assets, "COW1_TAIL");
     designs[0].bitmaps[ASSET_COW_SPOT] = find_bitmap(assets, "COW1_SPOT1");
     designs[0].bitmaps[ASSET_COW_SPOT + 1] = find_bitmap(assets, "COW1_SPOT2");
     designs[0].bitmaps[ASSET_COW_SPOT + 2] = find_bitmap(assets, "COW1_SPOT3");
@@ -164,7 +166,8 @@ update(Application *app)
         case GAME_OVER:
         {
             menu_update_active(&data->active, 0, 1, menu_controller->down, menu_controller->up);
-            
+            update_coffee_cow_mouth(&players[0], app->time.frame_time_s, 7.0f);
+
             if (on_down(menu_controller->pause)) data->game_mode = IN_GAME;
         } break;
         
@@ -180,6 +183,7 @@ update(Application *app)
                 {
                     data->game_mode = GAME_OVER;
                     players[i].dead = false;
+                    players[i].open_mouth = false;
                 }
             }
                                  
@@ -281,6 +285,7 @@ update(Application *app)
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
             //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
+
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
                 Menu pause_menu = data->default_menu;
@@ -324,6 +329,8 @@ update(Application *app)
                     data->num_of_coffees = 1;
                 }
             }
+
+
         } break;
     }
     

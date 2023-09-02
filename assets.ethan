@@ -16,6 +16,7 @@ COW1_HEAD_OUTLINE, ../assets/bitmaps/cow1/cowheadoutline.png
 COW1_CIRCLE, ../assets/bitmaps/cow1/circle.png
 COW1_CIRCLE_OUTLINE, ../assets/bitmaps/cow1/circleoutline.png
 COW1_MOUTH, ../assets/bitmaps/cow1/tongue.png
+COW1_TAIL, ../assets/bitmaps/cow1/tail.png
 COW1_SPOT1, ../assets/bitmaps/cow1/spot1.png
 COW1_SPOT2, ../assets/bitmaps/cow1/spot2.png
 COW1_SPOT3, ../assets/bitmaps/cow1/spot3.png

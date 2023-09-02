@@ -18,13 +18,13 @@ enum Asset_Tags
     ASSET_COW_CIRCLE,
     ASSET_COW_CIRCLE_OUTLINE,
     ASSET_COW_MOUTH,
-
-    ASSET_COW_SPOT, // 5 - 7
+    ASSET_COW_TAIL,
+    ASSET_COW_SPOT, // 6 - 8
 };
 
 struct Coffee_Cow_Design
 {
-    Bitmap *bitmaps[8];
+    Bitmap *bitmaps[9];
     v4 color;
     v4 outline_color;
 };
@@ -51,6 +51,9 @@ struct Coffee_Cow
     
     b8 open_mouth;
     r32 mouth_transition; // 0.0f - 1.0f
+
+    b8 tail_dir;
+    r32 tail_wag;
 
     Coffee_Cow_Design design;
 };

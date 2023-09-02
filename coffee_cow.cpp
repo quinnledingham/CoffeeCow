@@ -11,7 +11,7 @@ add_node(Coffee_Cow *cow, v2s grid_coords)
     new_node->coords = grid_coords;
     new_node->direction = cow->direction;
     new_node->last_direction = cow->direction;
-
+    
     s32 spot = random(0, 10);
     new_node->spot = (u32)spot;
 }
@@ -177,12 +177,12 @@ coffee_cows_on_coffee(Coffee_Cow *cows, u32 num_of_cows, Coffee *coffees, u32 nu
             else if (head->coords == *coffee_coords) // head on coffee
             {
                 cow->open_mouth = true;
-
+                
                 if (!coffee->consumed)
                 {
                     coffee->consumed = true;
                     cow->score++;
-                
+                    
                     // adding node to end of coffee
                     Coffee_Cow_Node *tail = &cow->nodes[cow->num_of_nodes - 1];
                     cow->add = true;   
@@ -214,7 +214,7 @@ function v2s
 coffee_cow_next_direction(Coffee_Cow *cow)
 {
     if (cow->num_of_inputs == 0) return cow->direction;
-
+    
     v2s input = cow->inputs[0];
     for (s32 i = 0; i < cow->num_of_inputs - 1; i++) cow->inputs[i] = cow->inputs[i + 1]; // shift inputs
     cow->num_of_inputs--;
@@ -222,46 +222,51 @@ coffee_cow_next_direction(Coffee_Cow *cow)
 }
 
 function void
+update_coffee_cow_mouth(Coffee_Cow *cow, r32 frame_time_s, r32 speed)
+{
+    if (cow->open_mouth) cow->mouth_transition += (speed * frame_time_s);
+    else cow->mouth_transition -= (speed * frame_time_s);
+    if (cow->mouth_transition > 1.0f) cow->mouth_transition = 1.0f;
+    else if (cow->mouth_transition < 0.0f) cow->mouth_transition = 0.0f;
+    //log("%d", cow->open_mouth);
+}
+
+function void
 update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
 {
-
-
     // read new inputs for cow
     Controller *controller = cow->controller;
-
+    
     if (cow->num_of_inputs < 4)
     {
         v2s last_direction = {};
         if      (cow->num_of_inputs == 0) last_direction = cow->direction;
         else if (cow->num_of_inputs != 0) last_direction = cow->inputs[cow->num_of_inputs - 1];
-            
+        
         if (on_down(controller->right) && last_direction != LEFT_V  && last_direction != RIGHT_V) coffee_cow_add_input(cow, RIGHT_V);
         if (on_down(controller->up)    && last_direction != DOWN_V  && last_direction != UP_V)    coffee_cow_add_input(cow, UP_V);
         if (on_down(controller->left)  && last_direction != RIGHT_V && last_direction != LEFT_V)  coffee_cow_add_input(cow, LEFT_V);
         if (on_down(controller->down)  && last_direction != UP_V    && last_direction != DOWN_V)  coffee_cow_add_input(cow, DOWN_V);
     }
-
+    
     r32 speed = 7.0f; // m/s
     r32 slight_boost_speed = speed + 1.0f; // for when inputs are stacked
-
+    
     r32 next_transition                   = cow->transition + (speed * frame_time_s);
     r32 next_transition_with_slight_boost = cow->transition + (slight_boost_speed * frame_time_s);
     
     // Mouth transition
-    if (cow->open_mouth) cow->mouth_transition += (speed * frame_time_s);
-    else cow->mouth_transition -= (speed * frame_time_s);
-    if (cow->mouth_transition > 1.0f) cow->mouth_transition = 1.0f;
-    else if (cow->mouth_transition < 0.0f) cow->mouth_transition = 0.0f;
-
+    update_coffee_cow_mouth(cow, frame_time_s, speed);
+    
     // Body transition
     if (next_transition >= 1.0f) // changes cells
     { 
         cow->direction = coffee_cow_next_direction(cow);        
-        if (!coffee_cow_can_move(cow, grid_dim)) cow->dead = true;
-
+        if (!coffee_cow_can_move(cow, grid_dim)) { cow->dead = true; cow->open_mouth = false; }
+        
         if (cow->dead)return;
         cow->transition = next_transition - 1.0f;
-
+        
         // update the direction and coords of all the nodes
         cow->nodes[0].direction = cow->direction;
         for (u32 i = 0; i < cow->num_of_nodes; i++)
@@ -370,8 +375,35 @@ get_rotation(v2s dir_vec)
         case LEFT: rot = DEG2RAD * 270.0f; break;
         case DOWN: rot = 0.0f; break;
     }
-
+    
     return rot;
+}
+
+function v2
+radians_to_v2(r32 radians)
+{
+    // since right is 90 degrees
+    r32 fudge_radians = DEG2RAD * 90.0f;
+    r32 final_radians = radians - fudge_radians;
+    r32 x = 1.0f * cosf(final_radians);
+    r32 y = 1.0f * sinf(final_radians);
+    //log("x: %f, y: %f, radians: %f", x, y, final_radians);
+    return { x, -y };
+}
+
+function r32
+get_rotation(v2s origin, v2s destination, r32 percent)
+{
+    r32 origin_degrees = get_rotation(origin);
+    r32 destination_degrees = get_rotation(destination);
+    r32 degrees_of_full_rotation = destination_degrees - origin_degrees; // how many degrees to rotate
+    //log("%f = %f - %f", degrees_of_full_rotation, destination_degrees, origin_degrees);
+    
+    if (degrees_of_full_rotation > DEG2RAD * 180.0f)       degrees_of_full_rotation = DEG2RAD * -90.0f;
+    else if (degrees_of_full_rotation < DEG2RAD * -180.0f) degrees_of_full_rotation = DEG2RAD * 90.0f;
+
+    r32 rotation = (degrees_of_full_rotation * percent) + origin_degrees;
+    return rotation;
 }
 
 function v2
@@ -402,13 +434,17 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     
     v2s grid_coords_last = { 0, 0 };
     v2 coords_of_last_cir = { 0, 0 };
-    
-    // o = 0 drawing the outline - first layer
-    // o = 1 drawing the body - second layer
-    for (s32 o = 0; o < 2; o++)
+
+    // drawing the outline - first layer
+    // drawing the body - second layer
+    for (s32 layer = 1; layer < 3; layer++)
     {
         for (s32 i = tail_index; i >= 0; i--) // gos froms tail to head
         {
+            // coords = node on screen coords with no transition
+            // t_coords = node on screen coords with transition
+
+
             Coffee_Cow_Node *node = &cow->nodes[i];
             v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
             v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
@@ -418,38 +454,36 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             
             Rect rect = Rect{coords, grid_s};
             Rect t_rect = Rect{t_coords, grid_s};
-
+            
             if (i == head_index)
             {
                 r32 rot = get_rotation(cow->direction);
-                
+
                 v2 coords_of_cir = get_center(t_rect);
                 v2 point = coords_of_cir - coords_of_last_cir;
-                Rect rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
+                Rect outline_rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
                 v2s point_dir = normalized(grid_coords_last - node->coords);
-
+                
                 Rect bigger_head = get_centered_square(t_rect, 1.05f);              
-
-                if (o == 0) 
+                
+                if (layer == 1) 
                 {
                     draw_rect(bigger_head.coords, rot, bigger_head.dim, cow->design.bitmaps[ASSET_COW_HEAD_OUTLINE]);
-                    draw_rect(rect, cow->design.outline_color);
+                    draw_rect(outline_rect, cow->design.outline_color);
                 }
-                else if (o == 1)
+                else if (layer == 2)
                 {
-                    Rect w = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect);
-                    draw_rect(w, cow->design.color);
+                    Rect body_rect = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, outline_rect);
+                    draw_rect(body_rect, cow->design.color);
                     draw_rect(bigger_head.coords, rot, bigger_head.dim, cow->design.bitmaps[ASSET_COW_HEAD]);
                 }
                 
                 coords_of_last_cir = coords_of_cir;
-                grid_coords_last = node->coords;
             }
             else if (i == tail_index)
             {
-                b32 add = true;
                 v2 size = grid_s;
-
+                
                 v2 second_layer_coords = coords;
                 v2 second_layer_size = size;              
                 
@@ -457,34 +491,54 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 {
                     Rect new_tail = get_centered_square(Rect{coords, grid_s}, cow->transition);
                     second_layer_coords = new_tail.coords;
-                    second_layer_size = size * cow->transition;
+                    second_layer_size = new_tail.dim;
                     t_coords = coords;
-                    t_rect = Rect{t_coords, grid_s};
+                    t_rect = rect;
                 }
-
-                v2 next_coords = get_center(rect);
-                v2 current_coords = get_center(t_rect);
                 
+                v2 next_coords = get_center(rect);
+                v2 current_coords = get_center(t_rect);     
                 v2 point = next_coords - current_coords;
-                Rect gap = get_cc_outline_rect(point, next_coords, current_coords, grid_size);
-                u32 last_dir = get_direction(node->last_direction);
-                Rect w = get_cc_body_rect(last_dir, 0.9f, 1.0f, gap);     
-
-                if (o == 0)
+                Rect outline_rect = get_cc_outline_rect(point, next_coords, current_coords, grid_size);
+                u32 last_dir = get_direction(node->last_direction);             
+               
+                if (layer == 1)
                 {
+                    // drawing tail behind tail node
+                    r32 rot = get_rotation(node->direction);
+                    if (node->last_direction != node->direction) // changing directions
+                    {
+                        rot = get_rotation(node->last_direction, node->direction, cow->transition * 1.1f);
+                    }
+
+                    Rect draw_tail = Rect{t_coords - (radians_to_v2(rot) * grid_size * 0.8f), grid_s};
+                    draw_tail = get_centered_square(draw_tail, 0.8f);
+                    draw_rect(draw_tail, rot + cow->tail_wag, cow->design.bitmaps[ASSET_COW_TAIL]);
+                    
+                    if (cow->tail_dir)
+                    {
+                        if (cow->tail_wag > 0.2f) cow->tail_dir = !cow->tail_dir;
+                        //else cow->tail_wag += 0.001f;
+                    }
+                    else
+                    {
+                        if (cow->tail_wag < -0.2f) cow->tail_dir = !cow->tail_dir;
+                        //else cow->tail_wag -= 0.001f;
+                    }
+
                     draw_rect(t_coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
                     draw_rect(coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(gap, cow->design.outline_color);
+                    draw_rect(outline_rect, cow->design.outline_color);
                 }
-                else if (o == 1)
+                else if (layer == 2)
                 {
+                    Rect body_rect = get_cc_body_rect(last_dir, 0.9f, 1.0f, outline_rect);     
                     if (!node->max_transition) draw_rect(t_coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
                     draw_rect(second_layer_coords, 0, second_layer_size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(w, cow->design.color);
+                    draw_rect(body_rect, cow->design.color);
                 }
                 
                 coords_of_last_cir = next_coords;
-                grid_coords_last = node->coords;
             }
             else if (cow->nodes[i + 1].direction != node->direction) // joint
             {
@@ -492,45 +546,55 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 v2 coords_of_cir = get_center(rect);
                 v2 point = coords_of_cir - coords_of_last_cir;
-                Rect rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
-                v2s point_dir = normalized(grid_coords_last - node->coords);
-                Rect w = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, rect);
+                Rect outline_rect = get_cc_outline_rect(point, coords_of_cir, coords_of_last_cir, grid_size);
+                v2s point_dir = normalized(grid_coords_last - node->coords); 
                 
-                if (o == 0)
+                if (layer == 1)
                 {
                     draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(rect, cow->design.outline_color);
+                    draw_rect(outline_rect, cow->design.outline_color);
                 }
-                else if (o == 1)
+                else if (layer == 2)
                 {
+                    Rect body_rect = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, outline_rect);
                     draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(w, cow->design.color);
+                    draw_rect(body_rect, cow->design.color);
                 }
                 
-                coords_of_last_cir = coords_of_cir;
-                grid_coords_last = node->coords;
+                coords_of_last_cir = coords_of_cir;              
             }
+            grid_coords_last = node->coords;
         }
     }
     
     // drawing the spots on the cow (layer 3)
-    v2 spot_s = grid_s * 0.8;
-
+    
     for (u32 i = 1; i < cow->num_of_nodes; i++)
     {
-            if (cow->nodes[i].spot <= 2)
+        if (cow->nodes[i].spot <= 2)
+        {
+            Coffee_Cow_Node *node = &cow->nodes[i];
+            v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
+            v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
+            Rect rect = Rect{t_coords, grid_s};
+            Rect spot_rect = get_centered_square(rect, 0.8f);
+
+            r32 rot = get_rotation(node->direction);
+            if (node->last_direction != node->direction) // changing directions
             {
-                Coffee_Cow_Node *node = &cow->nodes[i];
-                v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
-                v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
-
-                r32 rot = 0.0f;
-                // r32 rot = get_rotation(node->direction);
-
-                draw_rect(t_coords, rot, spot_s, cow->design.bitmaps[ASSET_COW_SPOT + cow->nodes[i].spot]);
+                rot = get_rotation(node->last_direction, node->direction, cow->transition);
             }
-    }
+            
+            if (node->max_transition)
+            {
+                Rect new_spot = get_centered_square(Rect{coords, grid_s}, cow->transition * 0.8f);
+                spot_rect = new_spot;
+            }
 
+            draw_rect(spot_rect, rot, cow->design.bitmaps[ASSET_COW_SPOT + cow->nodes[i].spot]);
+        }
+    }
+    
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
@@ -538,15 +602,15 @@ function void
 draw_coffee_cow_mouth(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {    
     if (cow->dead) return;
-
+    
     v2 grid_s = { grid_size, grid_size };
     Coffee_Cow_Node *node = &cow->nodes[0];
     v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
     v2 t_coords = coords - transition(node->last_direction, 1.0f - cow->transition, grid_size);
     t_coords = t_coords + transition(node->last_direction, cow->mouth_transition, grid_size / 4.0f);
-
+    
     r32 rot = get_rotation(cow->direction);
-
+    
     draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_MOUTH]);
 }
 
@@ -556,9 +620,9 @@ function void
 draw_coffee_cow_debug(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
+    
     v2 grid_s = { grid_size, grid_size };
-
+    
     for (u32 i = 0; i < cow->num_of_nodes; i++)
     {
         Coffee_Cow_Node *node = &cow->nodes[i];
@@ -568,7 +632,6 @@ draw_coffee_cow_debug(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
         v4 color = { 255.0f, 0.0f, 0.0f, 1.0f};
         draw_rect(coords, 0.0f, grid_s / 5.0f, color);
     }
-
+    
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
-
