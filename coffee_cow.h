@@ -55,6 +55,8 @@ struct Coffee_Cow
     b8 tail_dir;
     r32 tail_wag;
 
+    r32 particle_point;
+
     Coffee_Cow_Design design;
 };
 

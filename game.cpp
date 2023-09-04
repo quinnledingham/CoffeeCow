@@ -14,10 +14,12 @@
 #include "assets.h"
 #include "application.h"
 #include "coffee_cow.h"
+#include "particles.h"
 
 #include "assets.cpp"
 #include "rect.cpp"
 #include "menu.cpp"
+#include "particles.cpp"
 #include "coffee_cow.cpp"
 
 enum Game_Modes
@@ -155,6 +157,8 @@ update(Application *app)
     //log("%f", app->time.frames_per_s);
 
     // what to update
+    update_particles(&particles, app->time.frame_time_s);
+
     switch(data->game_mode)
     {
         case MAIN_MENU:
@@ -283,8 +287,10 @@ update(Application *app)
             
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
+            draw_particles(&particles);
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
             //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
+            
 
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
@@ -334,8 +340,8 @@ update(Application *app)
         } break;
     }
     
-    //Font *rubik = find_font(&app->assets, "RUBIK");
-    //draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
+    Font *rubik = find_font(&app->assets, "RUBIK");
+    draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
     
     return false;
 }
@@ -417,6 +423,13 @@ process_input(v2s *window_dim, Input *input)
                     }
                 }
             } break;
+
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                SDL_MouseButtonEvent *mouse_event = &event.button;
+                add_particle(&particles, { (r32)mouse_event->x, (r32)mouse_event->y, 0.0f }, 0.0f, 100.0f);
+
+            } break;
         }
     }
     
@@ -449,6 +462,9 @@ main_loop(Application *app)
     SDL_Surface *icon_surface = SDL_CreateRGBSurfaceFrom(icon->memory, icon->dim.width, icon->dim.height, 32, icon->pitch, 0x00000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
     SDL_SetWindowIcon(app->window.sdl, icon_surface);
 
+    //Particles particles = {};
+    init_particles(&particles, 200);
+
     while(1)
     {
         if (process_input(&app->window.dim, &app->input)) return 0; // quit if input to quit
@@ -458,7 +474,7 @@ main_loop(Application *app)
         set_orthographic_matrix(app->window.dim);
         
         if (update(app)) return 0; // quit if update says to quit
-        
+
         swap_window(&app->window);
     }
 }
@@ -522,6 +538,9 @@ init_window(Window *window)
 function int
 application()
 {
+    v3 test = get_unit(90.0f);
+    log("x: %f, y: %f, z: %f", test.x, test.y, test.z);
+
     Application app = {};
     init_window(&app.window);
     load_assets(&app.assets, "../assets.ethan");

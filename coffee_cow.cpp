@@ -267,6 +267,9 @@ update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
         if (cow->dead)return;
         cow->transition = next_transition - 1.0f;
         
+        s32 particle_point = random(1, 10);
+        cow->particle_point = particle_point / 10.0f;
+
         // update the direction and coords of all the nodes
         cow->nodes[0].direction = cow->direction;
         for (u32 i = 0; i < cow->num_of_nodes; i++)
@@ -356,10 +359,10 @@ get_cc_outline_rect(v2 point, v2 current, v2 last, r32 grid_size)
 function u32
 get_direction(v2s dir)
 {
-    if (dir == RIGHT_V) return RIGHT;
-    else if (dir == UP_V) return UP;
-    else if (dir == LEFT_V) return LEFT;
-    else  return DOWN;
+    if      (dir == RIGHT_V) return RIGHT;
+    else if (dir == UP_V)    return UP;
+    else if (dir == LEFT_V)  return LEFT;
+    else                     return DOWN;
 }
 
 function r32
@@ -370,13 +373,46 @@ get_rotation(v2s dir_vec)
     r32 rot = 0.0f; // DOWN
     switch(dir)
     {
-        case RIGHT: rot = DEG2RAD * 90.0f; break;
-        case UP: rot = DEG2RAD * 180.0f; break;
-        case LEFT: rot = DEG2RAD * 270.0f; break;
-        case DOWN: rot = 0.0f; break;
+        case RIGHT: rot = DEG2RAD * 90.0f;  break;
+        case UP:    rot = DEG2RAD * 180.0f; break;
+        case LEFT:  rot = DEG2RAD * 270.0f; break;
+        case DOWN:  rot =           0.0f;   break;
     }
     
     return rot;
+}
+
+function r32
+get_particle_angle(v2s dir_vec)
+{
+    u32 dir = get_direction(dir_vec);
+    
+    s32 fudge = random(0, 5);
+    switch(dir)
+    {
+        case RIGHT: return 180.0f;
+        case UP:    return 90.0f;
+        case LEFT:  return 0.0f;
+        case DOWN:  return 270.0f;
+    }
+
+    return 0.0f;
+}
+
+function v2
+get_other_side_particles(v2s dir_vec, v2 coords, r32 width)
+{
+    u32 dir = get_direction(dir_vec);
+    
+    switch(dir)
+    {
+        case RIGHT: return { 0.0f, width };
+        case UP:    return { width, 0.0f };
+        case LEFT:  return { 0.0f, width };
+        case DOWN:  return { width, width };
+    }
+
+    return { 0.0f, 0.0f };
 }
 
 function v2
@@ -443,7 +479,6 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
         {
             // coords = node on screen coords with no transition
             // t_coords = node on screen coords with transition
-
 
             Coffee_Cow_Node *node = &cow->nodes[i];
             v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
@@ -571,11 +606,12 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     
     for (u32 i = 1; i < cow->num_of_nodes; i++)
     {
+        Coffee_Cow_Node *node = &cow->nodes[i];
+        v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
+        v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
+
         if (cow->nodes[i].spot <= 2)
-        {
-            Coffee_Cow_Node *node = &cow->nodes[i];
-            v2 coords = grid_coords_to_screen_coords(node->coords, grid_coords, grid_size); 
-            v2 t_coords = coords - ((cv2(node->last_direction) * (1.0f - cow->transition)) * grid_size);
+        {     
             Rect rect = Rect{t_coords, grid_s};
             Rect spot_rect = get_centered_square(rect, 0.8f);
 
@@ -592,6 +628,21 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             }
 
             draw_rect(spot_rect, rot, cow->design.bitmaps[ASSET_COW_SPOT + cow->nodes[i].spot]);
+        }
+
+        // adding particles
+        if (cow->transition > cow->particle_point && cow->transition < cow->particle_point + 0.01f)
+        {
+            v2 part_coords = t_coords;
+            local_persist b8 side;
+            side = !side;
+
+            if (!side) part_coords += get_other_side_particles(node->direction, part_coords, grid_size + 1.0f);
+            else part_coords.x -= 0.5f;
+
+            v3 particle_coords = { part_coords.x, part_coords.y, 0.0f };
+            s32 fudge = random(0, 5);
+            add_particle(&particles, particle_coords, get_particle_angle(node->direction) + cow->particle_point, grid_size / 10.0f);
         }
     }
     

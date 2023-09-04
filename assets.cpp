@@ -194,6 +194,8 @@ compile_shader(Shader *shader)
     if (shader->handle != 0) glDeleteProgram(shader->handle);
     shader->handle = glCreateProgram();
     
+    if (shader->vs_file == 0) error("vertex shader required");
+
     if (shader->vs_file  != 0) compile_shader(shader->handle, shader->vs_file,  GL_VERTEX_SHADER);
     if (shader->tcs_file != 0) compile_shader(shader->handle, shader->tcs_file, GL_TESS_CONTROL_SHADER);
     if (shader->tes_file != 0) compile_shader(shader->handle, shader->tes_file, GL_TESS_EVALUATION_SHADER);
@@ -207,7 +209,7 @@ compile_shader(Shader *shader)
     if (!linked_program)
     {
         opengl_debug(GL_PROGRAM, shader->handle);
-        error("load_opengl_shader() link failed");
+        error("compile_shader() link failed");
         return;
     }
     
@@ -244,7 +246,7 @@ init_mesh(Mesh *mesh)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
     glEnableVertexAttribArray(2); // vertex texture coords
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coordinate));
-    
+
     glBindVertexArray(0);
 }
 
@@ -253,6 +255,14 @@ draw_mesh(Mesh *mesh)
 {
     glBindVertexArray(mesh->vao);
     glDrawElements(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+function void
+draw_mesh_instanced(Mesh *mesh)
+{
+    glBindVertexArray(mesh->vao);
+    glDrawElementsInstanced(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_INT, 0, 10);
     glBindVertexArray(0);
 }
 
