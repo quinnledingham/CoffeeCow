@@ -53,13 +53,19 @@ struct Game_Data
 
 /*
  TODO:
-- add coffee spots to cow
-- add random cow placement
-- add game controller support
-- add tail
+- add highscore
+- replace texture circles with polygon circles
+
+- make particles circles (add drawing circles)
+- vary particles life
+- vary particles color
 
 - add multiplayer
 - create 3 more cow designs
+
+- add music/sound effects
+
+- pack assets into single file
 */
 
 function void
