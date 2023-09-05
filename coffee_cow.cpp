@@ -524,7 +524,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
          
                 if (node->max_transition) 
                 {
-                    Rect new_tail = get_centered_square(Rect{coords, grid_s}, cow->transition);
+                    Rect new_tail = get_centered_square(body_circle, cow->transition);
                     body_circle = new_tail;
                     t_coords = coords;
                     t_rect = rect;

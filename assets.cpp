@@ -45,6 +45,17 @@ copy_from_file(FILE *input_file, int length)
     return string;
 }
 
+function void
+write_file(File *file, const char *filename)
+{
+    FILE *in = fopen(filename, "wb");
+    if(in) 
+    {
+        fwrite(file->memory, file->size, 1, in);
+    }
+    else error(0, "Cannot open file %s", filename);
+    fclose(in);
+}
 
 //
 // Bitmap

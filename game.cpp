@@ -39,9 +39,9 @@ struct Game_Data
     Coffee_Cow_Design designs[4];
     Coffee_Cow players[4];
     u32 num_of_players;
-    //v2s coffees[10];
     Coffee coffees[10];
     u32 num_of_coffees;
+    u32 high_score;
     
     u32 game_mode = MAIN_MENU;
     s32 active;
@@ -54,8 +54,6 @@ struct Game_Data
 
 /*
  TODO:
-- add highscore
-
 - vary particles life
 - vary particles color
 
@@ -116,6 +114,33 @@ init_controllers(Input *input)
     }
 }
 
+function u32
+load_high_score()
+{
+    u32 high_score = 0;
+    File high_score_file = read_file("high_score.save");
+    if (high_score_file.size == 0) return high_score;
+
+    char *input = (char*)high_score_file.memory;
+    u32 digits = high_score_file.size;
+    for (u32 i = 0; i < high_score_file.size; i++)
+    {
+        char ch = *input;
+        ch = ch - '0';
+
+        u32 help = 1;
+        for (u32 j = i + 1; j < digits; j++)
+        {
+            help *= 10;
+        }
+
+        high_score += ch * help;
+        input++;
+    }
+
+    return high_score;
+}
+
 function void*
 init_game_data(Assets *assets)
 {
@@ -148,8 +173,27 @@ init_game_data(Assets *assets)
     default_menu->button_percent = 0.15f;
     default_menu->pixel_height_percent = 0.6f;
     
+    // load high score
+    data->high_score = load_high_score();
+
     return (void*)data;
 }
+
+function void
+update_high_score(u32 score, u32 *high_score)
+{
+    if (score > *high_score)
+    {
+        *high_score = score;
+
+        File file = {};
+        String string = {};
+        u32_to_string(&string, score);
+        file.memory = (void*)string.data;
+        file.size = string.length;
+        write_file(&file, "high_score.save");
+    }
+}   
 
 function b32
 update(Application *app)
@@ -184,6 +228,8 @@ update(Application *app)
         
         case IN_GAME:
         {
+            update_high_score(players[0].score, &data->high_score);
+
             update_coffee_cows(players, num_of_players, app->time.frame_time_s, data->grid_dim);
             update_coffees(data->coffees, data->num_of_coffees);
             coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim);
@@ -285,13 +331,21 @@ update(Application *app)
             
             Font *rubik = find_font(&app->assets, "RUBIK");
             r32 score_pixel_height = window_dim.y * 0.07f;
-            r32 score_pixel_height_outline  = score_pixel_height + 5.0f; 
             
-            const char *score = u32_to_string(players[0].score);
+            char *score = u32_to_string(players[0].score);
             v2 score_dim = get_string_dim(rubik, score, score_pixel_height, { 0, 0, 0, 1 });
-            draw_string(rubik, score, { 5, score_dim.y + 10 }, score_pixel_height_outline, { 0, 0, 0, 1 });
-            //draw_string(rubik, score, { 7, score_pixel_height - 10 }, score_pixel_height, { 255, 255, 255, 1 });
-            
+            draw_string(rubik, score, { 5, score_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
+            SDL_free((void*)score);
+    
+            const char *high_score = u32_to_string(data->high_score);
+            v2 high_score_dim = get_string_dim(rubik, high_score, score_pixel_height, { 0, 0, 0, 1 });
+            draw_string(rubik, high_score, { app->window.dim.x - high_score_dim.x - 5, high_score_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
+            SDL_free((void*)high_score);
+
+            const char *high_score_text = "High Score: ";
+            v2 high_score_text_dim = get_string_dim(rubik, high_score_text, score_pixel_height, { 0, 0, 0, 1 });
+            draw_string(rubik, high_score_text, { app->window.dim.x - high_score_text_dim.x - 10 - high_score_dim.x - 5, high_score_text_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
+      
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             draw_particles(&particles);
