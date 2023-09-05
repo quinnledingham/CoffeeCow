@@ -31,7 +31,7 @@ init_particles(Particles *particles, u32 particles_max)
     particles->data = ARRAY_MALLOC(Particle, particles_max);
     SDL_memset(particles->data, 0, sizeof(Particle) * particles_max);
     particles->max = particles_max;
-    init_rect_mesh(&particles->mesh);
+    init_circle_mesh(&particles->mesh);
 
     glGenBuffers(1, &particles->opengl_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, particles->opengl_buffer);

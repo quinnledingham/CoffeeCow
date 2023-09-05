@@ -467,13 +467,13 @@ b32 on_down(Button button)
     if (button.current_state && button.current_state != button.previous_state) return true;
     return false;
 }
-
+/*
 struct Rect
 {
     v2 coords;
     v2 dim;
 };
-
+*/
 //
 // string
 //

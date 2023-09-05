@@ -1,3 +1,6 @@
+#ifndef PARTICLES_H
+#define PARTICLES_H
+
 struct Particle
 {
     v3 position;
@@ -21,3 +24,5 @@ struct Particles
 };
 
 Particles particles = {};
+
+#endif //PARTICLES_H

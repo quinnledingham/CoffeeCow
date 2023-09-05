@@ -15,16 +15,14 @@ enum Asset_Tags
 {
     ASSET_COW_HEAD, // 0
     ASSET_COW_HEAD_OUTLINE,
-    ASSET_COW_CIRCLE,
-    ASSET_COW_CIRCLE_OUTLINE,
     ASSET_COW_MOUTH,
     ASSET_COW_TAIL,
-    ASSET_COW_SPOT, // 6 - 8
+    ASSET_COW_SPOT, // 4 - 6
 };
 
 struct Coffee_Cow_Design
 {
-    Bitmap *bitmaps[9];
+    Bitmap *bitmaps[7];
     v4 color;
     v4 outline_color;
 };

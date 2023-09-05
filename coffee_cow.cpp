@@ -519,14 +519,13 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
             {
                 v2 size = grid_s;
                 
-                v2 second_layer_coords = coords;
-                v2 second_layer_size = size;              
-                
+                Rect body_circle = get_centered_square(rect, 0.9f);  
+                Rect t_body_circle = get_centered_square(t_rect, 0.9f);
+         
                 if (node->max_transition) 
                 {
                     Rect new_tail = get_centered_square(Rect{coords, grid_s}, cow->transition);
-                    second_layer_coords = new_tail.coords;
-                    second_layer_size = new_tail.dim;
+                    body_circle = new_tail;
                     t_coords = coords;
                     t_rect = rect;
                 }
@@ -561,15 +560,15 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                         //else cow->tail_wag -= 0.001f;
                     }
 
-                    draw_rect(t_coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
-                    draw_rect(coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_circle(t_coords, 0, grid_size, cow->design.outline_color);
+                    draw_circle(coords, 0, grid_size, cow->design.outline_color);
                     draw_rect(outline_rect, cow->design.outline_color);
                 }
                 else if (layer == 2)
                 {
-                    Rect body_rect = get_cc_body_rect(last_dir, 0.9f, 1.0f, outline_rect);     
-                    if (!node->max_transition) draw_rect(t_coords, 0, size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
-                    draw_rect(second_layer_coords, 0, second_layer_size, cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    Rect body_rect = get_cc_body_rect(last_dir, 0.9f, 1.0f, outline_rect);   
+                    if (!node->max_transition) draw_circle(t_body_circle.coords, 0, t_body_circle.dim.x, cow->design.color);
+                    draw_circle(body_circle.coords, 0, body_circle.dim.x, cow->design.color);
                     draw_rect(body_rect, cow->design.color);
                 }
                 
@@ -586,13 +585,14 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                 
                 if (layer == 1)
                 {
-                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE_OUTLINE]);
+                    draw_circle(coords, 0, grid_size, cow->design.outline_color);
                     draw_rect(outline_rect, cow->design.outline_color);
                 }
                 else if (layer == 2)
                 {
                     Rect body_rect = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, outline_rect);
-                    draw_rect(coords, 0, grid_s, cow->design.bitmaps[ASSET_COW_CIRCLE]);
+                    Rect body_circle = get_centered_square(rect, 0.9f);
+                    draw_circle(body_circle.coords, 0, body_circle.dim.x, cow->design.color);
                     draw_rect(body_rect, cow->design.color);
                 }
                 
