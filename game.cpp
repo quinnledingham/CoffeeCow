@@ -12,12 +12,13 @@
 #include "log.h"
 #include "types.h"
 #include "assets.h"
+#include "shapes.h"
 #include "application.h"
 #include "coffee_cow.h"
 #include "particles.h"
 
 #include "assets.cpp"
-#include "rect.cpp"
+#include "shapes.cpp"
 #include "menu.cpp"
 #include "particles.cpp"
 #include "coffee_cow.cpp"
@@ -54,11 +55,13 @@ struct Game_Data
 /*
  TODO:
 - add highscore
-- replace texture circles with polygon circles
 
-- make particles circles (add drawing circles)
 - vary particles life
 - vary particles color
+
+- animation? 
+- crash into wag
+- wagging of tail
 
 - add multiplayer
 - create 3 more cow designs
@@ -123,8 +126,6 @@ init_game_data(Assets *assets)
     Coffee_Cow_Design *designs = data->designs;
     designs[0].bitmaps[ASSET_COW_HEAD] = find_bitmap(assets, "COW1_HEAD");
     designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW1_HEAD_OUTLINE");
-    designs[0].bitmaps[ASSET_COW_CIRCLE] = find_bitmap(assets, "COW1_CIRCLE");
-    designs[0].bitmaps[ASSET_COW_CIRCLE_OUTLINE] = find_bitmap(assets, "COW1_CIRCLE_OUTLINE");
     designs[0].bitmaps[ASSET_COW_MOUTH] = find_bitmap(assets, "COW1_MOUTH");
     designs[0].bitmaps[ASSET_COW_TAIL] = find_bitmap(assets, "COW1_TAIL");
     designs[0].bitmaps[ASSET_COW_SPOT] = find_bitmap(assets, "COW1_SPOT1");
@@ -470,6 +471,7 @@ main_loop(Application *app)
 
     //Particles particles = {};
     init_particles(&particles, 200);
+    init_shapes();
 
     while(1)
     {
