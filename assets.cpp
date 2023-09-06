@@ -278,7 +278,7 @@ draw_mesh_instanced(Mesh *mesh)
 }
 
 //
-// Assets
+// Font
 //
 
 function Font
@@ -372,6 +372,103 @@ get_string_dim(Font *font, const char *string, f32 pixel_height, v4 color)
 }
 
 //
+// Audio
+//
+
+function void
+print_audio_spec(SDL_AudioSpec *audio_spec)
+{
+    log("freq %d",     audio_spec->freq);
+    log("format %d",   SDL_AUDIO_BITSIZE(audio_spec->format));
+    log("channels %d", audio_spec->channels);
+    log("silence %d",  audio_spec->silence);
+    log("samples %d",  audio_spec->samples);
+    log("size %d",     audio_spec->size);
+}
+
+function void
+print_audio_device_status(SDL_AudioDeviceID dev)
+{
+    printf("audio device id: %d, ", dev);
+    switch (SDL_GetAudioDeviceStatus(dev))
+    {
+        case SDL_AUDIO_STOPPED: printf("stopped\n"); break;
+        case SDL_AUDIO_PLAYING: printf("playing\n"); break;
+        case SDL_AUDIO_PAUSED: printf("paused\n"); break;
+        default: printf("???"); break;
+    }
+}
+
+
+function void
+init_audio_player(Audio_Player *player)
+{
+    u32 i;
+
+    // printing all drivers and devices
+    for (i = 0; i < SDL_GetNumAudioDrivers(); i++) log("Audio driver %d: %s", i, SDL_GetAudioDriver(i));
+    const char* driver_name = SDL_GetCurrentAudioDriver();
+    if (driver_name) log("Audio subsystem initialized; driver = %s.", driver_name);
+    else             log("Audio subsystem not initialized.");
+
+    u32 num_audio_devices = SDL_GetNumAudioDevices(0);
+    for (i = 0; i < num_audio_devices; i++) log("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+
+    // opening audio device
+    SDL_AudioSpec spec;
+    SDL_AudioSpec desired;
+    SDL_AudioSpec obtained;
+    desired.freq = 48000;
+    desired.format = AUDIO_S16;
+
+    char *device_name;
+    SDL_GetDefaultAudioInfo(&device_name, &spec, 0);
+    player->device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
+    if (device_name) log("Audio device selected = %s.", device_name);
+    else             log("Audio device not selected.");
+
+    print_audio_spec(&spec);
+    print_audio_spec(&obtained);
+
+    player->length = 4096;
+    player->buffer = (u8*)SDL_malloc(player->length);
+    //player->audio_stream = SDL_NewAudioStream();
+}
+
+function Audio
+load_audio(const char *filename)
+{
+    Audio audio = {};
+    SDL_LoadWAV(filename, &audio.spec, &audio.buffer, &audio.length);
+    print_audio_spec(&audio.spec);
+    return audio;
+}
+
+function void
+play_audio(Audio_Player *player, Audio *audio)
+{
+    Playing_Audio *playing_audio = &player->audios[player->audios_count++];~
+
+    playing_audio->position = audio->buffer;
+    playing_audio->length_remaining = audio->length;
+
+    if (!SDL_QueueAudio(player->device_id, playing_audio->position, playing_audio->length_remaining)) log("%s", SDL_GetError());
+
+    SDL_PauseAudioDevice(player->device_id, 0);
+    print_audio_device_status(player->device_id);
+}
+
+function void
+queue_audio(Audio_Player *player)
+{
+    for (u32 i = 0; i < player->audios_count; i++)
+    {
+        SDL_MixAudioFormat(player->buffer, player->audios[i].position, AUDIO_S16, player->length, 64);
+        player->audios[i]
+    }
+}
+
+//
 // Asset File Reading
 //
 
@@ -449,14 +546,15 @@ parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *arg
         
         if (tok.type == ATT_KEYWORD)
         {
-            if (equal(tok.lexeme, "FONTS")) type = ASSET_TYPE_FONT;
+            if      (equal(tok.lexeme, "FONTS"))   type = ASSET_TYPE_FONT;
             else if (equal(tok.lexeme, "BITMAPS")) type = ASSET_TYPE_BITMAP;
             else if (equal(tok.lexeme, "SHADERS")) type = ASSET_TYPE_SHADER;
+            else if (equal(tok.lexeme, "AUDIOS"))  type = ASSET_TYPE_AUDIO;
             
             tok = scan_asset_file(file, &line_num, tok);
             if (!equal(tok.lexeme, ":")) 
             {
-                error(line_num, "expected ':'");
+                error(line_num, "expected ':' (got %c)", tok.lexeme);
                 break;
             }
         }
@@ -498,9 +596,10 @@ load_assets(Assets *assets, const char *filename)
     parse_asset_file(assets, file, add_asset);
     fclose(file);
     
-    assets->fonts = ARRAY_MALLOC(Asset, assets->num_of_fonts);
+    assets->fonts   = ARRAY_MALLOC(Asset, assets->num_of_fonts);
     assets->bitmaps = ARRAY_MALLOC(Asset, assets->num_of_bitmaps);
     assets->shaders = ARRAY_MALLOC(Asset, assets->num_of_shaders);
+    assets->audios  = ARRAY_MALLOC(Asset, assets->num_of_audios);
     
     for (u32 i = 0; i < assets->num_of_assets; i++)
     {
@@ -523,6 +622,12 @@ load_assets(Assets *assets, const char *filename)
             {
                 asset.bitmap = load_and_init_bitmap(info->filename); 
                 assets->bitmaps[info->index] = asset;
+            } break;
+
+            case ASSET_TYPE_AUDIO:
+            {
+                asset.audio = load_audio(info->filename);
+                assets->audios[info->index] = asset;
             } break;
         }
     }

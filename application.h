@@ -52,6 +52,7 @@ struct Application
     Time time;
     Input input;
     Assets assets;
+    Audio_Player player;
     
     void *data;
 };

@@ -7,7 +7,6 @@
 #include <gl.h>
 #include <gl.c>
 #include <SDL.h>
-#include <ctime>
 
 #include "log.h"
 #include "types.h"
@@ -725,6 +724,9 @@ application()
     Application app = {};
     init_window(&app.window);
     load_assets(&app.assets, "../assets.ethan");
+    init_audio_player(&app.player);
+    play_audio(&app.player, find_audio(&app.assets, "BLOOP"));
+    play_audio(&app.player, find_audio(&app.assets, "GULP"));
     return main_loop(&app);
 }
 

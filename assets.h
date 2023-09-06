@@ -106,6 +106,32 @@ struct Font
     Font_String font_strings[10];
 };
 
+struct Audio
+{
+    SDL_AudioSpec spec;
+    u8 *buffer;
+    u32 length;
+};
+
+struct Playing_Audio
+{
+    u8 *position;
+    u32 length_remaining;
+};
+
+struct Audio_Player
+{
+    b32 playing;
+    Playing_Audio audios[10];
+    u32 audios_count;
+
+    u8 *buffer;
+    u32 length;
+
+    SDL_AudioStream *audio_stream;
+    SDL_AudioDeviceID device_id;
+};
+
 //
 // Storing Assets
 //
@@ -115,6 +141,7 @@ enum asset_types
     ASSET_TYPE_FONT,
     ASSET_TYPE_BITMAP,
     ASSET_TYPE_SHADER,
+    ASSET_TYPE_AUDIO,
 };
 
 struct Asset
@@ -126,6 +153,7 @@ struct Asset
         Font font;
         Bitmap bitmap;
         Shader shader;
+        Audio audio;
     };
 };
 
@@ -153,6 +181,9 @@ struct Assets
     
     Asset *shaders;
     u32 num_of_shaders;
+
+    Asset *audios;
+    u32 num_of_audios;
 };
 
 function void
@@ -161,13 +192,15 @@ add_asset(void *data, void *args)
     Assets *assets = (Assets*)data;
     Asset_Load_Info *info = (Asset_Load_Info*)args;
     
-    if (info->type == ASSET_TYPE_FONT) info->index = assets->num_of_fonts;
+    if      (info->type == ASSET_TYPE_FONT)   info->index = assets->num_of_fonts;
     else if (info->type == ASSET_TYPE_BITMAP) info->index = assets->num_of_bitmaps;
     else if (info->type == ASSET_TYPE_SHADER) info->index = assets->num_of_shaders;
+    else if (info->type == ASSET_TYPE_AUDIO)  info->index = assets->num_of_audios;
     
-    if (info->type == ASSET_TYPE_FONT) assets->num_of_fonts++;
+    if      (info->type == ASSET_TYPE_FONT)   assets->num_of_fonts++;
     else if (info->type == ASSET_TYPE_BITMAP) assets->num_of_bitmaps++;
     else if (info->type == ASSET_TYPE_SHADER) assets->num_of_shaders++;
+    else if (info->type == ASSET_TYPE_AUDIO)  assets->num_of_audios++;
     
     assets->info[assets->num_of_info_loaded++] = *info;
 }
@@ -197,6 +230,17 @@ find_bitmap(Assets *assets, const char *tag)
         if (equal(tag, assets->bitmaps[i].tag)) return &assets->bitmaps[i].bitmap;
     
     warning(0, "Could not find bitmap with tag: %s", tag);
+    
+    return 0;
+}
+
+function Audio*
+find_audio(Assets *assets, const char *tag)
+{
+    for (u32 i = 0; i < assets->num_of_audios; i++)
+        if (equal(tag, assets->audios[i].tag)) return &assets->audios[i].audio;
+    
+    warning(0, "Could not find audio with tag: %s", tag);
     
     return 0;
 }
@@ -257,7 +301,7 @@ struct Asset_Token
     const char *lexeme;
 };
 
-const char *asset_keywords[3] = { "FONTS", "BITMAPS", "SHADERS" };
+const char *asset_keywords[4] = { "FONTS", "BITMAPS", "SHADERS", "AUDIOS" };
 
 function b32
 is_asset_keyword(const char *word)
