@@ -87,7 +87,7 @@ resize_menu(Menu *menu,
     Rect bounds = get_centered_square(window_rect, menu->window_percent);
     menu->padding = bounds.dim * menu->padding_percent;
     
-    menu->bitmap.dim = { bounds.dim.width, bitmap_dim.height * (bounds.dim.width / bitmap_dim.width) };
+    if (num_of_bitmaps != 0) menu->bitmap.dim = { bounds.dim.width, bitmap_dim.height * (bounds.dim.width / bitmap_dim.width) };
     
     menu->button.dim = { bounds.dim.width, bounds.dim.height * menu->button_percent };
     menu->button.pixel_height = menu->button.dim.height * menu->pixel_height_percent;
@@ -95,4 +95,31 @@ resize_menu(Menu *menu,
     menu->rect.dim.x = menu->button.dim.width;
     menu->rect.dim.y = (menu->bitmap.dim.y * (r32)num_of_bitmaps) + (menu->button.dim.y * (r32)num_of_buttons) + (menu->padding.y * (r32)(num_of_buttons - 1));
     menu->rect.coords = get_centered(menu->rect, window_rect);
+}
+
+function b32
+menu_multiplayer_selector(Menu *menu, u32 index, u32 active, u32 press,
+                          v2 *coords, v2 dim, Controller *controller, Controller *saved_controller,
+                          Bitmap *regular, Bitmap *hover, Bitmap *selected, Bitmap *hover_selected)
+{
+    b32 button_pressed = false;
+
+    if (index == active)
+    {
+        if (press) button_pressed = true;
+    }
+
+    if (saved_controller == 0)
+    {
+        if      (index != active) draw_rect(*coords, 0, dim, regular);
+        else if (index == active) draw_rect(*coords, 0, dim, hover);
+    }
+    else
+    {
+        if      (index != active) draw_rect(*coords, 0, dim, selected);
+        else if (index == active) draw_rect(*coords, 0, dim, hover_selected);
+    }
+    coords->x += dim.x;
+
+    return button_pressed;
 }

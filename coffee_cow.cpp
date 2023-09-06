@@ -91,10 +91,10 @@ random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s gri
         for (u32 i = 0; i < num_of_cows; i++)
         {
             Coffee_Cow *other = &all[i];
-            valid_cc_coords(locations[0], other);
-            valid_cc_coords(locations[1], other);
-            valid_cc_coords(locations[2], other);
-            valid_cc_coords(locations[3], other);
+            if (!valid_cc_coords(locations[0], other) ||
+                !valid_cc_coords(locations[1], other) ||
+                !valid_cc_coords(locations[2], other) ||
+                !valid_cc_coords(locations[3], other)) valid_location = false;
         }
     }
     
@@ -123,6 +123,25 @@ init_cc(Coffee_Cow *cow, Coffee_Cow *cows, Coffee_Cow_Design design, Controller 
     cow->score = 0;
 }
 
+function void
+init_cc(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, Coffee_Cow_Design *designs, Controller *controller, v2s grid_dim)
+{
+    u32 save_design_index = cow->design_index;
+
+    *cow = {};
+    cow->design_index = save_design_index;
+    cow->design = designs[cow->design_index];
+    cow->controller = controller;
+    random_cc_location(cow, cows, num_of_cows, grid_dim);
+    cow->score = 0;
+}
+
+function void
+init_all_coffee_cows(Coffee_Cow *players, u32 num_of_players, Coffee_Cow_Design *designs, v2s grid_dim)
+{
+    for (u32 i = 0; i < num_of_players; i++) init_cc(&players[i], players, num_of_players, designs, players[i].controller, grid_dim);
+}
+
 function b8
 cc_check_on_cc(Coffee_Cow *cow, Coffee_Cow *other)
 {
@@ -142,7 +161,7 @@ cc_check_on_cc(Coffee_Cow *cow, Coffee_Cow *other)
 }
 
 function b8
-coffee_cow_can_move(Coffee_Cow *cow, v2s grid_dim)
+coffee_cow_can_move(Coffee_Cow *cow, v2s grid_dim, Coffee_Cow *cows, u32 num_of_cows)
 {
     Coffee_Cow_Node *head_node = &cow->nodes[0];
     v2s head = head_node->coords + cow->direction;
@@ -151,8 +170,9 @@ coffee_cow_can_move(Coffee_Cow *cow, v2s grid_dim)
     if      (head.x < 0 || head.x > (grid_dim.x - 1)) return false;
     else if (head.y < 0 || head.y > (grid_dim.y - 1)) return false;
     
-    if (!valid_cc_coords(head, cow)) return false;
-    
+    // checking if it hits itself or another cow
+    for (u32 i = 0; i < num_of_cows; i++) if (!valid_cc_coords(head, &cows[i])) return false;
+
     return true;
 }
 
@@ -232,7 +252,7 @@ update_coffee_cow_mouth(Coffee_Cow *cow, r32 frame_time_s, r32 speed)
 }
 
 function void
-update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
+update_coffee_cow(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, r32 frame_time_s, v2s grid_dim)
 {
     // read new inputs for cow
     Controller *controller = cow->controller;
@@ -262,7 +282,7 @@ update_coffee_cow(Coffee_Cow *cow, r32 frame_time_s, v2s grid_dim)
     if (next_transition >= 1.0f) // changes cells
     { 
         cow->direction = coffee_cow_next_direction(cow);        
-        if (!coffee_cow_can_move(cow, grid_dim)) { cow->dead = true; cow->open_mouth = false; }
+        if (!coffee_cow_can_move(cow, grid_dim, cows, num_of_cows)) { cow->dead = true; cow->open_mouth = false; }
         
         if (cow->dead)return;
         cow->transition = next_transition - 1.0f;
@@ -295,7 +315,7 @@ update_coffee_cows(Coffee_Cow *cows, u32 num_of_cows, r32 frame_time_s, v2s grid
     for (u32 i = 0; i < num_of_cows; i++)
     {
         Coffee_Cow *cow = &cows[i];
-        update_coffee_cow(cow, frame_time_s, grid_dim);
+        update_coffee_cow(cow, cows, num_of_cows, frame_time_s, grid_dim);
     }
 }
 

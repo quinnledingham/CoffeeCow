@@ -26,6 +26,7 @@
 enum Game_Modes
 {
     MAIN_MENU,
+    MULTIPLAYER_MENU,
     IN_GAME,
     PAUSED,
     GAME_OVER,
@@ -61,7 +62,7 @@ struct Game_Data
 - crash into wag
 - wagging of tail
 
-- add multiplayer
+- make multiplayer good/fix bugs
 - create 3 more cow designs
 
 - add music/sound effects
@@ -158,7 +159,7 @@ init_game_data(Assets *assets)
     designs[0].bitmaps[ASSET_COW_SPOT + 2] = find_bitmap(assets, "COW1_SPOT3");
     designs[0].color = { 255, 255, 255, 1 };
     designs[0].outline_color = { 0, 0, 0, 1 };
-    
+
     // default menu
     Menu *default_menu = &data->default_menu;
     default_menu->font = find_font(assets, "RUBIK");
@@ -195,6 +196,31 @@ update_high_score(u32 score, u32 *high_score)
     }
 }   
 
+function b8
+free_controller(Controller *controller, Coffee_Cow_Design *players)
+{
+    for (u32 i = 0; i < 4; i++)
+    {
+        if (players[i].controller == controller) players[i].controller = 0;
+    }
+
+    return true;
+}
+
+function void
+assign_controller(Controller *controller, Coffee_Cow_Design *players, u32 index)
+{
+    if (players[index].controller == 0)
+    {
+        free_controller(controller, players);
+        players[index].controller = controller;
+    }
+    else if (players[index].controller == controller)
+    {
+        players[index].controller = 0;
+    }
+}
+
 function b32
 update(Application *app)
 {
@@ -217,6 +243,11 @@ update(Application *app)
             menu_update_active(&data->active, 0, 2, menu_controller->down, menu_controller->up);
         } break;
         
+        case MULTIPLAYER_MENU:
+        {
+            menu_update_active(&data->active, 0, 5, menu_controller->down, menu_controller->up);
+        } break;
+
         case PAUSED:
         case GAME_OVER:
         {
@@ -289,8 +320,10 @@ update(Application *app)
             
             if (menu_button(&main_menu, "Multiplayer", index++, data->active, select))
             {
-                data->game_mode = IN_GAME;
+                data->game_mode = MULTIPLAYER_MENU;
                 data->active = 0;
+
+                for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
             }
             
             if (menu_button(&main_menu, "Quit", index++, data->active, select))
@@ -298,6 +331,92 @@ update(Application *app)
                 return true;
             }
             
+        } break;
+
+        case MULTIPLAYER_MENU:
+        {
+            Bitmap *multi_menu_back = find_bitmap(&app->assets, "MAIN_MENU_BACK");
+
+            Bitmap *character = find_bitmap(&app->assets, "JOIN");
+            Bitmap *character_hover = find_bitmap(&app->assets, "JOIN_HOVER");
+            Bitmap *character_select = find_bitmap(&app->assets, "SELECT");
+            Bitmap *character_select_hover = find_bitmap(&app->assets, "SELECT_HOVER");
+
+            b32 select = on_down(menu_controller->select);
+
+            Menu multi_menu = data->default_menu;
+            Rect bounds = get_centered_square(window_rect, multi_menu.window_percent);
+
+            resize_menu(&multi_menu, window_rect, {character->dim.x, character->dim.y/4}, 1, 2);
+            draw_rect(window_rect, multi_menu_back);
+
+            u32 index = 0;
+
+            v2 character_dim = { (r32)bounds.dim.x/4.0f, (r32)bounds.dim.y * (2.0f/4.0f) };
+            v2 character_coords = multi_menu.rect.coords;
+
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
+                                          menu_controller, data->designs[0].controller,
+                                          character, character_hover, character_select, character_select_hover))
+            {
+                assign_controller(menu_controller, data->designs, 0);
+            }
+
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
+                                          menu_controller, data->designs[1].controller, 
+                                          character, character_hover, character_select, character_select_hover))
+            {
+                assign_controller(menu_controller, data->designs, 1);
+            }
+
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
+                                          menu_controller, data->designs[2].controller, 
+                                          character, character_hover, character_select, character_select_hover))
+            {
+                assign_controller(menu_controller, data->designs, 2);
+            }
+
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
+                                          menu_controller, data->designs[3].controller, 
+                                          character, character_hover, character_select, character_select_hover))
+            {
+                assign_controller(menu_controller, data->designs, 3);
+            }
+
+            multi_menu.rect.coords.y += multi_menu.bitmap.dim.y + multi_menu.padding.y;
+
+            
+            if (menu_button(&multi_menu, "Start", index++, data->active, select))
+            {
+                data->num_of_players = 0;
+                for (u32 i = 0; i < 4; i++) if (data->designs[i].controller != 0) data->num_of_players++;
+
+                if (data->num_of_players >= 2) 
+                {
+                    data->game_mode = IN_GAME;
+                    data->active = 0;
+
+                    // loading the controllers from the designs to the players array
+                    // no spaces in the player array so can loop from 0 - num of players to update all
+
+                    u32 design_index = 0;
+                    for (u32 i = 0; i < data->num_of_players; i++)
+                    {
+                        while(data->designs[design_index].controller == 0) design_index++;
+                        players[i].design_index = 0; // change to = design_index when there is more than one
+                        players[i].controller = data->designs[design_index].controller;
+                        design_index++;
+                    }
+
+                    init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
+                }
+            }
+
+            if (menu_button(&multi_menu, "Back", index++, data->active, select))
+            {
+                data->game_mode = MAIN_MENU;
+                data->active = 0;
+            }
         } break;
         
         case IN_GAME:
@@ -377,7 +496,7 @@ update(Application *app)
                     data->game_mode = IN_GAME;
                     data->active = 0;
                     
-                    init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
+                    init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
                     
                     random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
                     data->num_of_coffees = 1;
@@ -390,7 +509,7 @@ update(Application *app)
                     
                     players[0] = {};
                     
-                    init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
+                    init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
                     
                     random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
                     data->num_of_coffees = 1;

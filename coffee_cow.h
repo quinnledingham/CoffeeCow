@@ -25,6 +25,7 @@ struct Coffee_Cow_Design
     Bitmap *bitmaps[7];
     v4 color;
     v4 outline_color;
+    Controller *controller; // what controller picked the design in the multiplayer menu
 };
 
 struct Coffee_Cow
@@ -56,6 +57,7 @@ struct Coffee_Cow
     r32 particle_point;
 
     Coffee_Cow_Design design;
+    u32 design_index;
 };
 
 struct Coffee

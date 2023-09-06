@@ -11,6 +11,12 @@ ROCKS, ../assets/bitmaps/rocks.png
 GRID, ../assets/bitmaps/grid.png
 COFFEE, ../assets/bitmaps/coffee.png
 
+JOIN, ../assets/bitmaps/join.png
+JOIN_HOVER, ../assets/bitmaps/joinhover.png
+SELECT, ../assets/bitmaps/joinalt.png
+SELECT_HOVER, ../assets/bitmaps/joinalthover.png
+
+
 COW1_HEAD, ../assets/bitmaps/cow1/cowhead.png
 COW1_HEAD_OUTLINE, ../assets/bitmaps/cow1/cowheadoutline.png
 COW1_MOUTH, ../assets/bitmaps/cow1/tongue.png
