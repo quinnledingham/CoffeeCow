@@ -70,7 +70,8 @@ random_cc_location(Coffee_Cow *player, Coffee_Cow *all, u32 num_of_cows, v2s gri
     while(!valid_location)
     {   
         locations[0].x = random(4, grid_dim.x - 4);
-        locations[0].y = random(4, grid_dim.y - 4);
+        locations[0].y = random(0, grid_dim.y);
+        //locations[0].y = random(4, grid_dim.y - 4);
         valid_location = true;
         
         if (locations[0].x < grid_dim.x / 2.0f)
@@ -176,9 +177,11 @@ coffee_cow_can_move(Coffee_Cow *cow, v2s grid_dim, Coffee_Cow *cows, u32 num_of_
     return true;
 }
 
-function void
+function b8
 coffee_cows_on_coffee(Coffee_Cow *cows, u32 num_of_cows, Coffee *coffees, u32 num_of_coffees, v2s grid_dim)
 {
+    u32 consumed_coffee = false;
+
     for (u32 i = 0; i < num_of_coffees; i++)
     {
         Coffee *coffee = &coffees[i];
@@ -200,6 +203,7 @@ coffee_cows_on_coffee(Coffee_Cow *cows, u32 num_of_cows, Coffee *coffees, u32 nu
                 
                 if (!coffee->consumed)
                 {
+                    consumed_coffee = true;
                     coffee->consumed = true;
                     cow->score++;
                     
@@ -222,6 +226,8 @@ coffee_cows_on_coffee(Coffee_Cow *cows, u32 num_of_cows, Coffee *coffees, u32 nu
             }
         }
     }
+
+    return consumed_coffee;
 }
 
 function void

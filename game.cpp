@@ -146,16 +146,16 @@ init_game_data(Assets *assets)
 {
     Game_Data *data = (Game_Data*)malloc(sizeof(Game_Data));
     *data = {};
-    data->grid_dim = { 10, 10 };
+    data->grid_dim = { 12, 12 };
     
     Coffee_Cow_Design *designs = data->designs;
-    designs[0].bitmaps[ASSET_COW_HEAD] = find_bitmap(assets, "COW1_HEAD");
+    designs[0].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW1_HEAD");
     designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW1_HEAD_OUTLINE");
-    designs[0].bitmaps[ASSET_COW_MOUTH] = find_bitmap(assets, "COW1_MOUTH");
-    designs[0].bitmaps[ASSET_COW_TAIL] = find_bitmap(assets, "COW1_TAIL");
-    designs[0].bitmaps[ASSET_COW_SPOT] = find_bitmap(assets, "COW1_SPOT1");
-    designs[0].bitmaps[ASSET_COW_SPOT + 1] = find_bitmap(assets, "COW1_SPOT2");
-    designs[0].bitmaps[ASSET_COW_SPOT + 2] = find_bitmap(assets, "COW1_SPOT3");
+    designs[0].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW1_MOUTH");
+    designs[0].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW1_TAIL");
+    designs[0].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW1_SPOT1");
+    designs[0].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW1_SPOT2");
+    designs[0].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW1_SPOT3");
     designs[0].color = { 255, 255, 255, 1 };
     designs[0].outline_color = { 0, 0, 0, 1 };
 
@@ -262,7 +262,8 @@ update(Application *app)
 
             update_coffee_cows(players, num_of_players, app->time.frame_time_s, data->grid_dim);
             update_coffees(data->coffees, data->num_of_coffees);
-            coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim);
+            if (coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
+                play_audio(&app->player, find_audio(&app->assets, "GULP"));
 
             for (u32 i = 0; i < num_of_players; i++) 
             {
@@ -321,7 +322,8 @@ update(Application *app)
             {
                 data->game_mode = MULTIPLAYER_MENU;
                 data->active = 0;
-
+                play_audio(&app->player, find_audio(&app->assets, "BLOOP"));
+                play_audio(&app->player, find_audio(&app->assets, "GULP"));
                 for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
             }
             
@@ -607,7 +609,6 @@ process_input(v2s *window_dim, Input *input)
             {
                 SDL_MouseButtonEvent *mouse_event = &event.button;
                 add_particle(&particles, { (r32)mouse_event->x, (r32)mouse_event->y, 0.0f }, 0.0f, 100.0f);
-
             } break;
         }
     }
@@ -655,6 +656,15 @@ main_loop(Application *app)
         
         if (update(app)) return 0; // quit if update says to quit
 
+        // Audio
+        r32 samples_per_second = 48000.0f;
+        u32 sample_count = 200;
+        sample_count += (int)floor(app->time.frame_time_s * samples_per_second);
+        //sample_count *= 3;
+        //log("%d = %f * %f", sample_count, app->time.frame_time_s, samples_per_second);
+        queue_audio(&app->player, sample_count);
+        if (SDL_QueueAudio(app->player.device_id, app->player.buffer, app->player.length)) log("%s", SDL_GetError());
+        SDL_memset(app->player.buffer, 0, app->player.max_length);
         swap_window(&app->window);
     }
 }
@@ -725,8 +735,6 @@ application()
     init_window(&app.window);
     load_assets(&app.assets, "../assets.ethan");
     init_audio_player(&app.player);
-    play_audio(&app.player, find_audio(&app.assets, "BLOOP"));
-    play_audio(&app.player, find_audio(&app.assets, "GULP"));
     return main_loop(&app);
 }
 

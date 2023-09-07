@@ -379,7 +379,7 @@ function void
 print_audio_spec(SDL_AudioSpec *audio_spec)
 {
     log("freq %d",     audio_spec->freq);
-    log("format %d",   SDL_AUDIO_BITSIZE(audio_spec->format));
+    log("format %d %d",   SDL_AUDIO_BITSIZE(audio_spec->format), SDL_AUDIO_ISSIGNED(audio_spec->format));
     log("channels %d", audio_spec->channels);
     log("silence %d",  audio_spec->silence);
     log("samples %d",  audio_spec->samples);
@@ -430,9 +430,12 @@ init_audio_player(Audio_Player *player)
     print_audio_spec(&spec);
     print_audio_spec(&obtained);
 
-    player->length = 4096;
-    player->buffer = (u8*)SDL_malloc(player->length);
+    player->max_length = 4096;
+    player->buffer = (u8*)SDL_malloc(player->max_length);
+    SDL_memset(player->buffer, 0, player->max_length);
     //player->audio_stream = SDL_NewAudioStream();
+
+    player->audios_count = 10;
 }
 
 function Audio
@@ -447,24 +450,49 @@ load_audio(const char *filename)
 function void
 play_audio(Audio_Player *player, Audio *audio)
 {
-    Playing_Audio *playing_audio = &player->audios[player->audios_count++];~
+    Playing_Audio *playing_audio = 0;
+
+    for (u32 i = 0; i < player->audios_count; i++)
+    {
+        if (player->audios[i].length_remaining <= 0) playing_audio = &player->audios[i];
+    }
+
+    if (playing_audio == 0) { error("play_audio(): trying to play too many"); return; }
 
     playing_audio->position = audio->buffer;
     playing_audio->length_remaining = audio->length;
 
-    if (!SDL_QueueAudio(player->device_id, playing_audio->position, playing_audio->length_remaining)) log("%s", SDL_GetError());
+    //if (!SDL_QueueAudio(player->device_id, playing_audio->position, playing_audio->length_remaining)) log("%s", SDL_GetError());
 
     SDL_PauseAudioDevice(player->device_id, 0);
-    print_audio_device_status(player->device_id);
+    //print_audio_device_status(player->device_id);
 }
 
 function void
-queue_audio(Audio_Player *player)
+queue_audio(Audio_Player *player, u32 sample_count)
 {
+    player->length = 0;
     for (u32 i = 0; i < player->audios_count; i++)
     {
-        SDL_MixAudioFormat(player->buffer, player->audios[i].position, AUDIO_S16, player->length, 64);
-        player->audios[i]
+        Playing_Audio *audio = &player->audios[i];
+        if (audio->length_remaining <= 0) continue;
+        u32 bytes_to_copy = sample_count * 2;
+        if (audio->length_remaining < bytes_to_copy) bytes_to_copy = audio->length_remaining;
+        if (bytes_to_copy > player->max_length) { error("queue_audio buffer not big enough"); return; }
+
+        u32 buffer_index = 0;
+        while(buffer_index < bytes_to_copy)
+        {
+            s16 *buffer = (s16*)&player->buffer[buffer_index];
+            s16 *source = (s16*)&audio->position[buffer_index];
+            *buffer += *source * 0.5f;
+            buffer_index += 2; // move two bytes
+        }
+        
+        audio->position += bytes_to_copy;
+        audio->length_remaining -= bytes_to_copy;
+        if (bytes_to_copy > player->length) player->length = bytes_to_copy;
+        //log("%d %d %d %d", sample_count, audio->length_remaining, player->audios_count, u8((r32)audio->position[0] * 1.0f));
     }
 }
 

@@ -125,8 +125,9 @@ struct Audio_Player
     Playing_Audio audios[10];
     u32 audios_count;
 
-    u8 *buffer;
-    u32 length;
+    u8 *buffer; // points to one byte
+    u32 length; // in bytes amount copied
+    u32 max_length; // in bytes amount available
 
     SDL_AudioStream *audio_stream;
     SDL_AudioDeviceID device_id;
