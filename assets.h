@@ -113,16 +113,23 @@ struct Audio
     u32 length;
 };
 
+enum
+{
+    AUDIO_SOUND,
+    AUDIO_MUSIC,
+};
+
 struct Playing_Audio
 {
     u8 *position;
     u32 length_remaining;
+    u32 type;
 };
 
 struct Audio_Player
 {
     b32 playing;
-    Playing_Audio audios[10];
+    Playing_Audio audios[10]; // let index 0 be for music
     u32 audios_count;
 
     u8 *buffer; // points to one byte
@@ -131,6 +138,9 @@ struct Audio_Player
 
     SDL_AudioStream *audio_stream;
     SDL_AudioDeviceID device_id;
+
+    r32 music_volume;
+    r32 sound_volume;
 };
 
 //
@@ -244,6 +254,14 @@ find_audio(Assets *assets, const char *tag)
     warning(0, "Could not find audio with tag: %s", tag);
     
     return 0;
+}
+
+function Audio*
+find_audio(Assets *assets, u32 index)
+{
+    if (index >= assets->num_of_assets) warning(0, "Not a valid index");
+
+    return &assets->audios[index].audio;
 }
 
 //

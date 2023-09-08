@@ -602,6 +602,25 @@ u32_to_string(u32 in)
     return out;
 }
 
+function u32
+string_to_u32(const char *string, u32 length) // length = digits/string length
+{
+    u32 result = 0;
+    u32 digits = length;
+    for (u32 i = 0; i < length; i++)
+    {
+        char ch = *string;
+        ch = ch - '0';
+
+        u32 help = 1;
+        for (u32 j = i + 1; j < digits; j++) help *= 10;
+
+        result += ch * help;
+        string++;
+    }
+    return result;
+}
+
 struct String
 {
     const char *data;

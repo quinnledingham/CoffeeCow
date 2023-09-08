@@ -26,4 +26,13 @@ COW1_SPOT3, ../assets/bitmaps/cow1/spot3.png
 
 AUDIOS:
 BLOOP, ../assets/sounds/bloop.wav
-GULP, ../assets/sounds/gulp.wav
+GULP,  ../assets/sounds/gulp.wav
+BLOOP, ../assets/sounds/bloop.wav
+GULP,  ../assets/sounds/gulp.wav
+BLOOP, ../assets/sounds/bloop.wav
+GULP,  ../assets/sounds/gulp.wav
+BOT,   ../assets/sounds/bot.wav
+GAB,   ../assets/sounds/gab.wav
+HA,    ../assets/sounds/ha.wav
+BLOOP, ../assets/sounds/bloop.wav
+GULP,  ../assets/sounds/gulp.wav

@@ -49,6 +49,8 @@ struct Game_Data
     
     Bitmap *icon;
 
+    u32 music_index;
+
     Menu menus[NUM_OF_GAME_MODES];
 };
 
@@ -75,16 +77,16 @@ init_controllers(Input *input)
     input->active_controller = &input->controllers[0];
     
     Controller *keyboard = &input->controllers[0];
-    set(&keyboard->right, SDLK_d);
-    set(&keyboard->right, SDLK_RIGHT);
-    set(&keyboard->up, SDLK_w);
-    set(&keyboard->up, SDLK_UP);
-    set(&keyboard->left, SDLK_a);
-    set(&keyboard->left, SDLK_LEFT);
-    set(&keyboard->down, SDLK_s);
-    set(&keyboard->down, SDLK_DOWN);
+    set(&keyboard->right,  SDLK_d);
+    set(&keyboard->right,  SDLK_RIGHT);
+    set(&keyboard->up,     SDLK_w);
+    set(&keyboard->up,     SDLK_UP);
+    set(&keyboard->left,   SDLK_a);
+    set(&keyboard->left,   SDLK_LEFT);
+    set(&keyboard->down,   SDLK_s);
+    set(&keyboard->down,   SDLK_DOWN);
     set(&keyboard->select, SDLK_RETURN);
-    set(&keyboard->pause, SDLK_ESCAPE);
+    set(&keyboard->pause,  SDLK_ESCAPE);
     
     input->num_of_controllers = 1; // keyboard
     
@@ -102,12 +104,12 @@ init_controllers(Input *input)
             game_controllers[i] = SDL_GameControllerOpen(i);
             
             Controller *c = &input->controllers[i + 1];
-            set(&c->right, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-            set(&c->up, SDL_CONTROLLER_BUTTON_DPAD_UP);
-            set(&c->left, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-            set(&c->down, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            set(&c->right,  SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+            set(&c->up,     SDL_CONTROLLER_BUTTON_DPAD_UP);
+            set(&c->left,   SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+            set(&c->down,   SDL_CONTROLLER_BUTTON_DPAD_DOWN);
             set(&c->select, SDL_CONTROLLER_BUTTON_A);
-            set(&c->pause, SDL_CONTROLLER_BUTTON_START);
+            set(&c->pause,  SDL_CONTROLLER_BUTTON_START);
             
             input->num_of_controllers++;
         }
@@ -120,24 +122,7 @@ load_high_score()
     u32 high_score = 0;
     File high_score_file = read_file("high_score.save");
     if (high_score_file.size == 0) return high_score;
-
-    char *input = (char*)high_score_file.memory;
-    u32 digits = high_score_file.size;
-    for (u32 i = 0; i < high_score_file.size; i++)
-    {
-        char ch = *input;
-        ch = ch - '0';
-
-        u32 help = 1;
-        for (u32 j = i + 1; j < digits; j++)
-        {
-            help *= 10;
-        }
-
-        high_score += ch * help;
-        input++;
-    }
-
+    high_score = string_to_u32((char*)high_score_file.memory, high_score_file.size);
     return high_score;
 }
 
@@ -175,6 +160,9 @@ init_game_data(Assets *assets)
     
     // load high score
     data->high_score = load_high_score();
+
+    data->music_index = random(0, 3);
+    log("MUSIC INDEX %d", data->music_index);
 
     return (void*)data;
 }
@@ -220,6 +208,17 @@ assign_controller(Controller *controller, Coffee_Cow_Design *players, u32 index)
     }
 }
 
+function void
+update_music(Audio_Player *player, Assets *assets, u32 *music_index)
+{
+    Playing_Audio *music = &player->audios[0];
+    if (music->length_remaining <= 0)
+    {
+        play_audio(player, find_audio(assets, (*music_index)++), AUDIO_MUSIC);
+        if (*music_index > 2) *music_index = 0;
+    }
+}
+
 function b32
 update(Application *app)
 {
@@ -234,6 +233,7 @@ update(Application *app)
 
     // what to update
     update_particles(&particles, app->time.frame_time_s);
+    if (app->time.run_time_s > 4.0f) update_music(&app->player, &app->assets, &data->music_index);
 
     switch(data->game_mode)
     {
@@ -263,7 +263,7 @@ update(Application *app)
             update_coffee_cows(players, num_of_players, app->time.frame_time_s, data->grid_dim);
             update_coffees(data->coffees, data->num_of_coffees);
             if (coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
-                play_audio(&app->player, find_audio(&app->assets, "GULP"));
+                play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
 
             for (u32 i = 0; i < num_of_players; i++) 
             {
@@ -322,8 +322,8 @@ update(Application *app)
             {
                 data->game_mode = MULTIPLAYER_MENU;
                 data->active = 0;
-                play_audio(&app->player, find_audio(&app->assets, "BLOOP"));
-                play_audio(&app->player, find_audio(&app->assets, "GULP"));
+                play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
+                play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
                 for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
             }
             
@@ -356,29 +356,25 @@ update(Application *app)
             v2 character_dim = { (r32)bounds.dim.x/4.0f, (r32)bounds.dim.y * (2.0f/4.0f) };
             v2 character_coords = multi_menu.rect.coords;
 
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
-                                          menu_controller, data->designs[0].controller,
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller,
                                           character, character_hover, character_select, character_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 0);
             }
 
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
-                                          menu_controller, data->designs[1].controller, 
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, 
                                           character, character_hover, character_select, character_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 1);
             }
 
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
-                                          menu_controller, data->designs[2].controller, 
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, 
                                           character, character_hover, character_select, character_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 2);
             }
 
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, 
-                                          menu_controller, data->designs[3].controller, 
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, 
                                           character, character_hover, character_select, character_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 3);
@@ -635,6 +631,8 @@ update_time(Time *time)
 function int
 main_loop(Application *app)
 {
+    srand(SDL_GetTicks());
+
     init_controllers(&app->input);
     app->data = init_game_data(&app->assets);
 
@@ -646,24 +644,27 @@ main_loop(Application *app)
     init_particles(&particles, 200);
     init_shapes();
 
+    u32 audio_size = 0;
+
     while(1)
     {
         if (process_input(&app->window.dim, &app->input)) return 0; // quit if input to quit
-        
-        update_time(&app->time);
-        
+    
         set_orthographic_matrix(app->window.dim);
         
+        update_time(&app->time);
+
         if (update(app)) return 0; // quit if update says to quit
 
         // Audio
         r32 samples_per_second = 48000.0f;
-        u32 sample_count = 200;
+        u32 sample_count = 0;
         sample_count += (int)floor(app->time.frame_time_s * samples_per_second);
-        //sample_count *= 3;
+
         //log("%d = %f * %f", sample_count, app->time.frame_time_s, samples_per_second);
         queue_audio(&app->player, sample_count);
         if (SDL_QueueAudio(app->player.device_id, app->player.buffer, app->player.length)) log("%s", SDL_GetError());
+
         SDL_memset(app->player.buffer, 0, app->player.max_length);
         swap_window(&app->window);
     }
@@ -723,6 +724,9 @@ init_window(Window *window)
     init_opengl(window);
     
     SDL_GetWindowSize(window->sdl, &window->dim.width, &window->dim.height);
+
+    //SDL_SetWindowFullscreen(window->sdl, SDL_WINDOW_FULLSCREEN);
+    //SDL_SetWindowSize(window->sdl, 1920, 1080);
 }
 
 function int

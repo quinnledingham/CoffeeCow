@@ -99,15 +99,12 @@ resize_menu(Menu *menu,
 
 function b32
 menu_multiplayer_selector(Menu *menu, u32 index, u32 active, u32 press,
-                          v2 *coords, v2 dim, Controller *controller, Controller *saved_controller,
+                          v2 *coords, v2 dim, Controller *saved_controller,
                           Bitmap *regular, Bitmap *hover, Bitmap *selected, Bitmap *hover_selected)
 {
     b32 button_pressed = false;
 
-    if (index == active)
-    {
-        if (press) button_pressed = true;
-    }
+    if (index == active) if (press) button_pressed = true;
 
     if (saved_controller == 0)
     {
