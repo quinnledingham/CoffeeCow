@@ -77,6 +77,38 @@ menu_button(Menu *menu, const char *text, u32 index, u32 active, u32 press)
     return button_pressed;
 }
 
+function b32
+menu_toggle(Menu *menu, const char *text, u32 index, u32 active, u32 press)
+{
+    Menu_Button *button = &menu->button;
+    v2 coords = menu->rect.coords;
+    b32 button_pressed = false;
+    
+    v4 b_color = button->back_color;
+    v4 t_color = button->text_color;
+    
+    if (index == active)
+    {
+        b_color = button->active_back_color;
+        t_color = button->active_text_color;
+        if (press)
+            button_pressed = true;
+    }
+
+    // drawing
+    draw_rect(coords, 0, button->dim, b_color);
+    
+    v2 text_dim = get_string_dim(menu->font, text, button->pixel_height, t_color);
+    f32 text_x_coord = coords.x + (button->dim.x / 2.0f) - (text_dim.x / 2.0f);
+    f32 text_y_coord = coords.y + (button->dim.y / 2.0f) + (text_dim.y / 2.0f);
+    
+    draw_string(menu->font, text, { text_x_coord, text_y_coord }, button->pixel_height, t_color);
+    
+    menu->rect.coords.y += menu->button.dim.y + menu->padding.y;
+    
+    return button_pressed;
+}
+
 function void
 resize_menu(Menu *menu, 
             Rect window_rect, 

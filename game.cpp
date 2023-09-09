@@ -29,6 +29,7 @@ enum Game_Modes
     IN_GAME,
     PAUSED,
     GAME_OVER,
+    SETTINGS,
     
     NUM_OF_GAME_MODES
 };
@@ -51,6 +52,9 @@ struct Game_Data
 
     u32 music_index;
 
+    // Settings
+    b8 fullscreen;
+
     Menu menus[NUM_OF_GAME_MODES];
 };
 
@@ -69,6 +73,8 @@ struct Game_Data
 - add music/sound effects
 
 - pack assets into single file
+
+- add settings (fullscreen, music/sfx on off)
 */
 
 function void
@@ -239,12 +245,17 @@ update(Application *app)
     {
         case MAIN_MENU:
         {
-            menu_update_active(&data->active, 0, 2, menu_controller->down, menu_controller->up);
+            menu_update_active(&data->active, 0, 3, menu_controller->down, menu_controller->up);
         } break;
         
         case MULTIPLAYER_MENU:
         {
             menu_update_active(&data->active, 0, 5, menu_controller->down, menu_controller->up);
+        } break;
+
+        case SETTINGS:
+        {
+            menu_update_active(&data->active, 0, 2, menu_controller->down, menu_controller->up);
         } break;
 
         case PAUSED:
@@ -325,6 +336,12 @@ update(Application *app)
                 play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
                 play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
                 for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
+            }
+
+            if (menu_button(&main_menu, "Settings", index++, data->active, select))
+            {
+                data->game_mode = SETTINGS;
+                data->active = 0;
             }
             
             if (menu_button(&main_menu, "Quit", index++, data->active, select))
@@ -415,6 +432,30 @@ update(Application *app)
                 data->active = 0;
             }
         } break;
+
+        case SETTINGS:
+        {
+            Bitmap *settings_menu_back = find_bitmap(&app->assets, "MAIN_MENU_BACK");
+            b32 select = on_down(menu_controller->select);
+            Menu settings_menu = data->default_menu;
+            Rect bounds = get_centered_square(window_rect, settings_menu.window_percent);
+            u32 index = 0;
+            resize_menu(&settings_menu, window_rect, {(s32)settings_menu.button.dim.x, 0}, 0, 2);
+            draw_rect(window_rect, settings_menu_back);
+
+            if (menu_button(&settings_menu, "Toggle Fullscreen", index++, data->active, select))
+            {
+                data->fullscreen = !data->fullscreen;
+                if (data->fullscreen) SDL_SetWindowFullscreen(app->window.sdl, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                else                  SDL_SetWindowFullscreen(app->window.sdl, 0);
+            }
+
+            if (menu_button(&settings_menu, "Back", index++, data->active, select))
+            {
+                data->game_mode = MAIN_MENU;
+                data->active = 0;
+            }
+        } break;
         
         case IN_GAME:
         case PAUSED:
@@ -427,7 +468,7 @@ update(Application *app)
             
             draw_rect(window_rect, game_back);
             
-            Rect rocks_rect = get_centered_square(window_rect, 0.9f);
+            Rect rocks_rect = get_centered_square(window_rect, 0.95f);
             Rect grass_rect = get_centered_rect(rocks_rect, 0.75265f, 0.75265f);
             
             draw_rect(grass_rect, grass);
@@ -707,7 +748,6 @@ init_window(Window *window)
     u32 sdl_init_flags = 
         SDL_INIT_VIDEO | 
         SDL_INIT_GAMECONTROLLER | 
-        SDL_INIT_HAPTIC | 
         SDL_INIT_AUDIO;
     
     u32 sdl_window_flags = 
@@ -725,7 +765,7 @@ init_window(Window *window)
     
     SDL_GetWindowSize(window->sdl, &window->dim.width, &window->dim.height);
 
-    //SDL_SetWindowFullscreen(window->sdl, SDL_WINDOW_FULLSCREEN);
+    
     //SDL_SetWindowSize(window->sdl, 1920, 1080);
 }
 
