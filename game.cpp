@@ -34,6 +34,12 @@ enum Game_Modes
     NUM_OF_GAME_MODES
 };
 
+enum In_Game_Modes
+{
+    SINGLEPLAYER,
+    MULTIPLAYER,
+};
+
 struct Game_Data
 {
     v2s grid_dim;
@@ -45,6 +51,7 @@ struct Game_Data
     u32 high_score;
     
     u32 game_mode = MAIN_MENU;
+    u32 in_game_mode;
     s32 active;
     Menu default_menu;
     
@@ -65,12 +72,15 @@ struct Game_Data
 - vary particles color
 
 - animation? 
-- crash into wag
+- crash into wall
 - wagging of tail
+- eyes moving
 
 - make multiplayer good/fix bugs
+- when they crash head on it ends with them a block away
+- add 3 second count down
 
-- add settings (fullscreen, music/sfx on off)
+- add settings (music/sfx on off)
 */
 
 function void
@@ -129,6 +139,22 @@ load_high_score()
     high_score = string_to_u32((char*)high_score_file.memory, high_score_file.size);
     return high_score;
 }
+
+function void
+update_high_score(u32 score, u32 *high_score)
+{
+    if (score > *high_score)
+    {
+        *high_score = score;
+
+        File file = {};
+        String string = {};
+        u32_to_string(&string, score);
+        file.memory = (void*)string.data;
+        file.size = string.length;
+        write_file(&file, "high_score.save");
+    }
+}   
 
 function void*
 init_game_data(Assets *assets)
@@ -193,7 +219,6 @@ init_game_data(Assets *assets)
     default_menu->button_percent = 0.15f;
     default_menu->pixel_height_percent = 0.6f;
     
-    // load high score
     data->high_score = load_high_score();
 
     data->music_index = random(0, 3);
@@ -201,39 +226,13 @@ init_game_data(Assets *assets)
     return (void*)data;
 }
 
+// assigned controller to a design
 function void
-update_high_score(u32 score, u32 *high_score)
-{
-    if (score > *high_score)
-    {
-        *high_score = score;
-
-        File file = {};
-        String string = {};
-        u32_to_string(&string, score);
-        file.memory = (void*)string.data;
-        file.size = string.length;
-        write_file(&file, "high_score.save");
-    }
-}   
-
-function b8
-free_controller(Controller *controller, Coffee_Cow_Design *players)
-{
-    for (u32 i = 0; i < 4; i++)
-    {
-        if (players[i].controller == controller) players[i].controller = 0;
-    }
-
-    return true;
-}
-
-function void
-assign_controller(Controller *controller, Coffee_Cow_Design *players, u32 index)
+multiplayer_assign_controller(Controller *controller, Coffee_Cow_Design *players, u32 index)
 {
     if (players[index].controller == 0)
     {
-        free_controller(controller, players);
+        for (u32 i = 0; i < 4; i++) if (players[i].controller == controller) players[i].controller = 0; // free controller from another spot
         players[index].controller = controller;
     }
     else if (players[index].controller == controller)
@@ -253,6 +252,30 @@ update_music(Audio_Player *player, Assets *assets, u32 *music_index)
     }
 }
 
+function void
+draw_singleplayer_scoreboard(Font *font, v2s window_dim, u32 score, u32 high_score)
+{
+    r32 pixel_height = window_dim.y * 0.07f;
+    v4 color = { 0, 0, 0, 1 };
+    v2 padding = { 5, 10 };
+
+    char *score_str = u32_to_string(score);
+    v2 score_dim = get_string_dim(font, score_str, pixel_height, color);
+    draw_string(font, score_str, { 5, score_dim.y + 10 }, pixel_height, color);
+    SDL_free((void*)score_str);
+    
+    const char *high_score_str = u32_to_string(high_score);
+    v2 high_score_dim = get_string_dim(font, high_score_str, pixel_height, color);
+    v2 high_score_coords = { window_dim.x - high_score_dim.x - padding.x, high_score_dim.y + padding.y };
+    draw_string(font, high_score_str, high_score_coords, pixel_height, color);
+    SDL_free((void*)high_score_str);
+
+    const char *high_score_text = "High Score: ";
+    v2 high_score_text_dim = get_string_dim(font, high_score_text, pixel_height, color);
+    v2 high_score_text_coords = { window_dim.x - high_score_text_dim.x - 10 - high_score_dim.x - padding.x, high_score_text_dim.y + padding.y };
+    draw_string(font, high_score_text, high_score_text_coords, pixel_height, color);
+}
+
 function b32
 update(Application *app)
 {
@@ -262,8 +285,9 @@ update(Application *app)
     u32 num_of_players = data->num_of_players;
     Coffee_Cow *players = data->players;
     v2s window_dim = app->window.dim;
+    Font *rubik = find_font(&app->assets, "RUBIK");
     
-    // what to update
+    // UPDATE
     update_particles(&particles, app->time.frame_time_s);
     if (app->time.run_time_s > 4.0f) update_music(&app->player, &app->assets, &data->music_index);
 
@@ -316,6 +340,7 @@ update(Application *app)
         } break;
     }
     
+    // DRAW
     u32 gl_clear_flags = 
         GL_COLOR_BUFFER_BIT | 
         GL_DEPTH_BUFFER_BIT | 
@@ -346,6 +371,7 @@ update(Application *app)
             if (menu_button(&main_menu, "Play", index++, data->active, select))
             {
                 data->game_mode = IN_GAME;
+                data->in_game_mode = SINGLEPLAYER;
                 data->active = 0;
                 
                 init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
@@ -358,6 +384,7 @@ update(Application *app)
             if (menu_button(&main_menu, "Multiplayer", index++, data->active, select))
             {
                 data->game_mode = MULTIPLAYER_MENU;
+                data->in_game_mode = MULTIPLAYER;
                 data->active = 0;
                 play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
                 play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
@@ -418,25 +445,25 @@ update(Application *app)
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller,
                                           char1, char1_hover, char1_select, char1_select_hover))
             {
-                assign_controller(menu_controller, data->designs, 0);
+                multiplayer_assign_controller(menu_controller, data->designs, 0);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, 
                                           char2, char2_hover, char2_select, char2_select_hover))
             {
-                assign_controller(menu_controller, data->designs, 1);
+                multiplayer_assign_controller(menu_controller, data->designs, 1);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, 
                                           char3, char3_hover, char3_select, char3_select_hover))
             {
-                assign_controller(menu_controller, data->designs, 2);
+                multiplayer_assign_controller(menu_controller, data->designs, 2);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, 
                                           char4, char4_hover, char4_select, char4_select_hover))
             {
-                assign_controller(menu_controller, data->designs, 3);
+                multiplayer_assign_controller(menu_controller, data->designs, 3);
             }
 
             multi_menu.rect.coords.y += multi_menu.bitmap.dim.y + multi_menu.padding.y;
@@ -529,24 +556,8 @@ update(Application *app)
             }
             
             draw_rect(rocks_rect, rocks);
-            
-            Font *rubik = find_font(&app->assets, "RUBIK");
-            r32 score_pixel_height = window_dim.y * 0.07f;
-            
-            char *score = u32_to_string(players[0].score);
-            v2 score_dim = get_string_dim(rubik, score, score_pixel_height, { 0, 0, 0, 1 });
-            draw_string(rubik, score, { 5, score_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
-            SDL_free((void*)score);
-    
-            const char *high_score = u32_to_string(data->high_score);
-            v2 high_score_dim = get_string_dim(rubik, high_score, score_pixel_height, { 0, 0, 0, 1 });
-            draw_string(rubik, high_score, { app->window.dim.x - high_score_dim.x - 5, high_score_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
-            SDL_free((void*)high_score);
+            if (data->in_game_mode == SINGLEPLAYER) draw_singleplayer_scoreboard(rubik, window_dim, players[0].score, data->high_score);
 
-            const char *high_score_text = "High Score: ";
-            v2 high_score_text_dim = get_string_dim(rubik, high_score_text, score_pixel_height, { 0, 0, 0, 1 });
-            draw_string(rubik, high_score_text, { app->window.dim.x - high_score_text_dim.x - 10 - high_score_dim.x - 5, high_score_text_dim.y + 10 }, score_pixel_height, { 0, 0, 0, 1 });
-      
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             draw_particles(&particles, &app->assets);
@@ -602,11 +613,7 @@ update(Application *app)
     }
     
     if (on_down(app->input.active_controller->show_fps)) data->show_fps = !data->show_fps;
-    if (data->show_fps)
-    {
-        Font *rubik = find_font(&app->assets, "RUBIK");
-        draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
-    }
+    if (data->show_fps) draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
 
     return false;
 }
