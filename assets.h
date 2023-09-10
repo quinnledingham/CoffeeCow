@@ -30,6 +30,8 @@ struct Shader
     const char *tes_file;
     const char *gs_file;
     const char *fs_file;
+
+    u32 file_sizes[5];
     
     b32 compiled;
     u32 handle;
@@ -96,6 +98,7 @@ struct Font_String
 
 struct Font
 {
+    File file;
     stbtt_fontinfo info;
     
     s32 font_scales_cached;
@@ -147,6 +150,15 @@ struct Audio_Player
 // Storing Assets
 //
 
+enum shader_types
+{
+    VERTEX_SHADER,
+    TESSELLATION_CONTROL_SHADER,
+    TESSELLATION_EVALUATION_SHADER,
+    GEOMETRY_SHADER,
+    FRAGMENT_SHADER,
+};
+
 enum asset_types
 {
     ASSET_TYPE_FONT,
@@ -159,6 +171,7 @@ struct Asset
 {
     u32 type;
     const char *tag;
+    u32 tag_length;
     union
     {
         Font font;
@@ -173,7 +186,12 @@ struct Asset_Load_Info
     int type;
     int index;
     const char *tag;
-    const char *filename;
+    const char *filename;     //.vs vertex_shader
+
+    const char *tcs_filename; //.tcs tessellation control shader
+    const char *tes_filename; //.tes tessellation evaluation shader
+    const char *gs_filename;  //.gs geometry shader
+    const char *fs_filename;  //.fs fragment shader
 };
 
 struct Assets
@@ -244,6 +262,18 @@ find_bitmap(Assets *assets, const char *tag)
     
     return 0;
 }
+
+function Shader*
+find_shader(Assets *assets, const char *tag)
+{
+    for (u32 i = 0; i < assets->num_of_shaders; i++)
+        if (equal(tag, assets->shaders[i].tag)) return &assets->shaders[i].shader;
+    
+    warning(0, "Could not find shader with tag: %s", tag);
+    
+    return 0;
+}
+
 
 function Audio*
 find_audio(Assets *assets, const char *tag)

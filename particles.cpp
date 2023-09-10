@@ -122,18 +122,12 @@ update_particles(Particles *particles, r32 frame_time_s)
 }
 
 function void
-draw_particles(Particles *particles)
+draw_particles(Particles *particles, Assets *assets)
 {
-    local_persist Shader shader = {};
-    if (!shader.compiled)
-    {
-        shader.vs_filename = "../assets/shaders/particle.vs";
-        shader.fs_filename = "../assets/shaders/particle.fs";
-        load_shader(&shader);
-        compile_shader(&shader);
-    }
+    local_persist Shader *shader = {};
+    if (shader == 0) shader = find_shader(assets, "PARTICLE");
     
-    u32 handle = use_shader(&shader);
+    u32 handle = use_shader(shader);
     glBindVertexArray(particles->mesh.vao);
     v4 color = { 0, 255, 0, 1 };
     glUniform4fv(glGetUniformLocation(handle, "user_color"), (GLsizei)1, (float*)&color);

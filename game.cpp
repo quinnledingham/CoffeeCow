@@ -198,7 +198,6 @@ init_game_data(Assets *assets)
     data->high_score = load_high_score();
 
     data->music_index = random(0, 3);
-    log("MUSIC INDEX %d", data->music_index);
 
     return (void*)data;
 }
@@ -491,8 +490,10 @@ update(Application *app)
             if (menu_button(&settings_menu, "Toggle Fullscreen", index++, data->active, select))
             {
                 data->fullscreen = !data->fullscreen;
+                SDL_PauseAudioDevice(app->player.device_id, 1);
                 if (data->fullscreen) SDL_SetWindowFullscreen(app->window.sdl, SDL_WINDOW_FULLSCREEN_DESKTOP);
                 else                  SDL_SetWindowFullscreen(app->window.sdl, 0);
+                SDL_PauseAudioDevice(app->player.device_id, 0);
             }
 
             if (menu_button(&settings_menu, "Back", index++, data->active, select))
@@ -550,11 +551,10 @@ update(Application *app)
       
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
-            draw_particles(&particles);
+            draw_particles(&particles, &app->assets);
             for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
             //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
             
-
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
                 Menu pause_menu = data->default_menu;
@@ -817,12 +817,11 @@ init_window(Window *window)
 function int
 application()
 {
-    v3 test = get_unit(90.0f);
-    log("x: %f, y: %f, z: %f", test.x, test.y, test.z);
-
     Application app = {};
     init_window(&app.window);
-    load_assets(&app.assets, "../assets.ethan");
+    //load_assets(&app.assets, "../assets.ethan");
+    //save_assets(&app.assets, "assets.save");
+    load_saved_assets(&app.assets, "assets.save");
     init_audio_player(&app.player);
     return main_loop(&app);
 }

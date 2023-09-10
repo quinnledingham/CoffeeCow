@@ -63,6 +63,10 @@ COW4_JOIN_HOVER,   ../assets/bitmaps/cow4/joinhover.png
 COW4_SELECT,       ../assets/bitmaps/cow4/joinalt.png
 COW4_SELECT_HOVER, ../assets/bitmaps/cow4/joinalthover.png
 
+SHADERS:
+PARTICLE|VERTEX,   ../assets/shaders/particle.vs
+PARTICLE|FRAGMENT, ../assets/shaders/particle.fs
+
 AUDIOS:
 BOT,   ../assets/sounds/bot.wav
 GAB,   ../assets/sounds/gab.wav
