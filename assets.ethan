@@ -5,24 +5,63 @@ BITMAPS:
 ICON, ../assets/bitmaps/icon.png
 LOGO, ../assets/bitmaps/logo.png
 MAIN_MENU_BACK, ../assets/bitmaps/mainmenuback.png
-GAME_BACK, ../assets/bitmaps/sand.png
+GAME_BACK, ../assets/bitmaps/gameback.png
 GRASS, ../assets/bitmaps/grass.png
 ROCKS, ../assets/bitmaps/rocks.png
 GRID, ../assets/bitmaps/grid.png
 COFFEE, ../assets/bitmaps/coffee.png
 
-JOIN, ../assets/bitmaps/join.png
-JOIN_HOVER, ../assets/bitmaps/joinhover.png
-SELECT, ../assets/bitmaps/joinalt.png
-SELECT_HOVER, ../assets/bitmaps/joinalthover.png
-
-COW1_HEAD, ../assets/bitmaps/cow1/cowhead.png
+COW1_HEAD,         ../assets/bitmaps/cow1/cowhead.png
 COW1_HEAD_OUTLINE, ../assets/bitmaps/cow1/cowheadoutline.png
-COW1_MOUTH, ../assets/bitmaps/cow1/tongue.png
-COW1_TAIL, ../assets/bitmaps/cow1/tail.png
-COW1_SPOT1, ../assets/bitmaps/cow1/spot1.png
-COW1_SPOT2, ../assets/bitmaps/cow1/spot2.png
-COW1_SPOT3, ../assets/bitmaps/cow1/spot3.png
+COW1_MOUTH,        ../assets/bitmaps/cow1/tongue.png
+COW1_TAIL,         ../assets/bitmaps/cow1/tail.png
+COW1_SPOT1,        ../assets/bitmaps/cow1/spot1.png
+COW1_SPOT2,        ../assets/bitmaps/cow1/spot2.png
+COW1_SPOT3,        ../assets/bitmaps/cow1/spot3.png
+
+COW2_HEAD,         ../assets/bitmaps/cow2/cowhead.png
+COW2_HEAD_OUTLINE, ../assets/bitmaps/cow2/cowheadoutline.png
+COW2_MOUTH,        ../assets/bitmaps/cow2/tongue.png
+COW2_TAIL,         ../assets/bitmaps/cow2/tail.png
+COW2_SPOT1,        ../assets/bitmaps/cow2/spot1.png
+COW2_SPOT2,        ../assets/bitmaps/cow2/spot2.png
+COW2_SPOT3,        ../assets/bitmaps/cow2/spot3.png
+
+COW3_HEAD,         ../assets/bitmaps/cow3/cowhead.png
+COW3_HEAD_OUTLINE, ../assets/bitmaps/cow3/cowheadoutline.png
+COW3_MOUTH,        ../assets/bitmaps/cow3/tongue.png
+COW3_TAIL,         ../assets/bitmaps/cow3/tail.png
+COW3_SPOT1,        ../assets/bitmaps/cow3/spot1.png
+COW3_SPOT2,        ../assets/bitmaps/cow3/spot2.png
+COW3_SPOT3,        ../assets/bitmaps/cow3/spot3.png
+
+COW4_HEAD,         ../assets/bitmaps/cow4/cowhead.png
+COW4_HEAD_OUTLINE, ../assets/bitmaps/cow4/cowheadoutline.png
+COW4_MOUTH,        ../assets/bitmaps/cow4/tongue.png
+COW4_TAIL,         ../assets/bitmaps/cow4/tail.png
+COW4_SPOT1,        ../assets/bitmaps/cow4/spot1.png
+COW4_SPOT2,        ../assets/bitmaps/cow4/spot2.png
+COW4_SPOT3,        ../assets/bitmaps/cow4/spot3.png
+
+COW1_JOIN,         ../assets/bitmaps/cow1/join.png
+COW1_JOIN_HOVER,   ../assets/bitmaps/cow1/joinhover.png
+COW1_SELECT,       ../assets/bitmaps/cow1/joinalt.png
+COW1_SELECT_HOVER, ../assets/bitmaps/cow1/joinalthover.png
+
+COW2_JOIN,         ../assets/bitmaps/cow2/join.png
+COW2_JOIN_HOVER,   ../assets/bitmaps/cow2/joinhover.png
+COW2_SELECT,       ../assets/bitmaps/cow2/joinalt.png
+COW2_SELECT_HOVER, ../assets/bitmaps/cow2/joinalthover.png
+
+COW3_JOIN,         ../assets/bitmaps/cow3/join.png
+COW3_JOIN_HOVER,   ../assets/bitmaps/cow3/joinhover.png
+COW3_SELECT,       ../assets/bitmaps/cow3/joinalt.png
+COW3_SELECT_HOVER, ../assets/bitmaps/cow3/joinalthover.png
+
+COW4_JOIN,         ../assets/bitmaps/cow4/join.png
+COW4_JOIN_HOVER,   ../assets/bitmaps/cow4/joinhover.png
+COW4_SELECT,       ../assets/bitmaps/cow4/joinalt.png
+COW4_SELECT_HOVER, ../assets/bitmaps/cow4/joinalthover.png
 
 AUDIOS:
 BOT,   ../assets/sounds/bot.wav

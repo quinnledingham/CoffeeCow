@@ -68,7 +68,6 @@ struct Game_Data
 - wagging of tail
 
 - make multiplayer good/fix bugs
-- create 3 more cow designs
 
 - add music/sound effects
 
@@ -140,6 +139,7 @@ init_game_data(Assets *assets)
     data->grid_dim = { 12, 12 };
     
     Coffee_Cow_Design *designs = data->designs;
+
     designs[0].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW1_HEAD");
     designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW1_HEAD_OUTLINE");
     designs[0].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW1_MOUTH");
@@ -149,6 +149,36 @@ init_game_data(Assets *assets)
     designs[0].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW1_SPOT3");
     designs[0].color = { 255, 255, 255, 1 };
     designs[0].outline_color = { 0, 0, 0, 1 };
+
+    designs[1].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW2_HEAD");
+    designs[1].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW2_HEAD_OUTLINE");
+    designs[1].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW2_MOUTH");
+    designs[1].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW2_TAIL");
+    designs[1].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW2_SPOT1");
+    designs[1].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW2_SPOT2");
+    designs[1].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW2_SPOT3");
+    designs[1].color = { 108, 108, 108, 1 };
+    designs[1].outline_color = { 0, 0, 0, 1 };
+
+    designs[2].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW3_HEAD");
+    designs[2].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW3_HEAD_OUTLINE");
+    designs[2].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW3_MOUTH");
+    designs[2].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW3_TAIL");
+    designs[2].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW3_SPOT1");
+    designs[2].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW3_SPOT2");
+    designs[2].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW3_SPOT3");
+    designs[2].color = { 252, 231, 213, 1 };
+    designs[2].outline_color = { 0, 0, 0, 1 };
+
+    designs[3].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW4_HEAD");
+    designs[3].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW4_HEAD_OUTLINE");
+    designs[3].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW4_MOUTH");
+    designs[3].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW4_TAIL");
+    designs[3].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW4_SPOT1");
+    designs[3].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW4_SPOT2");
+    designs[3].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW4_SPOT3");
+    designs[3].color = { 197, 64, 48, 1 };
+    designs[3].outline_color = { 0, 0, 0, 1 };
 
     // default menu
     Menu *default_menu = &data->default_menu;
@@ -355,17 +385,32 @@ update(Application *app)
         {
             Bitmap *multi_menu_back = find_bitmap(&app->assets, "MAIN_MENU_BACK");
 
-            Bitmap *character = find_bitmap(&app->assets, "JOIN");
-            Bitmap *character_hover = find_bitmap(&app->assets, "JOIN_HOVER");
-            Bitmap *character_select = find_bitmap(&app->assets, "SELECT");
-            Bitmap *character_select_hover = find_bitmap(&app->assets, "SELECT_HOVER");
+            Bitmap *char1              = find_bitmap(&app->assets, "COW1_JOIN");
+            Bitmap *char1_hover        = find_bitmap(&app->assets, "COW1_JOIN_HOVER");
+            Bitmap *char1_select       = find_bitmap(&app->assets, "COW1_SELECT");
+            Bitmap *char1_select_hover = find_bitmap(&app->assets, "COW1_SELECT_HOVER");
+
+            Bitmap *char2              = find_bitmap(&app->assets, "COW2_JOIN");
+            Bitmap *char2_hover        = find_bitmap(&app->assets, "COW2_JOIN_HOVER");
+            Bitmap *char2_select       = find_bitmap(&app->assets, "COW2_SELECT");
+            Bitmap *char2_select_hover = find_bitmap(&app->assets, "COW2_SELECT_HOVER");
+
+            Bitmap *char3              = find_bitmap(&app->assets, "COW3_JOIN");
+            Bitmap *char3_hover        = find_bitmap(&app->assets, "COW3_JOIN_HOVER");
+            Bitmap *char3_select       = find_bitmap(&app->assets, "COW3_SELECT");
+            Bitmap *char3_select_hover = find_bitmap(&app->assets, "COW3_SELECT_HOVER");
+
+            Bitmap *char4              = find_bitmap(&app->assets, "COW4_JOIN");
+            Bitmap *char4_hover        = find_bitmap(&app->assets, "COW4_JOIN_HOVER");
+            Bitmap *char4_select       = find_bitmap(&app->assets, "COW4_SELECT");
+            Bitmap *char4_select_hover = find_bitmap(&app->assets, "COW4_SELECT_HOVER");
 
             b32 select = on_down(menu_controller->select);
 
             Menu multi_menu = data->default_menu;
             Rect bounds = get_centered_square(window_rect, multi_menu.window_percent);
 
-            resize_menu(&multi_menu, window_rect, {character->dim.x, character->dim.y/4}, 1, 2);
+            resize_menu(&multi_menu, window_rect, {char1->dim.x, char1->dim.y/4}, 1, 2);
             draw_rect(window_rect, multi_menu_back);
 
             u32 index = 0;
@@ -374,25 +419,25 @@ update(Application *app)
             v2 character_coords = multi_menu.rect.coords;
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller,
-                                          character, character_hover, character_select, character_select_hover))
+                                          char1, char1_hover, char1_select, char1_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 0);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, 
-                                          character, character_hover, character_select, character_select_hover))
+                                          char2, char2_hover, char2_select, char2_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 1);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, 
-                                          character, character_hover, character_select, character_select_hover))
+                                          char3, char3_hover, char3_select, char3_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 2);
             }
 
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, 
-                                          character, character_hover, character_select, character_select_hover))
+                                          char4, char4_hover, char4_select, char4_select_hover))
             {
                 assign_controller(menu_controller, data->designs, 3);
             }
@@ -417,7 +462,7 @@ update(Application *app)
                     for (u32 i = 0; i < data->num_of_players; i++)
                     {
                         while(data->designs[design_index].controller == 0) design_index++;
-                        players[i].design_index = 0; // change to = design_index when there is more than one
+                        players[i].design_index = design_index; // change to = design_index when there is more than one
                         players[i].controller = data->designs[design_index].controller;
                         design_index++;
                     }
