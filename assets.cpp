@@ -401,7 +401,6 @@ print_audio_device_status(SDL_AudioDeviceID dev)
     }
 }
 
-
 function void
 init_audio_player(Audio_Player *player)
 {
@@ -451,7 +450,7 @@ load_audio(const char *filename)
 {
     Audio audio = {};
     SDL_LoadWAV(filename, &audio.spec, &audio.buffer, &audio.length);
-    print_audio_spec(&audio.spec);
+    //print_audio_spec(&audio.spec);
     return audio;
 }
 
@@ -481,17 +480,27 @@ play_audio(Audio_Player *player, Audio *audio, u32 type)
 }
 
 function void
-queue_audio(Audio_Player *player, u32 sample_count)
+mix_audio(Audio_Player *player, r32 frame_time_s)
 {
+    // Delays in audio playing that I experienced before were probably caused by queueing too much audio
+    // so that the audio with the new sound in it wouldnt play until what was queued has been played.
+    r32 samples_per_second = 48000.0f; // frequency
+    u32 sample_count = (int)floor(frame_time_s * samples_per_second);
+    u32 bytes_to_copy = sample_count * 4; // 2 bytes per 2 channels for each sample
+
     player->length = 0;
     for (u32 i = 0; i < player->audios_count; i++)
     {
         Playing_Audio *audio = &player->audios[i];
         if (audio->length_remaining <= 0) continue;
-        u32 bytes_to_copy = sample_count * 4; // 2 bytes per 2 channels for each sample
         if (audio->length_remaining < bytes_to_copy) bytes_to_copy = audio->length_remaining;
-        if (bytes_to_copy > player->max_length) { error("queue_audio buffer not big enough for %d bytes", bytes_to_copy); return; }
+        if (bytes_to_copy > player->max_length && player->audios_count != 0) 
+        { 
+            error("queue_audio buffer not big enough for %d bytes", bytes_to_copy); 
+            return; 
+        }
 
+        // Set volume
         r32 volume = 0.5f;
         switch(audio->type)
         {
@@ -499,6 +508,7 @@ queue_audio(Audio_Player *player, u32 sample_count)
             case AUDIO_MUSIC: volume = player->music_volume; break;
         }
 
+        // Mix into buffer
         u32 buffer_index = 0;
         while(buffer_index < bytes_to_copy)
         {

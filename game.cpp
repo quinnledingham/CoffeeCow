@@ -374,7 +374,8 @@ update(Application *app)
             {
                 return true;
             }
-            
+
+            draw_particles(&particles, &app->assets);
         } break;
 
         case MULTIPLAYER_MENU:
@@ -727,8 +728,7 @@ update_time(Time *time)
     
     // get fps
     time->frames_per_s = 1000.0f;
-    if (time->frame_time_s > 0.0f)
-        time->frames_per_s = 1.0f / time->frame_time_s;
+    if (time->frame_time_s > 0.0f) time->frames_per_s = 1.0f / time->frame_time_s;
 }
 
 function int
@@ -747,8 +747,6 @@ main_loop(Application *app)
     init_particles(&particles, 200);
     init_shapes();
 
-    u32 audio_size = 0;
-
     while(1)
     {
         if (process_input(&app->window.dim, &app->input)) return 0; // quit if input to quit
@@ -760,12 +758,7 @@ main_loop(Application *app)
         if (update(app)) return 0; // quit if update says to quit
 
         // Audio
-        r32 samples_per_second = 48000.0f;
-        u32 sample_count = 0;
-        sample_count += (int)floor(app->time.frame_time_s * samples_per_second);
-
-        //log("%d = %f * %f", sample_count, app->time.frame_time_s, samples_per_second);
-        queue_audio(&app->player, sample_count);
+        mix_audio(&app->player, app->time.frame_time_s);
         if (SDL_QueueAudio(app->player.device_id, app->player.buffer, app->player.length)) log("%s", SDL_GetError());
 
         SDL_memset(app->player.buffer, 0, app->player.max_length);
@@ -822,13 +815,8 @@ init_window(Window *window)
                                    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                    800, 800, 
                                    sdl_window_flags);
-    
     init_opengl(window);
-    
     SDL_GetWindowSize(window->sdl, &window->dim.width, &window->dim.height);
-
-    
-    //SDL_SetWindowSize(window->sdl, 1920, 1080);
 }
 
 function int
@@ -843,4 +831,4 @@ application()
     return main_loop(&app);
 }
 
-int main(int argc, char *argv[]) { return application();}
+int main(int argc, char *argv[]) { return application(); }
