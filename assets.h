@@ -31,7 +31,7 @@ struct Shader
     const char *gs_file;
     const char *fs_file;
 
-    u32 file_sizes[5];
+    u32 file_sizes[5]; // includes the file terminator
     
     b32 compiled;
     u32 handle;

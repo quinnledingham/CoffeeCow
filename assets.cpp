@@ -147,7 +147,7 @@ load_shader_file(const char* filename, u32 *file_size)
     shader_file[size] = 0;
     fclose(file);
     
-    *file_size = size;
+    *file_size = size + 1; // file_size includes the terminator
 
     return shader_file;
 }
@@ -404,34 +404,36 @@ print_audio_device_status(SDL_AudioDeviceID dev)
 function void
 init_audio_player(Audio_Player *player)
 {
-    u32 i;
-
     // printing all drivers and devices
-    for (i = 0; i < SDL_GetNumAudioDrivers(); i++) log("Audio driver %d: %s", i, SDL_GetAudioDriver(i));
+    for (s32 i = 0; i < SDL_GetNumAudioDrivers(); i++) log("Audio driver %d: %s", i, SDL_GetAudioDriver(i));
     const char* driver_name = SDL_GetCurrentAudioDriver();
     if (driver_name) log("Audio subsystem initialized; driver = %s.", driver_name);
     else             log("Audio subsystem not initialized.");
 
     u32 num_audio_devices = SDL_GetNumAudioDevices(0);
-    for (i = 0; i < num_audio_devices; i++) log("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+    for (u32 i = 0; i < num_audio_devices; i++) log("Audio device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
 
     // opening audio device
-    SDL_AudioSpec spec;
     SDL_AudioSpec desired;
     SDL_AudioSpec obtained;
     desired.freq = 48000;
     desired.format = AUDIO_S16;
     desired.callback = 0;
 
-    char *device_name;
+#if WINDOWS
+    SDL_AudioSpec spec;
+    char *device_name = 0;
     SDL_GetDefaultAudioInfo(&device_name, &spec, 0);
     player->device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
     if (device_name) log("Audio device selected = %s.", device_name);
     else             log("Audio device not selected.");
-    SDL_PauseAudioDevice(player->device_id, 0);
-
     log("device audio spec:");
     print_audio_spec(&spec);
+#elif LINUX
+    player->device_id = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
+#endif
+    SDL_PauseAudioDevice(player->device_id, 0);
+
     log("obtained spec:");
     print_audio_spec(&obtained);
 
@@ -582,7 +584,7 @@ scan_asset_file(FILE *file, s32 *line_num, Asset_Token last_token)
         } break;
     }
     
-    return { ERROR, 0 };
+    return { ATT_ERROR, 0 };
 }
 
 // action is what happens when all the parts of an asset are found
@@ -700,10 +702,11 @@ parse_asset_file(Assets *assets, FILE *file, void (action)(void *data, void *arg
     }
 }
 
-function void
-load_assets(Assets *assets, const char *filename)
+function u32
+load_assets(Assets *assets, const char *filename) // returns 0 on success
 {
     FILE *file = fopen(filename, "r");
+    if (file == 0) { error("load_assets(): could not open file %s", filename); return 1; }
     parse_asset_file(assets, file, count_asset);
     assets->info = ARRAY_MALLOC(Asset_Load_Info, assets->num_of_assets);
     fseek(file, 0, SEEK_SET);
@@ -758,6 +761,8 @@ load_assets(Assets *assets, const char *filename)
             } break;
         }
     }
+
+    return 0;
 }
 
 function void
@@ -811,10 +816,11 @@ save_assets(Assets *assets, const char *filename)
     free(all_assets);
 }
 
-function void
-load_saved_assets(Assets *assets, const char *filename)
+function u32
+load_saved_assets(Assets *assets, const char *filename) // returns 0 on success
 {
     FILE *file = fopen(filename, "rb");
+    if (file == 0) { error("load_saved_assets(): could not open file %s", filename); return 1; }
     fread(assets, sizeof(Assets), 1, file);
     Asset *all_assets = ARRAY_MALLOC(Asset, assets->num_of_assets);
     fread(all_assets, sizeof(Asset), assets->num_of_assets, file);
@@ -894,4 +900,6 @@ load_saved_assets(Assets *assets, const char *filename)
 
     fclose(file);
     free(all_assets);
+
+    return 0;
 }

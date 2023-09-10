@@ -130,8 +130,9 @@ draw_particles(Particles *particles, Assets *assets)
     u32 handle = use_shader(shader);
     glBindVertexArray(particles->mesh.vao);
     v4 color = { 0, 255, 0, 1 };
+    m4x4 identity_matrix = identity_m4x4();
     glUniform4fv(glGetUniformLocation(handle, "user_color"), (GLsizei)1, (float*)&color);
     glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&orthographic_matrix);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "view"), (GLsizei)1, false, (float*)&identity_m4x4());
+    glUniformMatrix4fv(glGetUniformLocation(handle, "view"), (GLsizei)1, false, (float*)&identity_matrix);
     glDrawElementsInstanced(GL_TRIANGLES, particles->mesh.indices_count, GL_UNSIGNED_INT, 0, particles->count);
 }

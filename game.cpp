@@ -831,9 +831,9 @@ application()
 {
     Application app = {};
     init_window(&app.window);
-    //load_assets(&app.assets, "../assets.ethan");
+    //if (load_assets(&app.assets, "../assets.ethan")) return 1;
     //save_assets(&app.assets, "assets.save");
-    load_saved_assets(&app.assets, "assets.save");
+    if (load_saved_assets(&app.assets, "assets.save")) return 1;
     init_audio_player(&app.player);
     return main_loop(&app);
 }
