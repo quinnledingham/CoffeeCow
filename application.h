@@ -33,6 +33,15 @@ struct Controller
         };
         Button buttons[6];
     };
+
+    union
+    {
+        struct
+        {
+            Button show_fps;
+        };
+        Button debug_buttons[1];
+    };
 };
 
 struct Input

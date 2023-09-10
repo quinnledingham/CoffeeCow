@@ -54,6 +54,7 @@ struct Game_Data
 
     // Settings
     b8 fullscreen;
+    b8 show_fps;
 
     Menu menus[NUM_OF_GAME_MODES];
 };
@@ -68,10 +69,6 @@ struct Game_Data
 - wagging of tail
 
 - make multiplayer good/fix bugs
-
-- add music/sound effects
-
-- pack assets into single file
 
 - add settings (fullscreen, music/sfx on off)
 */
@@ -92,6 +89,8 @@ init_controllers(Input *input)
     set(&keyboard->down,   SDLK_DOWN);
     set(&keyboard->select, SDLK_RETURN);
     set(&keyboard->pause,  SDLK_ESCAPE);
+
+    set(&keyboard->show_fps,  SDLK_F5);
     
     input->num_of_controllers = 1; // keyboard
     
@@ -264,8 +263,6 @@ update(Application *app)
     Coffee_Cow *players = data->players;
     v2s window_dim = app->window.dim;
     
-    //log("%f", app->time.frames_per_s);
-
     // what to update
     update_particles(&particles, app->time.frame_time_s);
     if (app->time.run_time_s > 4.0f) update_music(&app->player, &app->assets, &data->music_index);
@@ -603,10 +600,24 @@ update(Application *app)
         } break;
     }
     
-    Font *rubik = find_font(&app->assets, "RUBIK");
-    draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
-    
+    if (on_down(app->input.active_controller->show_fps)) data->show_fps = !data->show_fps;
+    if (data->show_fps)
+    {
+        Font *rubik = find_font(&app->assets, "RUBIK");
+        draw_string(rubik, ftos(app->time.frames_per_s), { 100, 100 }, 50, { 255, 150, 0, 1 });
+    }
+
     return false;
+}
+
+function void
+prepare_controller_for_input(Controller *controller)
+{
+    for (u32 j = 0; j < ARRAY_COUNT(controller->buttons); j++)
+            controller->buttons[j].previous_state = controller->buttons[j].current_state;
+
+    for (u32 j = 0; j < ARRAY_COUNT(controller->debug_buttons); j++)
+            controller->debug_buttons[j].previous_state = controller->debug_buttons[j].current_state;            
 }
 
 function void
@@ -621,16 +632,22 @@ controller_process_input(Controller *controller, s32 id, b32 state)
                 controller->buttons[i].current_state = state;
         }
     }
+
+    for (u32 i = 0; i < ARRAY_COUNT(controller->debug_buttons); i++)
+    {
+        // loop through all ids associated with button
+        for (u32 j = 0; j < controller->debug_buttons[i].num_of_ids; j++)
+        {
+            if (id == controller->debug_buttons[i].ids[j])
+                controller->debug_buttons[i].current_state = state;
+        }
+    }
 }
 
 function b32
 process_input(v2s *window_dim, Input *input)
 {
-    for (u32 i = 0; i < input->num_of_controllers; i++)
-    {
-        for (u32 j = 0; j < ARRAY_COUNT(input->controllers[i].buttons); j++)
-            input->controllers[i].buttons[j].previous_state = input->controllers[i].buttons[j].current_state;
-    }
+    for (u32 i = 0; i < input->num_of_controllers; i++) prepare_controller_for_input(&input->controllers[i]);
     
     SDL_Event event;
     while(SDL_PollEvent(&event))

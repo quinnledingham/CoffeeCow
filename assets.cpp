@@ -436,7 +436,7 @@ init_audio_player(Audio_Player *player)
     log("obtained spec:");
     print_audio_spec(&obtained);
 
-    player->max_length = 4096;
+    player->max_length = 10000;
     player->buffer = (u8*)SDL_malloc(player->max_length);
     SDL_memset(player->buffer, 0, player->max_length);
     //player->audio_stream = SDL_NewAudioStream();
@@ -490,7 +490,7 @@ queue_audio(Audio_Player *player, u32 sample_count)
         if (audio->length_remaining <= 0) continue;
         u32 bytes_to_copy = sample_count * 4; // 2 bytes per 2 channels for each sample
         if (audio->length_remaining < bytes_to_copy) bytes_to_copy = audio->length_remaining;
-        if (bytes_to_copy > player->max_length) { error("queue_audio buffer not big enough"); return; }
+        if (bytes_to_copy > player->max_length) { error("queue_audio buffer not big enough for %d bytes", bytes_to_copy); return; }
 
         r32 volume = 0.5f;
         switch(audio->type)
