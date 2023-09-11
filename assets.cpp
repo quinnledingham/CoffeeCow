@@ -80,9 +80,9 @@ init_bitmap_handle(Bitmap *bitmap)
     glGenTextures(1, &bitmap->handle);
     glBindTexture(target, bitmap->handle);
 
-    GLint internal_format;
-    GLenum data_format;
-    GLint pixel_unpack_alignment;
+    GLint internal_format = 0;
+    GLenum data_format = 0;
+    GLint pixel_unpack_alignment = 0;
     
     switch(bitmap->channels)
     {

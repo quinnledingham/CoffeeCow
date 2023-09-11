@@ -744,7 +744,7 @@ update(Application *app)
 
                 if (data->winner)
                 {
-                    char *winner_str = "Wins";
+                    const char *winner_str = "Wins";
                     v2 str_dim = get_string_dim(rubik, winner_str, pixel_height, color);
 
                     Rect rect = {};
@@ -759,7 +759,7 @@ update(Application *app)
                 }
                 else
                 {
-                    char *tie_str = "Tie";
+                    const char *tie_str = "Tie";
                     v2 str_dim = get_string_dim(rubik, tie_str, pixel_height, color);
                     Rect rect = {};
                     rect.dim = str_dim;
