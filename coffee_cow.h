@@ -36,7 +36,8 @@ struct Coffee_Cow
     r32 transition; // 0.0f - 1.0f
     v2s direction;
     
-    u32 score;
+    u32 score; // single player = how many coffees, 
+    u32 wins;  // multiplayer = how many rounds the cow has one
     b8 dead;
     
     // input

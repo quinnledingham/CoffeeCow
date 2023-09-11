@@ -115,26 +115,23 @@ random_coffee_locaton(v2s *coffee, v2s grid_dim, Coffee_Cow *cows, u32 num_of_co
 }
 
 function void
-init_cc(Coffee_Cow *cow, Coffee_Cow *cows, Coffee_Cow_Design design, Controller *controller, v2s grid_dim)
+reset_all_coffee_cows(Coffee_Cow *cows, u32 num_of_cows)
 {
-    *cow = {};
-    cow->design = design;
-    cow->controller = controller;
-    random_cc_location(cow, cows, 0, grid_dim);
-    cow->score = 0;
+    for (u32 i = 0; i < num_of_cows; i++) cows[i] = {};
 }
 
 function void
 init_cc(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, Coffee_Cow_Design *designs, Controller *controller, v2s grid_dim)
 {
+    u32 save_wins = cow->wins;
     u32 save_design_index = cow->design_index;
-
+    
     *cow = {};
+    cow->wins = save_wins;
     cow->design_index = save_design_index;
     cow->design = designs[cow->design_index];
     cow->controller = controller;
     random_cc_location(cow, cows, num_of_cows, grid_dim);
-    cow->score = 0;
 }
 
 function void

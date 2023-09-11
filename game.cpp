@@ -26,6 +26,8 @@ enum Game_Modes
 {
     MAIN_MENU,
     MULTIPLAYER_MENU,
+    COUNTDOWN,
+    RESULTS,
     IN_GAME,
     PAUSED,
     GAME_OVER,
@@ -42,28 +44,34 @@ enum In_Game_Modes
 
 struct Game_Data
 {
+    u32 music_index;
+
+    // menu data
+    u32 game_mode = MAIN_MENU;
+    u32 in_game_mode;
+    s32 active;
+    Menu default_menu;
+
+    // gameplay data
     v2s grid_dim;
     Coffee_Cow_Design designs[4];
     Coffee_Cow players[4];
     u32 num_of_players;
     Coffee coffees[10];
     u32 num_of_coffees;
+
+    // singleplayer data
     u32 high_score;
     
-    u32 game_mode = MAIN_MENU;
-    u32 in_game_mode;
-    s32 active;
-    Menu default_menu;
-    
-    Bitmap *icon;
+    // multiplayer data
+    u32 countdown;
+    u32 count_start_time;
+    Bitmap *winner;
+    Bitmap *winner_outline;
 
-    u32 music_index;
-
-    // Settings
+    // settings
     b8 fullscreen;
     b8 show_fps;
-
-    Menu menus[NUM_OF_GAME_MODES];
 };
 
 /*
@@ -78,9 +86,6 @@ struct Game_Data
 
 - make multiplayer good/fix bugs
 - when they crash head on it ends with them a block away
-- add 3 second count down
-
-- add settings (music/sfx on off)
 */
 
 function void
@@ -276,13 +281,40 @@ draw_singleplayer_scoreboard(Font *font, v2s window_dim, u32 score, u32 high_sco
     draw_string(font, high_score_text, high_score_text_coords, pixel_height, color);
 }
 
+function void
+draw_multiplayer_scoreboard(Font *font, v2s window_dim, Coffee_Cow *players, u32 num_of_players)
+{
+    r32 pixel_height = window_dim.y * 0.07f;
+    v4 color = { 0, 0, 0, 1 };
+    
+    r32 bit_dim_temp = window_dim.y * 0.07f;
+    v2 bitmap_dim = { bit_dim_temp, bit_dim_temp };
+
+    Rect rect = {};
+    rect.dim = { bitmap_dim.x + 100, bitmap_dim.y * num_of_players };
+    rect.coords = { 20, 20 };
+
+    v2 coords = { 5, 5 };
+    for (u32 i = 0; i < num_of_players; i++)
+    {
+        char *str = u32_to_string(players[i].wins);
+        v2 str_dim = get_string_dim(font, str, pixel_height, color);
+        v2 str_coords = { coords.x + bitmap_dim.x + 5,  coords.y + (bitmap_dim.y/2.0f) + (str_dim.y/2.0f) };
+
+        draw_rect(coords, 0, bitmap_dim, players[i].design.bitmaps[ASSET_COW_HEAD_OUTLINE]);       
+        draw_rect(coords, 0, bitmap_dim, players[i].design.bitmaps[ASSET_COW_HEAD]);
+        draw_string(font, str, str_coords, pixel_height, color);
+
+        coords.y += bitmap_dim.y;
+    }
+}
+
 function b32
 update(Application *app)
 {
     Game_Data *data = (Game_Data*)app->data;
     Controller *menu_controller = app->input.active_controller;
     
-    u32 num_of_players = data->num_of_players;
     Coffee_Cow *players = data->players;
     v2s window_dim = app->window.dim;
     Font *rubik = find_font(&app->assets, "RUBIK");
@@ -305,7 +337,7 @@ update(Application *app)
 
         case SETTINGS:
         {
-            menu_update_active(&data->active, 0, 2, menu_controller->down, menu_controller->up);
+            menu_update_active(&data->active, 0, 4, menu_controller->down, menu_controller->up);
         } break;
 
         case PAUSED:
@@ -316,23 +348,54 @@ update(Application *app)
 
             if (on_down(menu_controller->pause)) data->game_mode = IN_GAME;
         } break;
+
+        case COUNTDOWN:
+        {
+            r32 diff = app->time.run_time_s - data->count_start_time;
+            u32 count = 3 - (u32)diff;
+            data->countdown = count;
+            if (count == 0) data->game_mode = IN_GAME;
+        } break;
+
+        case RESULTS:
+        {
+            r32 diff = app->time.run_time_s - data->count_start_time;
+            u32 count = 2 - (u32)diff;
+            if (count == 0) data->game_mode = GAME_OVER;
+        } break;
         
         case IN_GAME:
         {
             update_high_score(players[0].score, &data->high_score);
 
-            update_coffee_cows(players, num_of_players, app->time.frame_time_s, data->grid_dim);
+            update_coffee_cows(players, data->num_of_players, app->time.frame_time_s, data->grid_dim);
             update_coffees(data->coffees, data->num_of_coffees);
-            if (coffee_cows_on_coffee(players, num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
+            if (coffee_cows_on_coffee(players, data->num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
                 play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
 
-            for (u32 i = 0; i < num_of_players; i++) 
+            if (data->in_game_mode == SINGLEPLAYER)
             {
-                if (players[i].dead) 
+                if (players[0].dead) data->game_mode = GAME_OVER;
+            }
+            else if (data->in_game_mode == MULTIPLAYER)
+            {
+                u32 players_alive = 0;
+                Coffee_Cow *alive = 0;
+                for (u32 i = 0; i < data->num_of_players; i++) if (!players[i].dead) { players_alive++; alive = &players[i]; }
+                if (players_alive == 0)
                 {
-                    data->game_mode = GAME_OVER;
-                    players[i].dead = false;
-                    players[i].open_mouth = false;
+                    data->game_mode = RESULTS;
+                    data->count_start_time = app->time.run_time_s;
+                    data->winner = 0;
+                    data->winner_outline = 0;
+                }
+                else if (players_alive == 1)
+                {
+                    alive->wins++;
+                    data->game_mode = RESULTS;
+                    data->count_start_time = app->time.run_time_s;
+                    data->winner = alive->design.bitmaps[ASSET_COW_HEAD];
+                    data->winner_outline = alive->design.bitmaps[ASSET_COW_HEAD_OUTLINE];
                 }
             }
                                  
@@ -360,7 +423,7 @@ update(Application *app)
             Menu main_menu = data->default_menu;
             b32 select = on_down(menu_controller->select);
             
-            resize_menu(&main_menu, window_rect, logo->dim, 1, 3);
+            resize_menu(&main_menu, window_rect, logo->dim, 1, 4);
             
             draw_rect(window_rect, main_menu_back);
             
@@ -368,17 +431,18 @@ update(Application *app)
             main_menu.rect.coords.y += main_menu.bitmap.dim.y + main_menu.padding.y;
             
             u32 index = 0;
-            if (menu_button(&main_menu, "Play", index++, data->active, select))
+            if (menu_button(&main_menu, "Singleplayer", index++, data->active, select))
             {
                 data->game_mode = IN_GAME;
                 data->in_game_mode = SINGLEPLAYER;
                 data->active = 0;
-                
-                init_cc(&players[0], players, data->designs[0], app->input.active_controller, data->grid_dim);
                 data->num_of_players = 1;
-                
-                random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
                 data->num_of_coffees = 1;
+                reset_all_coffee_cows(players, data->num_of_players);
+                players[0].design_index = 0;
+                players[0].controller = app->input.active_controller;
+                init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
+                random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, data->num_of_players);  
             }
             
             if (menu_button(&main_menu, "Multiplayer", index++, data->active, select))
@@ -387,7 +451,6 @@ update(Application *app)
                 data->in_game_mode = MULTIPLAYER;
                 data->active = 0;
                 play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
-                play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
                 for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
             }
 
@@ -476,8 +539,11 @@ update(Application *app)
 
                 if (data->num_of_players >= 2) 
                 {
-                    data->game_mode = IN_GAME;
                     data->active = 0;
+                    data->game_mode = COUNTDOWN;
+                    data->count_start_time = app->time.run_time_s;
+                    data->num_of_coffees = 1;
+                    reset_all_coffee_cows(players, data->num_of_players);
 
                     // loading the controllers from the designs to the players array
                     // no spaces in the player array so can loop from 0 - num of players to update all
@@ -509,8 +575,28 @@ update(Application *app)
             Menu settings_menu = data->default_menu;
             Rect bounds = get_centered_square(window_rect, settings_menu.window_percent);
             u32 index = 0;
-            resize_menu(&settings_menu, window_rect, {(s32)settings_menu.button.dim.x, 0}, 0, 2);
+            resize_menu(&settings_menu, window_rect, {(s32)settings_menu.button.dim.x, 0}, 0, 4);
             draw_rect(window_rect, settings_menu_back);
+
+            const char *sounds_str = 0;
+            if      (app->player.sound_volume == 0) sounds_str = "Unmute Sounds";
+            else if (app->player.sound_volume != 0) sounds_str = "Mute Sounds";
+
+            if (menu_button(&settings_menu, sounds_str, index++, data->active, select))
+            {
+                if      (app->player.sound_volume == 0) app->player.sound_volume = 0.5f;
+                else if (app->player.sound_volume != 0) app->player.sound_volume = 0.0f;
+            }
+
+            const char *music_str = 0;
+            if      (app->player.music_volume == 0) music_str = "Unmute Music";
+            else if (app->player.music_volume != 0) music_str = "Mute Music";
+
+            if (menu_button(&settings_menu, music_str, index++, data->active, select))
+            {
+                if      (app->player.music_volume == 0) app->player.music_volume = 0.5f;
+                else if (app->player.music_volume != 0) app->player.music_volume = 0.0f;
+            }
 
             if (menu_button(&settings_menu, "Toggle Fullscreen", index++, data->active, select))
             {
@@ -529,6 +615,8 @@ update(Application *app)
         } break;
         
         case IN_GAME:
+        case COUNTDOWN:
+        case RESULTS:
         case PAUSED:
         case GAME_OVER:
         {
@@ -556,12 +644,14 @@ update(Application *app)
             }
             
             draw_rect(rocks_rect, rocks);
-            if (data->in_game_mode == SINGLEPLAYER) draw_singleplayer_scoreboard(rubik, window_dim, players[0].score, data->high_score);
 
-            for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
+            if      (data->in_game_mode == SINGLEPLAYER) draw_singleplayer_scoreboard(rubik, window_dim, players[0].score, data->high_score);
+            else if (data->in_game_mode == MULTIPLAYER)  draw_multiplayer_scoreboard(rubik, window_dim, data->players, data->num_of_players);
+
+            for (u32 i = 0; i < data->num_of_players; i++) draw_coffee_cow_mouth(&players[i], grass_rect.coords, grid_size.x);
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             draw_particles(&particles, &app->assets);
-            for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
+            for (u32 i = 0; i < data->num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
             //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
             
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
@@ -580,35 +670,80 @@ update(Application *app)
                 
                 Rect back_rect = get_centered_rect_pad(pause_menu.rect, pause_menu.padding * 2);
                 draw_rect(back_rect, { 0, 0, 0, 0.5f });
-                
+
                 u32 index = 0;
                 
-                if (menu_button(&pause_menu, "Restart", index++, data->active, select))
+                if (menu_button(&pause_menu, "Play Again", index++, data->active, select))
                 {
-                    data->game_mode = IN_GAME;
                     data->active = 0;
+                    if (data->in_game_mode == SINGLEPLAYER)
+                    {
+                        data->game_mode = IN_GAME;
+                    }
+                    else if (data->in_game_mode == MULTIPLAYER) 
+                    {
+                        data->game_mode = COUNTDOWN;
+                        data->count_start_time = app->time.run_time_s;
+                    }
                     
-                    init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
-                    
-                    random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
-                    data->num_of_coffees = 1;
+                    init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);   
+                    random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, data->num_of_players);                
                 }
                 
                 if (menu_button(&pause_menu, "Menu", index++, data->active, select))
-                {
-                    data->game_mode = MAIN_MENU;
+                {                    
                     data->active = 0;
-                    
-                    players[0] = {};
+                    data->game_mode = MAIN_MENU;
                     
                     init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);
-                    
-                    random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, num_of_players);
-                    data->num_of_coffees = 1;
+                    random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, data->num_of_players);
                 }
             }
+            else if (data->game_mode == COUNTDOWN)
+            {
+                r32 pixel_height = window_dim.y * 0.2f;
+                v4 color = { 0, 0, 0, 1 };
+                char *countdown_str = u32_to_string(data->countdown);
+                v2 countdown_dim = get_string_dim(rubik, countdown_str, pixel_height, color);
+                v2 countdown_coords = { (window_dim.x / 2.0f) - (countdown_dim.x / 2.0f), (window_dim.y / 2.0f) + (countdown_dim.y / 2.0f) };
+                draw_string(rubik, countdown_str, countdown_coords, pixel_height, color);
+                SDL_free((void*)countdown_str);
+            }
+            else if (data->game_mode == RESULTS)
+            {                
+                r32 bit_dim_temp = window_dim.y * 0.2f;
+                v2 bitmap_dim = { bit_dim_temp, bit_dim_temp };
+                r32 pixel_height = window_dim.y * 0.2f;
+                v4 color = { 255, 255, 255, 1 };
 
+                if (data->winner)
+                {
+                    char *winner_str = "Wins";
+                    v2 str_dim = get_string_dim(rubik, winner_str, pixel_height, color);
 
+                    Rect rect = {};
+                    rect.dim = { bitmap_dim.x + str_dim.x, pixel_height };
+                    rect.coords = get_centered(rect, window_rect);
+                    v2 str_coords = { rect.coords.x + bitmap_dim.x, rect.coords.y + (rect.dim.y/2.0f) + (str_dim.y/2.0f) };
+
+                    draw_rect(get_centered_rect_pad(rect, cv2(window_dim) * 0.0179f * 2.0f), { 0, 0, 0, 0.5f });
+                    draw_rect(rect.coords, 0, bitmap_dim, data->winner_outline);
+                    draw_rect(rect.coords, 0, bitmap_dim, data->winner);       
+                    draw_string(rubik, winner_str, str_coords, pixel_height, color);         
+                }
+                else
+                {
+                    char *tie_str = "Tie";
+                    v2 str_dim = get_string_dim(rubik, tie_str, pixel_height, color);
+                    Rect rect = {};
+                    rect.dim = str_dim;
+                    rect.coords = get_centered(rect, window_rect);
+                    v2 str_coords = { rect.coords.x,  rect.coords.y + (rect.dim.y/2.0f) + (str_dim.y/2.0f) };
+                    draw_rect(get_centered_rect_pad(rect, cv2(window_dim) * 0.0179f * 2.0f), { 0, 0, 0, 0.5f });
+                    draw_string(rubik, tie_str, str_coords, pixel_height, color);    
+                }
+            }
+        
         } break;
     }
     
@@ -820,7 +955,7 @@ init_window(Window *window)
 
     window->sdl = SDL_CreateWindow("Coffee Cow", 
                                    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                   800, 800, 
+                                   900, 800, 
                                    sdl_window_flags);
     init_opengl(window);
     SDL_GetWindowSize(window->sdl, &window->dim.width, &window->dim.height);
