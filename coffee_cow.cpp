@@ -4,6 +4,27 @@ random(s32 lower, s32 upper)
     return lower + (rand() % (upper - lower));
 }
 
+function u32
+get_direction(v2s dir)
+{
+    if      (dir == RIGHT_V) return RIGHT;
+    else if (dir == UP_V)    return UP;
+    else if (dir == LEFT_V)  return LEFT;
+    else                     return DOWN;
+}
+
+// heads going straight into each other
+function b8
+head_on_collision(v2s d1, v2s d2)
+{
+    u32 dir1 = get_direction(d1);
+    u32 dir2 = get_direction(d2);
+    if ((dir1 == RIGHT && dir2 == LEFT) || (dir1 == LEFT && dir2 == RIGHT) ||
+        (dir1 == UP    && dir2 == DOWN) || (dir1 == DOWN && dir2 == UP)) 
+         return true;
+    else return false;
+}
+
 function void
 add_node(Coffee_Cow *cow, v2s grid_coords)
 {
@@ -43,7 +64,7 @@ valid_cc_coords(v2s coords, Coffee_Cow *other)
     for (u32 i = 0; i < other->num_of_nodes; i++)
     {
         Coffee_Cow_Node *o = &other->nodes[i];
-        if (o->coords == coords) return false;
+        if (o->coords == coords) return false;        
     }
     return true;
 }
@@ -169,8 +190,21 @@ coffee_cow_can_move(Coffee_Cow *cow, v2s grid_dim, Coffee_Cow *cows, u32 num_of_
     else if (head.y < 0 || head.y > (grid_dim.y - 1)) return false;
     
     // checking if it hits itself or another cow
-    for (u32 i = 0; i < num_of_cows; i++) if (!valid_cc_coords(head, &cows[i])) return false;
-
+    //for (u32 i = 0; i < num_of_cows; i++) if (!valid_cc_coords(head, &cows[i])) return false;
+    for (u32 i = 0; i < num_of_cows; i++)
+    {
+        Coffee_Cow *other = &cows[i];
+        for (u32 j = 0; j < other->num_of_nodes; j++)
+        {   
+            Coffee_Cow_Node *o = &other->nodes[j];
+            if (o->coords == head && j == 0 && head_on_collision(cow->direction, other->direction)) 
+            { 
+                other->dead = true; 
+                other->open_mouth = false;
+            }
+            if (o->coords == head) return false;        
+        }
+    }
     return true;
 }
 
@@ -254,9 +288,10 @@ update_coffee_cow_mouth(Coffee_Cow *cow, r32 frame_time_s, r32 speed)
     //log("%d", cow->open_mouth);
 }
 
-function void
+function b8
 update_coffee_cow(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, r32 frame_time_s, v2s grid_dim)
 {
+    b8 sound = false;
     // read new inputs for cow
     Controller *controller = cow->controller;
     
@@ -285,9 +320,9 @@ update_coffee_cow(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, r32 frame_
     if (next_transition >= 1.0f) // changes cells
     { 
         cow->direction = coffee_cow_next_direction(cow);        
-        if (!coffee_cow_can_move(cow, grid_dim, cows, num_of_cows)) { cow->dead = true; cow->open_mouth = false; }
-        
-        if (cow->dead)return;
+        if (!coffee_cow_can_move(cow, grid_dim, cows, num_of_cows)) { cow->dead = true; cow->open_mouth = false; sound = true; }
+        if (cow->dead) return sound;
+
         cow->transition = next_transition - 1.0f;
         
         s32 particle_point = random(1, 10);
@@ -310,16 +345,30 @@ update_coffee_cow(Coffee_Cow *cow, Coffee_Cow *cows, u32 num_of_cows, r32 frame_
         if      (cow->num_of_inputs == 0) cow->transition = next_transition;
         else if (cow->num_of_inputs > 0)  cow->transition = next_transition_with_slight_boost;
     }
+
+    return sound;
 }
 
+// if the cow successfully transitioned to a new grid cell let it fill that cell.
+// this will fill in the gap if they run into each other.
 function void
+update_coffee_cow_results(Coffee_Cow *cow, r32 frame_time_s)
+{
+    r32 speed = 5.0f; // m/s
+    r32 next_transition = cow->transition + (speed * frame_time_s);
+    if (cow->transition < 1.0f) cow->transition = next_transition;
+}
+
+function b8
 update_coffee_cows(Coffee_Cow *cows, u32 num_of_cows, r32 frame_time_s, v2s grid_dim)
 {
+    b8 sound = false;
     for (u32 i = 0; i < num_of_cows; i++)
     {
         Coffee_Cow *cow = &cows[i];
-        update_coffee_cow(cow, cows, num_of_cows, frame_time_s, grid_dim);
+        if (update_coffee_cow(cow, cows, num_of_cows, frame_time_s, grid_dim)) sound = true;
     }
+    return sound;
 }
 
 function void
@@ -377,15 +426,6 @@ get_cc_outline_rect(v2 point, v2 current, v2 last, r32 grid_size)
         rect.coords.y = current.y - (grid_size / 2.0f);
     }
     return rect;
-}
-
-function u32
-get_direction(v2s dir)
-{
-    if      (dir == RIGHT_V) return RIGHT;
-    else if (dir == UP_V)    return UP;
-    else if (dir == LEFT_V)  return LEFT;
-    else                     return DOWN;
 }
 
 function r32
@@ -534,6 +574,7 @@ draw_coffee_cow(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
                     Rect body_rect = get_cc_body_rect(get_direction(point_dir), 0.9f, 1.0f, outline_rect);
                     draw_rect(body_rect, cow->design.color);
                     draw_rect(bigger_head.coords, rot, bigger_head.dim, cow->design.bitmaps[ASSET_COW_HEAD]);
+                    //draw_circle(bigger_head.coords, 0, bigger_head.dim.x * 0.2f, {0, 0, 0, 1});
                 }
                 
                 coords_of_last_cir = coords_of_cir;
@@ -688,8 +729,6 @@ draw_coffee_cow_mouth(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     draw_rect(t_coords, rot, grid_s, cow->design.bitmaps[ASSET_COW_MOUTH]);
 }
 
-
-
 function void
 draw_coffee_cow_debug(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
 {
@@ -708,4 +747,70 @@ draw_coffee_cow_debug(Coffee_Cow *cow, v2 grid_coords, r32 grid_size)
     }
     
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+//
+// Testing
+//
+
+function void
+coffee_cows_test(Coffee_Cow *players, u32 num_of_players, Coffee_Cow_Design *designs, v2s grid_dim)
+{
+    for (u32 i = 0; i < num_of_players; i++)
+    {
+        Coffee_Cow *cow = &players[i];
+        u32 save_wins = cow->wins;
+        u32 save_design_index = cow->design_index;
+        Controller *controller = cow->controller;
+    
+        *cow = {};
+        cow->wins = save_wins;
+        cow->design_index = save_design_index;
+        cow->design = designs[cow->design_index];
+        cow->controller = controller;
+        
+        v2s locations[4] = {};
+        
+        // at angle
+        
+        if (i == 1)
+        {
+            locations[0] = { 3, 7 };
+            locations[1] = { 2, 7 };
+            locations[2] = { 1, 7 };
+            locations[3] = { 0, 7 };
+            cow->direction = RIGHT_V;
+        }
+        else if (i == 0)
+        {
+            locations[0] = { 7, 3 };
+            locations[1] = { 7, 2 };
+            locations[2] = { 7, 1 };
+            locations[3] = { 7, 0 };
+            cow->direction = DOWN_V;
+        }
+        
+       /*
+       if (i == 0)
+        {
+            locations[0] = { 3, 7 };
+            locations[1] = { 2, 7 };
+            locations[2] = { 1, 7 };
+            locations[3] = { 0, 7 };
+            cow->direction = RIGHT_V;
+        }
+        else if (i == 1)
+        {
+            locations[0] = { grid_dim.y - 3, 7 };
+            locations[1] = { grid_dim.x - 2, 7 };
+            locations[2] = { grid_dim.x - 1, 7 };
+            locations[3] = { grid_dim.x, 7 };
+            cow->direction = LEFT_V;
+        }
+        */
+        add_node(cow, locations[0]);
+        add_node(cow, locations[1]);
+        add_node(cow, locations[2]);
+        add_node(cow, locations[3]);
+    }
 }

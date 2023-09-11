@@ -85,7 +85,6 @@ struct Game_Data
 - eyes moving
 
 - make multiplayer good/fix bugs
-- when they crash head on it ends with them a block away
 */
 
 function void
@@ -261,45 +260,68 @@ function void
 draw_singleplayer_scoreboard(Font *font, v2s window_dim, u32 score, u32 high_score)
 {
     r32 pixel_height = window_dim.y * 0.07f;
-    v4 color = { 0, 0, 0, 1 };
-    v2 padding = { 5, 10 };
+    v4 color = { 255, 255, 255, 1 };
+    v4 back_color = { 0, 0, 0, 0.5f };
 
+    Rect score_rect = {};
+    score_rect.coords = { 15, 15 };
     char *score_str = u32_to_string(score);
     v2 score_dim = get_string_dim(font, score_str, pixel_height, color);
-    draw_string(font, score_str, { 5, score_dim.y + 10 }, pixel_height, color);
+    score_rect.dim = score_dim;
+   
+    draw_rect(get_centered_rect_pad(score_rect, { 10, 10 }), back_color);
+    v2 score_coords = score_rect.coords;
+    score_coords.y += score_dim.y;
+    draw_string(font, score_str, score_coords, pixel_height, color);
     SDL_free((void*)score_str);
     
+    v2 padding = { 15, 15 };
+
+    const char *high_score_text = "High Score: ";
     const char *high_score_str = u32_to_string(high_score);
     v2 high_score_dim = get_string_dim(font, high_score_str, pixel_height, color);
     v2 high_score_coords = { window_dim.x - high_score_dim.x - padding.x, high_score_dim.y + padding.y };
+    v2 high_score_text_dim = get_string_dim(font, high_score_text, pixel_height, color);    
+    v2 high_score_text_coords = { window_dim.x - high_score_text_dim.x - 10 - high_score_dim.x - padding.x, high_score_text_dim.y + padding.y };
+
+    Rect high_score_rect = {};
+    high_score_rect.coords = { high_score_text_coords.x, padding.y };
+    high_score_rect.dim.x = high_score_text_dim.x + 10 + high_score_dim.x;
+    high_score_rect.dim.y = high_score_text_dim.y;
+    
+    draw_rect(get_centered_rect_pad(high_score_rect, { 10, 10 }), back_color);
+    draw_string(font, high_score_text, high_score_text_coords, pixel_height, color);    
     draw_string(font, high_score_str, high_score_coords, pixel_height, color);
     SDL_free((void*)high_score_str);
 
-    const char *high_score_text = "High Score: ";
-    v2 high_score_text_dim = get_string_dim(font, high_score_text, pixel_height, color);
-    v2 high_score_text_coords = { window_dim.x - high_score_text_dim.x - 10 - high_score_dim.x - padding.x, high_score_text_dim.y + padding.y };
-    draw_string(font, high_score_text, high_score_text_coords, pixel_height, color);
 }
 
 function void
 draw_multiplayer_scoreboard(Font *font, v2s window_dim, Coffee_Cow *players, u32 num_of_players)
 {
     r32 pixel_height = window_dim.y * 0.07f;
-    v4 color = { 0, 0, 0, 1 };
+    v4 color = { 255, 255, 255, 1.0f };
+    v4 back_color = { 0, 0, 0, 0.5f };
     
     r32 bit_dim_temp = window_dim.y * 0.07f;
     v2 bitmap_dim = { bit_dim_temp, bit_dim_temp };
 
+    v2 coords = { 15, 15 };
+    local_persist r32 largest_x = 0;
     Rect rect = {};
-    rect.dim = { bitmap_dim.x + 100, bitmap_dim.y * num_of_players };
-    rect.coords = { 20, 20 };
+    v2 padding = { 5, 0 };
+    rect.dim = { bitmap_dim.x + largest_x + padding.x, bitmap_dim.y * num_of_players };
+    rect.coords = coords;
 
-    v2 coords = { 5, 5 };
+    draw_rect(get_centered_rect_pad(rect, { 10, 10 }), back_color);
+    largest_x = 0;
     for (u32 i = 0; i < num_of_players; i++)
     {
         char *str = u32_to_string(players[i].wins);
         v2 str_dim = get_string_dim(font, str, pixel_height, color);
-        v2 str_coords = { coords.x + bitmap_dim.x + 5,  coords.y + (bitmap_dim.y/2.0f) + (str_dim.y/2.0f) };
+        v2 str_coords = { coords.x + bitmap_dim.x + padding.x,  coords.y + (bitmap_dim.y/2.0f) + (str_dim.y/2.0f) };
+
+        if (str_dim.x > largest_x) largest_x = str_dim.x;
 
         draw_rect(coords, 0, bitmap_dim, players[i].design.bitmaps[ASSET_COW_HEAD_OUTLINE]);       
         draw_rect(coords, 0, bitmap_dim, players[i].design.bitmaps[ASSET_COW_HEAD]);
@@ -362,13 +384,16 @@ update(Application *app)
             r32 diff = app->time.run_time_s - data->count_start_time;
             u32 count = 2 - (u32)diff;
             if (count == 0) data->game_mode = GAME_OVER;
+            update_coffee_cow_mouth(&players[0], app->time.frame_time_s, 7.0f);
+            for (u32 i = 0; i < data->num_of_players; i++) update_coffee_cow_results(&players[i], app->time.frame_time_s);
         } break;
         
         case IN_GAME:
         {
             update_high_score(players[0].score, &data->high_score);
 
-            update_coffee_cows(players, data->num_of_players, app->time.frame_time_s, data->grid_dim);
+            if (update_coffee_cows(players, data->num_of_players, app->time.frame_time_s, data->grid_dim))
+                play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
             update_coffees(data->coffees, data->num_of_coffees);
             if (coffee_cows_on_coffee(players, data->num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
                 play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
@@ -450,7 +475,6 @@ update(Application *app)
                 data->game_mode = MULTIPLAYER_MENU;
                 data->in_game_mode = MULTIPLAYER;
                 data->active = 0;
-                play_audio(&app->player, find_audio(&app->assets, "BLOOP"), AUDIO_SOUND);
                 for (u32 i = 0; i < 4; i++) data->designs[i].controller = 0;
             }
 
@@ -652,7 +676,7 @@ update(Application *app)
             for (u32 i = 0; i < data->num_of_coffees; i++) draw_rect(grass_rect.coords + (cv2(data->coffees[i].coords) * grid_size), DEG2RAD * data->coffees[i].rotation, grid_size, find_bitmap(&app->assets, "COFFEE"));
             draw_particles(&particles, &app->assets);
             for (u32 i = 0; i < data->num_of_players; i++) draw_coffee_cow(&players[i], grass_rect.coords, grid_size.x);
-            //for (u32 i = 0; i < num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
+            //for (u32 i = 0; i < data->num_of_players; i++) draw_coffee_cow_debug(&players[i], grass_rect.coords, grid_size.x);
             
             if (data->game_mode == PAUSED || data->game_mode == GAME_OVER)
             {
@@ -687,6 +711,8 @@ update(Application *app)
                     }
                     
                     init_all_coffee_cows(players, data->num_of_players, data->designs, data->grid_dim);   
+                    //coffee_cows_test(players, data->num_of_players, data->designs, data->grid_dim);   
+
                     random_coffee_locaton(&data->coffees[0].coords, data->grid_dim, players, data->num_of_players);                
                 }
                 
