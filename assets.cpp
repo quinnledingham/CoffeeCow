@@ -361,7 +361,7 @@ get_string_dim(Font *font, const char *string, f32 pixel_height, v4 color)
     {
         Font_Char *font_char = load_font_char(font, string[i], scale, color);
         
-        f32 y = -1 * font_char->c_y1;
+        f32 y = -1.0f * (r32)font_char->c_y1;
         if (dim.y < y) dim.y = y;
         
         int kern = stbtt_GetCodepointKernAdvance(&font->info, string[i], string[i + 1]);
@@ -516,7 +516,7 @@ mix_audio(Audio_Player *player, r32 frame_time_s)
         {
             s16 *buffer = (s16*)&player->buffer[buffer_index];
             s16 *source = (s16*)&audio->position[buffer_index];
-            *buffer += *source * volume;
+            *buffer += s16((r32)*source * volume);
             buffer_index += 2; // move two bytes
         }
         

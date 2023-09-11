@@ -65,7 +65,7 @@ struct Game_Data
     
     // multiplayer data
     u32 countdown;
-    u32 count_start_time;
+    r32 count_start_time; // in seconds
     Bitmap *winner;
     Bitmap *winner_outline;
 

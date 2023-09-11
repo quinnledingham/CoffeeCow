@@ -433,7 +433,7 @@ get_length(Str &str)
     
     const char *ptr = str.memory;
     while(*ptr != 0) ptr++;
-    str.length = ptr - str.memory;
+    str.length = u32(ptr - str.memory);
     return str.length;
 }
 
