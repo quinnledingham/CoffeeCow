@@ -651,15 +651,15 @@ init_audio_player(Audio_Player *player)
     SDL_AudioSpec spec;
     char *device_name = 0;
     SDL_GetDefaultAudioInfo(&device_name, &spec, 0);
-    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
+    player->device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
     if (device_name) log("Audio device selected = %s.", device_name);
     else             log("Audio device not selected.");
     log("device audio spec:");
     print_audio_spec(&spec);
 #elif LINUX
-    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
+    player->device_id = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
 #endif
-    SDL_PauseAudioDevice(device_id, 0);
+    SDL_PauseAudioDevice(player->device_id, 0);
     
     log("obtained spec:");
     print_audio_spec(&obtained);

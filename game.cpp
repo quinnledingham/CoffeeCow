@@ -862,7 +862,7 @@ update_time(Time *time)
 function void
 update_matrices(Matrices *m, r32 fov, r32 aspect_ratio, v2s window_dim)
 {
-    m->perspective_matrix = perspective_projection(fov, aspect_ratio, 0.01f, 1000.0f);
+    //m->perspective_matrix = perspective_projection(fov, aspect_ratio, 0.01f, 1000.0f);
     m->orthographic_matrix = orthographic_projection(0.0f, (r32)window_dim.width, (r32)window_dim.height, 0.0f, -3.0f, 3.0f);
     m->update = false;
 }
