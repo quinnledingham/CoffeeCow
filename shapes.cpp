@@ -1,3 +1,54 @@
+enum Shape_Types
+{
+    SHAPE_RECT,
+    SHAPE_CIRCLE,
+    SHAPE_CUBE,
+};
+
+enum Shape_Draw_Types
+{
+    SHAPE_COLOR,
+    SHAPE_TEXTURE,
+    SHAPE_TEXT,
+};
+
+
+struct Shape // container for all the information needed to draw the shape
+{
+    u32 type;
+    v3 coords;
+    quat rotation;
+    v3 dim;
+    
+    u32 draw_type;
+    v4 color;
+    Bitmap *bitmap;
+};
+
+void init_shapes(Shader *color, Shader *texture, Shader *text);
+void draw_shape(Shape shape);
+
+struct Shapes {
+    Shader *test_color;
+    Shader *test_texture;
+    Shader *test_text;
+
+    Shader color;
+    Shader texture;
+    Shader text;
+
+    Mesh rect;
+    Mesh circle;
+    Mesh cube;
+};
+
+Shapes shapes = {};
+
+const char *basic_vs = "#version 330 core\nlayout (location = 0) in vec3 position;layout (location = 1) in vec3 normal;layout (location = 2) in vec2 texture_coords;out vec2 uv;layout (std140) uniform Matrices{mat4 projection;mat4 view;};uniform mat4 model; void main(void) { gl_Position = projection * view * model * vec4(position, 1.0f); uv = texture_coords;}";
+const char *color_fs = "#version 330 core\nuniform vec4 user_color;in vec2 uv; out vec4 FragColor;void main() { FragColor  = vec4(user_color.x/255, user_color.y/255, user_color.z/255, user_color.w);}";
+const char *tex_fs   = "#version 330 core\nuniform sampler2D tex0;in vec2 uv;out vec4 FragColor;void main() { vec4 tex = texture(tex0, uv); FragColor = tex;}";
+const char *text_fs  = "#version 330 core\nin vec2 uv;out vec4 FragColor;uniform sampler2D tex0;uniform vec4 text_color;void main() { vec3 norm_text_color = vec3(text_color.x/255, text_color.y/255, text_color.z/255);float alpha = texture(tex0, uv).r * text_color.a;vec4 tex = vec4(1.0, 1.0, 1.0, alpha); FragColor = vec4(norm_text_color, 1.0) * tex;}";
+
 //
 // drawing
 // 
@@ -37,8 +88,7 @@ init_rect_mesh(Mesh *rect)
     init_mesh(rect);
 }
 
-function void
-draw_rect(v2 coords, r32 rotation, v2 dim, v4 color)
+void draw_rect(v2 coords, r32 rotation, v2 dim, v4 color)
 {
     v3 coords_v3 = { coords.x, coords.y, 0 };
     quat rotation_quat = get_rotation(rotation, { 0, 0, 1 });
@@ -51,11 +101,10 @@ draw_rect(v2 coords, r32 rotation, v2 dim, v4 color)
     shape.dim = dim_v3;
     shape.draw_type = SHAPE_COLOR;
     shape.color = color;
-    draw_shape(shape, orthographic_matrix, identity_m4x4());
+    draw_shape(shape);
 }
 
-function void
-draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap)
+void draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap)
 {
     v3 coords_v3 = { coords.x, coords.y, 0 };
     quat rotation_quat = get_rotation(-rotation, { 0, 0, 1 });
@@ -68,7 +117,24 @@ draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap)
     shape.dim = dim_v3;
     shape.draw_type = SHAPE_TEXTURE;
     shape.bitmap = bitmap;
-    draw_shape(shape, orthographic_matrix, identity_m4x4());
+    draw_shape(shape);
+}
+
+void draw_rect(v2 coords, r32 rotation, v2 dim, Bitmap *bitmap, v4 color)
+{
+    v3 coords_v3 = { coords.x, coords.y, 0 };
+    quat rotation_quat = get_rotation(-rotation, { 0, 0, 1 });
+    v3 dim_v3 = { dim.x, dim.y, 1 };
+    
+    Shape shape = {};
+    shape.type = SHAPE_RECT;
+    shape.coords = coords_v3;
+    shape.rotation = rotation_quat;
+    shape.dim = dim_v3;
+    shape.draw_type = SHAPE_TEXT;
+    shape.bitmap = bitmap;
+    shape.color = color;
+    draw_shape(shape);
 }
 
 //
@@ -97,7 +163,7 @@ init_circle_mesh(Mesh *mesh)
     mesh->vertices_count = 1 + circle_vertices; // +1 for center
     mesh->vertices = ARRAY_MALLOC(Vertex, mesh->vertices_count);
     
-    mesh->indices_count = circle_vertices * 3;
+    mesh->indices_count = circle_vertices * 3 + 6;
     mesh->indices = ARRAY_MALLOC(u32, mesh->indices_count);
     
     // center vertex
@@ -117,7 +183,7 @@ init_circle_mesh(Mesh *mesh)
         texture_coords.x = coords.x;
         texture_coords.y = coords.y;
         
-        mesh->vertices[i] = { coords, normal, texture_coords };
+        mesh->vertices[i + 1] = { coords, normal, texture_coords };
         
         if (i == 0) continue;
         
@@ -127,11 +193,18 @@ init_circle_mesh(Mesh *mesh)
         mesh->indices[indices_index++] = i;
     }
     
+    mesh->indices[indices_index++] = 0;
+    mesh->indices[indices_index++] = circle_vertices - 1;
+    mesh->indices[indices_index++] = circle_vertices;
+    
+    mesh->indices[indices_index++] = 0;
+    mesh->indices[indices_index++] = 1;
+    mesh->indices[indices_index++] = circle_vertices;
+    
     init_mesh(mesh);
 }
 
-function void
-draw_circle(v2 coords, r32 rotation, r32 radius, v4 color)
+void draw_circle(v2 coords, r32 rotation, r32 radius, v4 color)
 {
     v3 coords_v3 = { coords.x, coords.y, 0 };
     quat rotation_quat = get_rotation(rotation, { 0, 0, 1 });
@@ -144,47 +217,162 @@ draw_circle(v2 coords, r32 rotation, r32 radius, v4 color)
     shape.dim = dim_v3;
     shape.draw_type = SHAPE_COLOR;
     shape.color = color;
-    draw_shape(shape, orthographic_matrix, identity_m4x4());
+    draw_shape(shape);
+}
+
+//
+// Cube
+//
+ 
+Mesh get_cube_mesh(b32 out)
+{
+    Mesh mesh = {};
+    
+    mesh.vertices_count = 8;
+    mesh.vertices = ARRAY_MALLOC(Vertex, mesh.vertices_count);
+    
+    // back
+    mesh.vertices[0] = { {-0.5, -0.5, -0.5}, {0, 0, 1}, {0, 0} }; // bottom left
+    mesh.vertices[1] = { {-0.5,  0.5, -0.5}, {0, 0, 1}, {0, 1} }; // top left
+    mesh.vertices[2] = { { 0.5, -0.5, -0.5}, {0, 0, 1}, {1, 0} }; // bottom right
+    mesh.vertices[3] = { { 0.5,  0.5, -0.5}, {0, 0, 1}, {1, 1} }; // top right
+    
+    // forward
+    mesh.vertices[4] = { {-0.5, -0.5, 0.5}, {0, 0, 1}, {0, 0} }; // bottom left
+    mesh.vertices[5] = { {-0.5,  0.5, 0.5}, {0, 0, 1}, {0, 1} }; // top left
+    mesh.vertices[6] = { { 0.5, -0.5, 0.5}, {0, 0, 1}, {1, 0} }; // bottom right
+    mesh.vertices[7] = { { 0.5,  0.5, 0.5}, {0, 0, 1}, {1, 1} }; // top right
+    /*
+    // back
+    mesh.vertices[0] = { {-1.0, -1.0, -1.0}, {0, 0, 1}, {0, 0} }; // bottom left
+    mesh.vertices[1] = { {-1.0,  1.0, -1.0}, {0, 0, 1}, {0, 1} }; // top left
+    mesh.vertices[2] = { { 1.0, -1.0, -1.0}, {0, 0, 1}, {1, 0} }; // bottom right
+    mesh.vertices[3] = { { 1.0,  1.0, -1.0}, {0, 0, 1}, {1, 1} }; // top right
+    
+    // forward
+    mesh.vertices[4] = { {-1.0, -1.0, 1.0}, {0, 0, 1}, {0, 0} }; // bottom left
+    mesh.vertices[5] = { {-1.0,  1.0, 1.0}, {0, 0, 1}, {0, 1} }; // top left
+    mesh.vertices[6] = { { 1.0, -1.0, 1.0}, {0, 0, 1}, {1, 0} }; // bottom right
+    mesh.vertices[7] = { { 1.0,  1.0, 1.0}, {0, 0, 1}, {1, 1} }; // top right
+    */
+    mesh.indices_count = 6 * 6; // 6 indices per side (rects), 6 sides
+    mesh.indices = ARRAY_MALLOC(u32, mesh.indices_count);
+    
+    if (out)
+    {
+        init_rect_indices(mesh.indices + 0,  3, 1, 2, 0); // back
+        init_rect_indices(mesh.indices + 6,  5, 7, 4, 6); // front
+        init_rect_indices(mesh.indices + 12, 1, 3, 5, 7); // top
+        init_rect_indices(mesh.indices + 18, 4, 6, 0, 2); // bottom
+        init_rect_indices(mesh.indices + 24, 1, 5, 0, 4); // left
+        init_rect_indices(mesh.indices + 30, 7, 3, 6, 2); // right
+    }
+    else
+    {
+        init_rect_indices(mesh.indices + 0,  1, 3, 0, 2); // back
+        init_rect_indices(mesh.indices + 6,  7, 5, 6, 4); // front
+        init_rect_indices(mesh.indices + 12, 5, 7, 1, 3); // top
+        init_rect_indices(mesh.indices + 18, 0, 2, 4, 6); // bottom
+        init_rect_indices(mesh.indices + 24, 5, 1, 4, 0); // left
+        init_rect_indices(mesh.indices + 30, 3, 7, 2, 6); // right
+    }
+
+    init_mesh(&mesh);
+    
+    return mesh;
+}
+Mesh get_cube_mesh() { return get_cube_mesh(true); }
+
+void draw_cube(v3 coords, r32 rotation, v3 dim, v4 color)
+{
+    quat rotation_quat = get_rotation(rotation, { 0, 0, 1 });
+    
+    Shape shape = {};
+    shape.type = SHAPE_CUBE;
+    shape.coords = coords;
+    shape.rotation = rotation_quat;
+    shape.dim = dim;
+    shape.draw_type = SHAPE_COLOR;
+    shape.color = color;
+    draw_shape(shape);
+}
+
+void draw_cube(v3 coords, r32 rotation, v3 dim, Bitmap *bitmap)
+{
+    quat rotation_quat = get_rotation(rotation, { 0, 0, 1 });
+    
+    Shape shape = {};
+    shape.type = SHAPE_CUBE;
+    shape.coords = coords;
+    shape.rotation = rotation_quat;
+    shape.dim = dim;
+    shape.draw_type = SHAPE_TEXTURE;
+    shape.bitmap = bitmap;
+    draw_shape(shape);
 }
 
 //
 // shapes
 //
 
-function void
-init_shapes()
-{
-    init_rect_mesh(&shape_rect);
-    init_circle_mesh(&shape_circle);
+void init_shapes(Shader *color, Shader *texture, Shader *text) {
+    init_rect_mesh(&shapes.rect);
+    init_circle_mesh(&shapes.circle);
+    shapes.cube = get_cube_mesh();
     
-    shape_color_shader.vs_file = basic_vs;
-    shape_color_shader.fs_file = color_fs;
-    compile_shader(&shape_color_shader);
-    
-    shape_texture_shader.vs_file = basic_vs;
-    shape_texture_shader.fs_file = tex_fs;
-    compile_shader(&shape_texture_shader);
+    shapes.test_color   = color;
+    shapes.test_texture = texture;
+    shapes.test_text    = text;
 }
 
+void init_shapes() {
+    init_rect_mesh(&shapes.rect);
+    init_circle_mesh(&shapes.circle);
+    shapes.cube = get_cube_mesh();
+
+    shapes.color.files[VERTEX_SHADER].memory   = (void*)basic_vs;
+    shapes.texture.files[VERTEX_SHADER].memory = (void*)basic_vs;
+    shapes.text.files[VERTEX_SHADER].memory    = (void*)basic_vs;    
+
+    shapes.color.files[FRAGMENT_SHADER].memory   = (void*)color_fs;
+    shapes.texture.files[FRAGMENT_SHADER].memory = (void*)tex_fs;
+    shapes.text.files[FRAGMENT_SHADER].memory    = (void*)text_fs;
+
+    compile_shader(&shapes.color);
+    compile_shader(&shapes.texture);
+    compile_shader(&shapes.text);
+
+    platform_set_uniform_block_binding(shapes.text.handle,    "Matrices", 0);
+    platform_set_uniform_block_binding(shapes.texture.handle, "Matrices", 0);
+    platform_set_uniform_block_binding(shapes.color.handle,   "Matrices", 0);
+}
+
+
 function void
-draw_shape(Shape shape, m4x4 projection_matrix, m4x4 view_matrix)
+draw_shape(Shape shape)
 {
     u32 handle = 0;
     
     switch(shape.draw_type)
     {
-        case SHAPE_COLOR:
-        {
-            handle = use_shader(&shape_color_shader);
+        case SHAPE_COLOR: {
+            handle = use_shader(&shapes.color);
             glUniform4fv(glGetUniformLocation(handle, "user_color"), (GLsizei)1, (float*)&shape.color);
         } break;
         
-        case SHAPE_TEXTURE:
-        {
-            handle = use_shader(&shape_texture_shader);
+        case SHAPE_TEXTURE: {
+            handle = use_shader(&shapes.texture);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, shape.bitmap->handle);
             glUniform1i(glGetUniformLocation(handle, "tex0"), 0);
+        } break;
+
+        case SHAPE_TEXT: {
+            handle = use_shader(&shapes.text);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, shape.bitmap->handle);
+            glUniform1i(glGetUniformLocation(handle, "tex0"), 0);
+            glUniform4fv(glGetUniformLocation(handle, "text_color"), (GLsizei)1, (float*)&shape.color);
         } break;
         
         default: error("draw_shape(): Not valid shape draw type");
@@ -193,14 +381,13 @@ draw_shape(Shape shape, m4x4 projection_matrix, m4x4 view_matrix)
     shape.coords += shape.dim / 2.0f; // coords = top left corner
     
     m4x4 model = create_transform_m4x4(shape.coords, shape.rotation, shape.dim);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "model"),      (GLsizei)1, false, (float*)&model);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&projection_matrix);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "view"),       (GLsizei)1, false, (float*)&view_matrix);
+    glUniformMatrix4fv(glGetUniformLocation(handle, "model"), (GLsizei)1, false, (float*)&model);
     
     switch(shape.type)
     {
-        case SHAPE_RECT:   draw_mesh(&shape_rect);   break;
-        case SHAPE_CIRCLE: draw_mesh(&shape_circle); break;
+        case SHAPE_RECT:   draw_mesh(&shapes.rect);   break;
+        case SHAPE_CIRCLE: draw_mesh(&shapes.circle); break;
+        case SHAPE_CUBE:   draw_mesh(&shapes.cube);   break;
         default: error("draw_shape(): Not valid shape type");
     }
 }
@@ -214,84 +401,28 @@ draw_shape(Shape shape, m4x4 projection_matrix, m4x4 view_matrix)
 //
 
 // uses draw_rect
-function void
-draw_string(Font *font, const char *string, v2 coords, f32 pixel_height, v4 color)
+void draw_string(Font *font, const char *string, v2 coords, f32 pixel_height, v4 color)
 {
-    f32 scale = stbtt_ScaleForPixelHeight(&font->info, pixel_height);
-    f32 string_x_coord = coords.x;
-    
+    stbtt_fontinfo *info = (stbtt_fontinfo*)font->info;
+    f32 scale = stbtt_ScaleForPixelHeight(info, pixel_height);
+    f32 string_x_coord = 0.0f;
+
     u32 i = 0;
     while (string[i] != 0)
     {
-        Font_Char *font_char = load_font_char(font, string[i], scale, color);
+        Font_Char_Bitmap *bitmap = load_font_char_bitmap(font, string[i], scale);
+        Font_Char *font_char = bitmap->font_char;
         
-        f32 y = coords.y + font_char->c_y1;
-        f32 x = string_x_coord + (font_char->lsb * scale);
-        v2 dim = { f32(font_char->c_x2 - font_char->c_x1), f32(font_char->c_y2 - font_char->c_y1) };
+        v2 char_coords = { string_x_coord + font_char->lsb, -(r32)font_char->bb_1.y };
+        v2 char_dim = cv2(font_char->bb_1 - font_char->bb_0);
+
+        v2 scaled_coords = char_coords * scale;
+        v2 scaled_dim    = char_dim    * scale;
+        draw_rect(coords + scaled_coords, 0, scaled_dim, &bitmap->bitmap, color);
         
-        draw_rect({ x, y }, 0, {dim.x, dim.y}, &font_char->bitmap);
-        
-        int kern = stbtt_GetCodepointKernAdvance(&font->info, string[i], string[i + 1]);
-        string_x_coord += ((kern + font_char->ax) * scale);
+        int kern = stbtt_GetCodepointKernAdvance(info, string[i], string[i + 1]);
+        string_x_coord += kern + font_char->ax;
         
         i++;
     }
-}
-
-// returns the coords at the center of rect
-function v2 get_center(Rect rect) { return rect.coords + (rect.dim / 2.0f); }
-
-// returns the coords of where in would be placed to
-// be centered in out
-function v2
-get_centered(Rect in, Rect out)
-{
-    return
-    { 
-        (out.dim.x/2.0f) - (in.dim.x / 2.0f), 
-        (out.dim.y/2.0f) - (in.dim.y / 2.0f)
-    };
-}
-
-function Rect
-get_centered_rect(Rect og, r32 x_percent, r32 y_percent)
-{
-    Rect rect = {};
-    rect.dim.x = og.dim.x * x_percent;
-    rect.dim.y = og.dim.y * y_percent;
-    rect.coords = get_centered(rect, og);
-    rect.coords += og.coords;
-    return rect;
-}
-
-function Rect
-get_centered_rect_pad(Rect og, v2 pad)
-{
-    Rect rect = {};
-    rect.dim.x = og.dim.x + pad.x;
-    rect.dim.y = og.dim.y + pad.y;
-    rect.coords = get_centered(rect, og);
-    rect.coords += og.coords;
-    return rect;
-}
-
-function Rect
-get_centered_square(Rect og, r32 percent)
-{
-    Rect rect = {};
-    if (og.dim.x <= og.dim.y)
-    {
-        rect.dim.x = og.dim.x * percent;
-        rect.dim.y = rect.dim.x;
-    }
-    else
-    {
-        rect.dim.y = og.dim.y * percent;
-        rect.dim.x = rect.dim.y;
-    }
-    
-    //log("%f %f\n", rect.dim.x, rect.dim.y);
-    rect.coords = get_centered(rect, og);
-    rect.coords += og.coords;
-    return rect;
 }

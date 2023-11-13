@@ -10,12 +10,16 @@
 
 #include "log.h"
 #include "types.h"
+#include "types_math.h"
+#include "char_array.h"
 #include "assets.h"
 #include "shapes.h"
 #include "application.h"
 #include "coffee_cow.h"
 #include "particles.h"
+#include "data_structures.h"
 
+#include "data_structures.cpp"
 #include "assets.cpp"
 #include "shapes.cpp"
 #include "menu.cpp"
@@ -138,10 +142,27 @@ function u32
 load_high_score()
 {
     u32 high_score = 0;
-    File high_score_file = read_file("high_score.save");
+    File high_score_file = read_file_terminated("high_score.save");
     if (high_score_file.size == 0) return high_score;
-    high_score = string_to_u32((char*)high_score_file.memory, high_score_file.size);
+    char_array_to_u32((char*)high_score_file.memory, &high_score);
+    //high_score = char_array_to_u32((char*)high_score_file.memory, high_score_file.size);
     return high_score;
+}
+
+struct String
+{
+    const char *data;
+    u32 length;
+    v2 dim;
+};
+
+function void
+u32_to_string(String *string, u32 in)
+{
+    if (string->data != 0) SDL_free((void*)string->data);
+    
+    string->data = u32_to_char_array(in);
+    string->length = get_digits(in);
 }
 
 function void
@@ -244,7 +265,7 @@ draw_singleplayer_scoreboard(Font *font, v2s window_dim, u32 score, u32 high_sco
 
     Rect score_rect = {};
     score_rect.coords = { 15, 15 };
-    char *score_str = u32_to_string(score);
+    char *score_str = u32_to_char_array(score);
     v2 score_dim = get_string_dim(font, score_str, pixel_height, color);
     score_rect.dim = score_dim;
    
@@ -257,7 +278,7 @@ draw_singleplayer_scoreboard(Font *font, v2s window_dim, u32 score, u32 high_sco
     v2 padding = { 15, 15 };
 
     const char *high_score_text = "High Score: ";
-    const char *high_score_str = u32_to_string(high_score);
+    const char *high_score_str = u32_to_char_array(high_score);
     v2 high_score_dim = get_string_dim(font, high_score_str, pixel_height, color);
     v2 high_score_coords = { window_dim.x - high_score_dim.x - padding.x, high_score_dim.y + padding.y };
     v2 high_score_text_dim = get_string_dim(font, high_score_text, pixel_height, color);    
@@ -296,7 +317,7 @@ draw_multiplayer_scoreboard(Font *font, v2s window_dim, Coffee_Cow *players, u32
     largest_x = 0;
     for (u32 i = 0; i < num_of_players; i++)
     {
-        char *str = u32_to_string(players[i].wins);
+        char *str = u32_to_char_array(players[i].wins);
         v2 str_dim = get_string_dim(font, str, pixel_height, color);
         v2 str_coords = { coords.x + bitmap_dim.x + padding.x,  coords.y + (bitmap_dim.y/2.0f) + (str_dim.y/2.0f) };
 
@@ -473,13 +494,13 @@ update(Application *app)
             if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 0);
             }
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, &app->assets, "COW2_JOIN", "COW2_JOIN_HOVER", "COW2_SELECT", "COW2_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 1);
             }
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, &app->assets, "COW3_JOIN", "COW3_JOIN_HOVER", "COW3_SELECT", "COW3_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 2);
             }
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, &app->assets, "COW4_JOIN", "COW4_JOIN_HOVER", "COW4_SELECT", "COW4_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 3);
             }
 
@@ -659,7 +680,7 @@ update(Application *app)
             {
                 r32 pixel_height = window_dim.y * 0.2f;
                 v4 color = { 0, 0, 0, 1 };
-                char *countdown_str = u32_to_string(data->countdown);
+                char *countdown_str = u32_to_char_array(data->countdown);
                 v2 countdown_dim = get_string_dim(rubik, countdown_str, pixel_height, color);
                 v2 countdown_coords = { (window_dim.x / 2.0f) - (countdown_dim.x / 2.0f), (window_dim.y / 2.0f) + (countdown_dim.y / 2.0f) };
                 draw_string(rubik, countdown_str, countdown_coords, pixel_height, color);
@@ -743,8 +764,16 @@ controller_process_input(Controller *controller, s32 id, b32 state)
     }
 }
 
+function void
+update_window(Window *window)
+{
+    glViewport(0, 0, window->dim.width, window->dim.height);
+    window->aspect_ratio = (r32)window->dim.width / (r32)window->dim.height;
+    *window->update_matrices = true;
+}
+
 function b32
-process_input(v2s *window_dim, Input *input)
+process_input(Window *window, Input *input)
 {
     for (u32 i = 0; i < input->num_of_controllers; i++) prepare_controller_for_input(&input->controllers[i]);
     
@@ -764,9 +793,10 @@ process_input(v2s *window_dim, Input *input)
                     case SDL_WINDOWEVENT_RESIZED:
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
-                        window_dim->width = window_event->data1;
-                        window_dim->height = window_event->data2;
-                        glViewport(0, 0, window_dim->width, window_dim->height);
+                        window->dim.width  = window_event->data1;
+                        window->dim.height = window_event->data2;
+                        
+                        update_window(window);
                     } break;
                 }
             } break;
@@ -829,6 +859,14 @@ update_time(Time *time)
     if (time->frame_time_s > 0.0f) time->frames_per_s = 1.0f / time->frame_time_s;
 }
 
+function void
+update_matrices(Matrices *m, r32 fov, r32 aspect_ratio, v2s window_dim)
+{
+    m->perspective_matrix = perspective_projection(fov, aspect_ratio, 0.01f, 1000.0f);
+    m->orthographic_matrix = orthographic_projection(0.0f, (r32)window_dim.width, (r32)window_dim.height, 0.0f, -3.0f, 3.0f);
+    m->update = false;
+}
+
 function int
 main_loop(Application *app)
 {
@@ -845,12 +883,16 @@ main_loop(Application *app)
     init_particles(&particles, 200);
     init_shapes();
 
+    u32 matrices_ubo = init_uniform_buffer_object(2 * sizeof(m4x4), 0);
+
     while(1)
     {
-        if (process_input(&app->window.dim, &app->input)) return 0; // quit if input to quit
+        if (process_input(&app->window, &app->input)) return 0; // quit if input to quit
     
-        set_orthographic_matrix(app->window.dim);
-        
+        //set_orthographic_matrix(app->window.dim);
+        if (app->matrices.update) update_matrices(&app->matrices, 0, app->window.aspect_ratio, app->window.dim);
+        orthographic(matrices_ubo, &app->matrices);
+
         update_time(&app->time);
 
         if (update(app)) return 0; // quit if update says to quit
@@ -896,7 +938,7 @@ init_opengl(Window *window)
 }
 
 function void
-init_window(Window *window)
+init_window(Window *window,  b32 *update_matrices)
 {
     u32 sdl_init_flags = 
         SDL_INIT_VIDEO | 
@@ -915,16 +957,19 @@ init_window(Window *window)
                                    sdl_window_flags);
     init_opengl(window);
     SDL_GetWindowSize(window->sdl, &window->dim.width, &window->dim.height);
+    window->update_matrices = update_matrices;
+    update_window(window);
 }
 
 function int
 application()
 {
     Application app = {};
-    init_window(&app.window);
+    init_window(&app.window, &app.matrices.update);
     //if (load_assets(&app.assets, "../assets.ethan")) return 1;
     //save_assets(&app.assets, "assets.save");
     if (load_saved_assets(&app.assets, "assets.save")) return 1;
+    init_assets(&app.assets);
     init_audio_player(&app.player);
     return main_loop(&app);
 }

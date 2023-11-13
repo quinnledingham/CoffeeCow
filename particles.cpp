@@ -21,8 +21,8 @@ update_particles_model_buffer(Particles *particles)
     glBufferData(GL_ARRAY_BUFFER, particles->max * sizeof(r32), NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, particles->count * sizeof(r32), &lifes[0]);
 
-    free(models);
-    free(lifes);
+    platform_free(models);
+    platform_free(lifes);
 }
 
 function void
@@ -132,7 +132,7 @@ draw_particles(Particles *particles, Assets *assets)
     v4 color = { 0, 255, 0, 1 };
     m4x4 identity_matrix = identity_m4x4();
     glUniform4fv(glGetUniformLocation(handle, "user_color"), (GLsizei)1, (float*)&color);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&orthographic_matrix);
-    glUniformMatrix4fv(glGetUniformLocation(handle, "view"), (GLsizei)1, false, (float*)&identity_matrix);
+    //glUniformMatrix4fv(glGetUniformLocation(handle, "projection"), (GLsizei)1, false, (float*)&orthographic_matrix);
+    //glUniformMatrix4fv(glGetUniformLocation(handle, "view"), (GLsizei)1, false, (float*)&identity_matrix);
     glDrawElementsInstanced(GL_TRIANGLES, particles->mesh.indices_count, GL_UNSIGNED_INT, 0, particles->count);
 }

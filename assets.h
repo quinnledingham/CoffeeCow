@@ -5,6 +5,9 @@ struct File
 {
     u32 size;
     void *memory;
+    const char *path;
+    
+    const char *ch; // for functions like get_char(File *file);
 };
 
 struct Bitmap
@@ -13,38 +16,69 @@ struct Bitmap
     v2s dim;
     s32 pitch;
     s32 channels;
+    
+    u32 handle; // opengl handle
+};
+
+struct Cubemap
+{
+    const char *filenames[6] = { 
+        "../assets/skybox/right.jpg", 
+        "../assets/skybox/left.jpg", 
+        "../assets/skybox/top.jpg",
+        "../assets/skybox/bottom.jpg",
+        "../assets/skybox/front.jpg",
+        "../assets/skybox/back.jpg" 
+    };
+    Bitmap bitmaps[6];
 
     u32 handle; // opengl handle
 };
 
+Cubemap load_cubemap();
+
+enum shader_types
+{
+    VERTEX_SHADER,                  // 0
+    TESSELLATION_CONTROL_SHADER,    // 1
+    TESSELLATION_EVALUATION_SHADER, // 2
+    GEOMETRY_SHADER,                // 3
+    FRAGMENT_SHADER,                // 4
+
+    SHADER_TYPE_AMOUNT              // 5
+};
+
 struct Shader
 {
-    const char *vs_filename;  //.vs vertex_shader
-    const char *tcs_filename; //.tcs tessellation control shader
-    const char *tes_filename; //.tes tessellation evaluation shader
-    const char *gs_filename;  //.gs geometry shader
-    const char *fs_filename;  //.fs fragment shader
-    
-    const char *vs_file;
-    const char *tcs_file;
-    const char *tes_file;
-    const char *gs_file;
-    const char *fs_file;
+    File files[SHADER_TYPE_AMOUNT];
 
-    u32 file_sizes[5]; // includes the file terminator
-    
     b32 compiled;
+    b32 uniform_buffer_objects_generated;
     u32 handle;
 };
-const char *basic_vs = "#version 330 core\n layout (location = 0) in vec3 position; layout (location = 1) in vec3 normal; layout (location = 2) in vec2 texture_coords; uniform mat4 model; uniform mat4 projection; uniform mat4 view; out vec2 uv; void main(void) { gl_Position = projection * view * model * vec4(position, 1.0f); uv = texture_coords;}";
-const char *color_fs = "#version 330 core\n in vec2 uv; uniform vec4 user_color; out vec4 FragColor; void main() { FragColor  = vec4(user_color.x/255, user_color.y/255, user_color.z/255, user_color.w);}";
-const char *tex_fs = "#version 330 core\n uniform sampler2D tex0; in vec2 uv; out vec4 FragColor; void main() { vec4 tex = texture(tex0, uv); FragColor = tex;}";
+
+u32 use_shader(Shader *shader); // returns the handle of a shader
+void load_shader(Shader *shader);
+void compile_shader(Shader *shader);
 
 struct Vertex
 {
     v3 position;
     v3 normal;
     v2 texture_coordinate;
+};
+
+struct Material
+{
+    v3 ambient;            // Ka
+    v3 diffuse;            // Kd
+    v3 specular;           // Ks
+    f32 specular_exponent; // Ns
+    
+    Bitmap ambient_map;
+    Bitmap diffuse_map;    // map_Kd
+    
+    const char *id; // id from mtl file
 };
 
 struct Mesh
@@ -58,39 +92,71 @@ struct Mesh
     u32 vao;
     u32 vbo;
     u32 ebo;
+    
+    Material material;
 };
 
-struct Font_Scale
+void init_mesh(Mesh *mesh);
+void draw_mesh(Mesh *mesh);
+void draw_mesh_patches(Mesh *mesh);
+
+struct Light
 {
-    f32 pixel_height;
-    
-    f32 scale;
-    s32 ascent;
-    s32 descent;
-    s32 line_gap;
-    f32 scaled_ascent;
-    f32 scaled_descent;
+    v3 position;
+    v3 ambient;
+    v3 diffuse;
+    v3 specular;
+    v4 color;
 };
+
+struct Camera
+{
+    v3 position;
+    v3 target;
+    v3 up;
+    r32 fov;
+    r32 yaw;
+    r32 pitch;
+};
+inline m4x4 get_view(Camera camera) 
+{ 
+    return look_at(camera.position, camera.position + camera.target, camera.up); 
+}
+
+struct Model
+{
+    Mesh *meshes;
+    u32 meshes_count;
+
+    Shader *color_shader;
+    Shader *texture_shader;
+};
+
+Model load_obj(const char *filename);
+void draw_model(Model *model, Camera camera, v3 position, quat rotation);
 
 struct Font_Char
 {
-    u32 codepoint;
+    u32 codepoint; // ascii
+    u32 glyph_index; // unicode
+    
+    s32 ax; // advance width
+    s32 lsb; // left side bearing
+
+    v2s bb_0; // bounding box coord 0
+    v2s bb_1; // bounding box coord 1
+};
+
+struct Font_Char_Bitmap
+{
+    Font_Char *font_char;
     f32 scale;
-    v4 color;
-    
-    s32 ax;
-    s32 lsb;
-    s32 c_x1;
-    s32 c_y1;
-    s32 c_x2;
-    s32 c_y2;
-    
     Bitmap bitmap;
 };
 
 struct Font_String
 {
-    char *memory;
+    Font_Char_Bitmap bitmaps[20]; // don't use font cache. just save them here always
     v2 dim;
     f32 pixel_height;
     v4 color;
@@ -99,23 +165,31 @@ struct Font_String
 struct Font
 {
     File file;
-    stbtt_fontinfo info;
+    void *info; // stbtt_fontinfo
     
-    s32 font_scales_cached;
+    v2s bb_0; // font bounding box coord 0
+    v2s bb_1; // font bounding box coord 1
+
     s32 font_chars_cached;
-    s32 strings_cached;
-    Font_Scale font_scales[10];
-    Font_Char font_chars[300];
-    Font_String font_strings[10];
+    s32 bitmaps_cached;
+    
+    Font_Char font_chars[255];
+    Font_Char_Bitmap bitmaps[300];
 };
+
+v2 get_font_loaded_dim(Font *font, f32 pixel_height);
+v2 get_font_dim(Font *font, f32 pixel_height);
+v2 get_string_dim(Font *font, const char *string, f32 pixel_height, v4 color);
+v2 get_string_dim(Font *font, const char *string, s32 length, f32 pixel_height, v4 color);
 
 struct Audio
 {
-    SDL_AudioSpec spec;
+    //SDL_AudioSpec spec;
     u8 *buffer;
     u32 length;
 };
 
+// different volumes for different kinds of audio
 enum
 {
     AUDIO_SOUND,
@@ -126,7 +200,7 @@ struct Playing_Audio
 {
     u8 *position;
     u32 length_remaining;
-    u32 type;
+    u32 type; // type of sound to control the volume by type
 };
 
 struct Audio_Player
@@ -134,12 +208,11 @@ struct Audio_Player
     b32 playing;
     Playing_Audio audios[10]; // let index 0 be for music
     u32 audios_count;
-
+    
     u8 *buffer; // points to one byte
     u32 length; // in bytes largest amount copied
     u32 max_length; // in bytes amount available
-
-    SDL_AudioStream *audio_stream;
+    
     SDL_AudioDeviceID device_id;
 
     r32 music_volume;
@@ -150,21 +223,15 @@ struct Audio_Player
 // Storing Assets
 //
 
-enum shader_types
-{
-    VERTEX_SHADER,
-    TESSELLATION_CONTROL_SHADER,
-    TESSELLATION_EVALUATION_SHADER,
-    GEOMETRY_SHADER,
-    FRAGMENT_SHADER,
-};
-
 enum asset_types
 {
-    ASSET_TYPE_FONT,
     ASSET_TYPE_BITMAP,
+    ASSET_TYPE_FONT,
     ASSET_TYPE_SHADER,
     ASSET_TYPE_AUDIO,
+    ASSET_TYPE_MODEL,
+    
+    ASSET_TYPE_AMOUNT
 };
 
 struct Asset
@@ -174,190 +241,51 @@ struct Asset
     u32 tag_length;
     union
     {
-        Font font;
+        Font   font;
         Bitmap bitmap;
         Shader shader;
-        Audio audio;
+        Audio  audio;
+        Model  model;
+        void  *memory;
     };
 };
 
-struct Asset_Load_Info
+struct Asset_Array
 {
-    int type;
-    int index;
-    const char *tag;
-    const char *filename;     //.vs vertex_shader
-
-    const char *tcs_filename; //.tcs tessellation control shader
-    const char *tes_filename; //.tes tessellation evaluation shader
-    const char *gs_filename;  //.gs geometry shader
-    const char *fs_filename;  //.fs fragment shader
+    Asset *data;       // points to Assets data array
+    u32 num_of_assets;
 };
 
 struct Assets
 {
+    Asset *data; // array of assets
     u32 num_of_assets;
     
-    Asset_Load_Info *info;
-    u32 num_of_info_loaded;
-    
-    // Storage of assets
-    Asset *fonts;
-    u32 num_of_fonts;
-    
-    Asset *bitmaps;
-    u32 num_of_bitmaps;
-    
-    Asset *shaders;
-    u32 num_of_shaders;
-
-    Asset *audios;
-    u32 num_of_audios;
+    Asset_Array types[ASSET_TYPE_AMOUNT]; // points to same memory as *data
 };
 
-function void
-add_asset(void *data, void *args)
+internal void*
+find_asset(Assets *assets, u32 type, const char *tag)
 {
-    Assets *assets = (Assets*)data;
-    Asset_Load_Info *info = (Asset_Load_Info*)args;
-    
-    if      (info->type == ASSET_TYPE_FONT)   info->index = assets->num_of_fonts;
-    else if (info->type == ASSET_TYPE_BITMAP) info->index = assets->num_of_bitmaps;
-    else if (info->type == ASSET_TYPE_SHADER) info->index = assets->num_of_shaders;
-    else if (info->type == ASSET_TYPE_AUDIO)  info->index = assets->num_of_audios;
-    
-    if      (info->type == ASSET_TYPE_FONT)   assets->num_of_fonts++;
-    else if (info->type == ASSET_TYPE_BITMAP) assets->num_of_bitmaps++;
-    else if (info->type == ASSET_TYPE_SHADER) assets->num_of_shaders++;
-    else if (info->type == ASSET_TYPE_AUDIO)  assets->num_of_audios++;
-    
-    assets->info[assets->num_of_info_loaded++] = *info;
-}
-
-function void
-count_asset(void *data, void *args)
-{
-    Assets *assets = (Assets*)data;
-    assets->num_of_assets++;
-}
-
-function Font*
-find_font(Assets *assets, const char *tag)
-{
-    for (u32 i = 0; i < assets->num_of_fonts; i++)
-        if (equal(tag, assets->fonts[i].tag)) return &assets->fonts[i].font;
-    
-    warning(0, "Could not find font with tag: %s", tag);
-    
+    for (u32 i = 0; i < assets->types[type].num_of_assets; i++) {
+        if (equal(tag, assets->types[type].data[i].tag))
+            return &assets->types[type].data[i].memory;
+    }
+    warning(0, "Could not find asset, type: %d, tag: %s", type, tag);
     return 0;
 }
 
-function Bitmap*
-find_bitmap(Assets *assets, const char *tag)
-{
-    for (u32 i = 0; i < assets->num_of_bitmaps; i++)
-        if (equal(tag, assets->bitmaps[i].tag)) return &assets->bitmaps[i].bitmap;
-    
-    warning(0, "Could not find bitmap with tag: %s", tag);
-    
-    return 0;
+internal void*
+find_asset(Assets *assets, u32 type, u32 index) {
+    return &assets->types[type].data[index].memory;
 }
 
-function Shader*
-find_shader(Assets *assets, const char *tag)
-{
-    for (u32 i = 0; i < assets->num_of_shaders; i++)
-        if (equal(tag, assets->shaders[i].tag)) return &assets->shaders[i].shader;
-    
-    warning(0, "Could not find shader with tag: %s", tag);
-    
-    return 0;
-}
+inline Bitmap* find_bitmap(Assets *assets, const char *tag) { return (Bitmap*) find_asset(assets, ASSET_TYPE_BITMAP, tag); }
+inline Font*   find_font  (Assets *assets, const char *tag) { return (Font*)   find_asset(assets, ASSET_TYPE_FONT,   tag); }
+inline Shader* find_shader(Assets *assets, const char *tag) { return (Shader*) find_asset(assets, ASSET_TYPE_SHADER, tag); }
+inline Audio*  find_audio (Assets *assets, const char *tag) { return (Audio*)  find_asset(assets, ASSET_TYPE_AUDIO,  tag); }
+inline Model*  find_model (Assets *assets, const char *tag) { return (Model*)  find_asset(assets, ASSET_TYPE_MODEL,  tag); }
 
-
-function Audio*
-find_audio(Assets *assets, const char *tag)
-{
-    for (u32 i = 0; i < assets->num_of_audios; i++)
-        if (equal(tag, assets->audios[i].tag)) return &assets->audios[i].audio;
-    
-    warning(0, "Could not find audio with tag: %s", tag);
-    
-    return 0;
-}
-
-function Audio*
-find_audio(Assets *assets, u32 index)
-{
-    if (index >= assets->num_of_assets) warning(0, "Not a valid index");
-
-    return &assets->audios[index].audio;
-}
-
-//
-// Parsing Asset File
-//
-
-function bool
-is_ascii_digit(int ch)
-{
-    if (isdigit(ch)) return true;
-    return false;
-}
-
-function bool
-is_ascii_letter(int ch)
-{
-    if (ch >= 'A' && ch <= 'Z') return true; // uppercase
-    else if (ch >= 'a' && ch <= 'z') return true; // lowercase
-    else return false;
-}
-
-function b32
-is_file_path_ch(s32 ch)
-{
-    if (ch == '.' || ch == '/' || ch == '-' || ch == '_') return true;
-    else return false;
-}
-
-function b32
-is_valid_body_ch(s32 ch)
-{
-    if (is_ascii_letter(ch) || is_ascii_digit(ch) || is_file_path_ch(ch)) return true;
-    else return false;
-}
-
-function b32
-is_valid_start_ch(s32 ch)
-{
-    if (is_ascii_letter(ch) || is_file_path_ch(ch)) return true;
-    else return false;
-}
-
-enum Asset_Token_Type
-{
-    ATT_KEYWORD,
-    ATT_ID,
-    ATT_SEPERATOR,
-    ATT_ERROR,
-    ATT_WARNING,
-    ATT_END
-};
-
-struct Asset_Token
-{
-    s32 type;
-    const char *lexeme;
-};
-
-const char *asset_keywords[4] = { "FONTS", "BITMAPS", "SHADERS", "AUDIOS" };
-
-function b32
-is_asset_keyword(const char *word)
-{
-    for (u32 i = 0; i < ARRAY_COUNT(asset_keywords); i++) 
-        if (equal(word, asset_keywords[i])) return true;
-    return false;
-}
+inline Audio* find_audio(Assets *assets, u32 index) { return (Audio*)find_asset(assets, ASSET_TYPE_AUDIO, index); }
 
 #endif //ASSETS_H
