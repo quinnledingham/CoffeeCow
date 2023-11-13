@@ -131,9 +131,14 @@ resize_menu(Menu *menu,
 
 function b32
 menu_multiplayer_selector(Menu *menu, u32 index, u32 active, u32 press,
-                          v2 *coords, v2 dim, Controller *saved_controller,
-                          Bitmap *regular, Bitmap *hover, Bitmap *selected, Bitmap *hover_selected)
+                          v2 *coords, v2 dim, Controller *saved_controller, Assets *assets,
+                          const char *regular_tag, const char *hover_tag, const char *selected_tag, const char *hover_selected_tag)
 {
+    Bitmap *regular        = find_bitmap(assets, regular_tag);
+    Bitmap *hover          = find_bitmap(assets, hover_tag);
+    Bitmap *selected       = find_bitmap(assets, selected_tag);
+    Bitmap *hover_selected = find_bitmap(assets, hover_selected_tag);
+
     b32 button_pressed = false;
 
     if (index == active) if (press) button_pressed = true;

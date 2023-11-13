@@ -19,6 +19,7 @@ typedef r32 f32;
 typedef r64 f64;
 
 #define function static
+#define internal static
 #define local_persist static
 #define global_variable static
 

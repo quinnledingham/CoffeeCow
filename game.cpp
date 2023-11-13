@@ -160,6 +160,20 @@ update_high_score(u32 score, u32 *high_score)
     }
 }   
 
+function void
+load_coffee_cow_design(Assets *assets, Coffee_Cow_Design *design, v4 color, v4 outline_color, const char *head, const char *head_outline, const char *mouth, const char *tail, const char *spot1, const char *spot2, const char *spot3)
+{
+    design->bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, head);
+    design->bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, head_outline);
+    design->bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, mouth);
+    design->bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, tail);
+    design->bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, spot1);
+    design->bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, spot2);
+    design->bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, spot3);
+    design->color = color;
+    design->outline_color = outline_color;
+}
+
 function void*
 init_game_data(Assets *assets)
 {
@@ -169,45 +183,10 @@ init_game_data(Assets *assets)
     
     Coffee_Cow_Design *designs = data->designs;
 
-    designs[0].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW1_HEAD");
-    designs[0].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW1_HEAD_OUTLINE");
-    designs[0].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW1_MOUTH");
-    designs[0].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW1_TAIL");
-    designs[0].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW1_SPOT1");
-    designs[0].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW1_SPOT2");
-    designs[0].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW1_SPOT3");
-    designs[0].color = { 255, 255, 255, 1 };
-    designs[0].outline_color = { 0, 0, 0, 1 };
-
-    designs[1].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW2_HEAD");
-    designs[1].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW2_HEAD_OUTLINE");
-    designs[1].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW2_MOUTH");
-    designs[1].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW2_TAIL");
-    designs[1].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW2_SPOT1");
-    designs[1].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW2_SPOT2");
-    designs[1].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW2_SPOT3");
-    designs[1].color = { 108, 108, 108, 1 };
-    designs[1].outline_color = { 0, 0, 0, 1 };
-
-    designs[2].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW3_HEAD");
-    designs[2].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW3_HEAD_OUTLINE");
-    designs[2].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW3_MOUTH");
-    designs[2].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW3_TAIL");
-    designs[2].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW3_SPOT1");
-    designs[2].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW3_SPOT2");
-    designs[2].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW3_SPOT3");
-    designs[2].color = { 252, 231, 213, 1 };
-    designs[2].outline_color = { 0, 0, 0, 1 };
-
-    designs[3].bitmaps[ASSET_COW_HEAD]         = find_bitmap(assets, "COW4_HEAD");
-    designs[3].bitmaps[ASSET_COW_HEAD_OUTLINE] = find_bitmap(assets, "COW4_HEAD_OUTLINE");
-    designs[3].bitmaps[ASSET_COW_MOUTH]        = find_bitmap(assets, "COW4_MOUTH");
-    designs[3].bitmaps[ASSET_COW_TAIL]         = find_bitmap(assets, "COW4_TAIL");
-    designs[3].bitmaps[ASSET_COW_SPOT]         = find_bitmap(assets, "COW4_SPOT1");
-    designs[3].bitmaps[ASSET_COW_SPOT + 1]     = find_bitmap(assets, "COW4_SPOT2");
-    designs[3].bitmaps[ASSET_COW_SPOT + 2]     = find_bitmap(assets, "COW4_SPOT3");
-    designs[3].color = { 197, 64, 48, 1 };
-    designs[3].outline_color = { 0, 0, 0, 1 };
+    load_coffee_cow_design(assets, &designs[0], { 255, 255, 255, 1 }, { 0, 0, 0, 1 }, "COW1_HEAD", "COW1_HEAD_OUTLINE", "COW1_MOUTH", "COW1_TAIL", "COW1_SPOT1", "COW1_SPOT2", "COW1_SPOT3");
+    load_coffee_cow_design(assets, &designs[1], { 108, 108, 108, 1 }, { 0, 0, 0, 1 }, "COW2_HEAD", "COW2_HEAD_OUTLINE", "COW2_MOUTH", "COW2_TAIL", "COW2_SPOT1", "COW2_SPOT2", "COW2_SPOT3");
+    load_coffee_cow_design(assets, &designs[2], { 252, 231, 213, 1 }, { 0, 0, 0, 1 }, "COW3_HEAD", "COW3_HEAD_OUTLINE", "COW3_MOUTH", "COW3_TAIL", "COW3_SPOT1", "COW3_SPOT2", "COW3_SPOT3");
+    load_coffee_cow_design(assets, &designs[3], { 197, 64, 48, 1 }, { 0, 0, 0, 1 }, "COW4_HEAD", "COW4_HEAD_OUTLINE", "COW4_MOUTH", "COW4_TAIL", "COW4_SPOT1", "COW4_SPOT2", "COW4_SPOT3");
 
     // default menu
     Menu *default_menu = &data->default_menu;
@@ -347,40 +326,26 @@ update(Application *app)
 
     switch(data->game_mode)
     {
-        case MAIN_MENU:
-        {
-            menu_update_active(&data->active, 0, 3, menu_controller->down, menu_controller->up);
-        } break;
-        
-        case MULTIPLAYER_MENU:
-        {
-            menu_update_active(&data->active, 0, 5, menu_controller->down, menu_controller->up);
-        } break;
-
-        case SETTINGS:
-        {
-            menu_update_active(&data->active, 0, 4, menu_controller->down, menu_controller->up);
-        } break;
+        case MAIN_MENU:        menu_update_active(&data->active, 0, 3, menu_controller->down, menu_controller->up); break;        
+        case MULTIPLAYER_MENU: menu_update_active(&data->active, 0, 5, menu_controller->down, menu_controller->up); break;
+        case SETTINGS:         menu_update_active(&data->active, 0, 3, menu_controller->down, menu_controller->up); break;
 
         case PAUSED:
-        case GAME_OVER:
-        {
+        case GAME_OVER: {
             menu_update_active(&data->active, 0, 1, menu_controller->down, menu_controller->up);
             update_coffee_cow_mouth(&players[0], app->time.frame_time_s, 7.0f);
 
             if (on_down(menu_controller->pause)) data->game_mode = IN_GAME;
         } break;
 
-        case COUNTDOWN:
-        {
+        case COUNTDOWN: {
             r32 diff = app->time.run_time_s - data->count_start_time;
             u32 count = 3 - (u32)diff;
             data->countdown = count;
             if (count == 0) data->game_mode = IN_GAME;
         } break;
 
-        case RESULTS:
-        {
+        case RESULTS: {
             r32 diff = app->time.run_time_s - data->count_start_time;
             u32 count = 2 - (u32)diff;
             if (count == 0) data->game_mode = GAME_OVER;
@@ -388,8 +353,7 @@ update(Application *app)
             for (u32 i = 0; i < data->num_of_players; i++) update_coffee_cow_results(&players[i], app->time.frame_time_s);
         } break;
         
-        case IN_GAME:
-        {
+        case IN_GAME: {
             update_high_score(players[0].score, &data->high_score);
 
             if (update_coffee_cows(players, data->num_of_players, app->time.frame_time_s, data->grid_dim))
@@ -398,24 +362,20 @@ update(Application *app)
             if (coffee_cows_on_coffee(players, data->num_of_players, data->coffees, data->num_of_coffees, data->grid_dim))
                 play_audio(&app->player, find_audio(&app->assets, "GULP"), AUDIO_SOUND);
 
-            if (data->in_game_mode == SINGLEPLAYER)
-            {
+            if (data->in_game_mode == SINGLEPLAYER) {
                 if (players[0].dead) data->game_mode = GAME_OVER;
             }
-            else if (data->in_game_mode == MULTIPLAYER)
-            {
+            else if (data->in_game_mode == MULTIPLAYER) {
                 u32 players_alive = 0;
                 Coffee_Cow *alive = 0;
                 for (u32 i = 0; i < data->num_of_players; i++) if (!players[i].dead) { players_alive++; alive = &players[i]; }
-                if (players_alive == 0)
-                {
+                if (players_alive == 0) {
                     data->game_mode = RESULTS;
                     data->count_start_time = app->time.run_time_s;
                     data->winner = 0;
                     data->winner_outline = 0;
                 }
-                else if (players_alive == 1)
-                {
+                else if (players_alive == 1) {
                     alive->wins++;
                     data->game_mode = RESULTS;
                     data->count_start_time = app->time.run_time_s;
@@ -495,33 +455,14 @@ update(Application *app)
         case MULTIPLAYER_MENU:
         {
             Bitmap *multi_menu_back = find_bitmap(&app->assets, "MAIN_MENU_BACK");
-
-            Bitmap *char1              = find_bitmap(&app->assets, "COW1_JOIN");
-            Bitmap *char1_hover        = find_bitmap(&app->assets, "COW1_JOIN_HOVER");
-            Bitmap *char1_select       = find_bitmap(&app->assets, "COW1_SELECT");
-            Bitmap *char1_select_hover = find_bitmap(&app->assets, "COW1_SELECT_HOVER");
-
-            Bitmap *char2              = find_bitmap(&app->assets, "COW2_JOIN");
-            Bitmap *char2_hover        = find_bitmap(&app->assets, "COW2_JOIN_HOVER");
-            Bitmap *char2_select       = find_bitmap(&app->assets, "COW2_SELECT");
-            Bitmap *char2_select_hover = find_bitmap(&app->assets, "COW2_SELECT_HOVER");
-
-            Bitmap *char3              = find_bitmap(&app->assets, "COW3_JOIN");
-            Bitmap *char3_hover        = find_bitmap(&app->assets, "COW3_JOIN_HOVER");
-            Bitmap *char3_select       = find_bitmap(&app->assets, "COW3_SELECT");
-            Bitmap *char3_select_hover = find_bitmap(&app->assets, "COW3_SELECT_HOVER");
-
-            Bitmap *char4              = find_bitmap(&app->assets, "COW4_JOIN");
-            Bitmap *char4_hover        = find_bitmap(&app->assets, "COW4_JOIN_HOVER");
-            Bitmap *char4_select       = find_bitmap(&app->assets, "COW4_SELECT");
-            Bitmap *char4_select_hover = find_bitmap(&app->assets, "COW4_SELECT_HOVER");
+            Bitmap *example_bitmap  = find_bitmap(&app->assets, "COW1_JOIN");
 
             b32 select = on_down(menu_controller->select);
 
             Menu multi_menu = data->default_menu;
             Rect bounds = get_centered_square(window_rect, multi_menu.window_percent);
 
-            resize_menu(&multi_menu, window_rect, {char1->dim.x, char1->dim.y/4}, 1, 2);
+            resize_menu(&multi_menu, window_rect, {example_bitmap->dim.x, example_bitmap->dim.y/4}, 1, 2);
             draw_rect(window_rect, multi_menu_back);
 
             u32 index = 0;
@@ -529,27 +470,16 @@ update(Application *app)
             v2 character_dim = { (r32)bounds.dim.x/4.0f, (r32)bounds.dim.y * (2.0f/4.0f) };
             v2 character_coords = multi_menu.rect.coords;
 
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller,
-                                          char1, char1_hover, char1_select, char1_select_hover))
-            {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[0].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 0);
             }
-
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, 
-                                          char2, char2_hover, char2_select, char2_select_hover))
-            {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[1].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 1);
             }
-
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, 
-                                          char3, char3_hover, char3_select, char3_select_hover))
-            {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[2].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 2);
             }
-
-            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, 
-                                          char4, char4_hover, char4_select, char4_select_hover))
-            {
+            if (menu_multiplayer_selector(&multi_menu, index++, data->active, select, &character_coords, character_dim, data->designs[3].controller, &app->assets, "COW1_JOIN", "COW1_JOIN_HOVER", "COW1_SELECT", "COW1_SELECT_HOVER")) {
                 multiplayer_assign_controller(menu_controller, data->designs, 3);
             }
 
