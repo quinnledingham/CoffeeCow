@@ -30,8 +30,10 @@ read_file_terminated(const char *filename) {
     File result = {};
     File file = read_file(filename);
 
-    result = file;    
-    result.memory = platform_malloc(file.size + 1);
+    //result = file;
+    result.size = file.size + 1;
+    result.path = filename;
+    result.memory = platform_malloc(result.size);
     SDL_memcpy(result.memory, file.memory, file.size);
 
     char *r = (char*)result.memory;
@@ -166,23 +168,23 @@ init_bitmap_handle(Bitmap *bitmap, u32 texture_parameters)
     
     switch(bitmap->channels)
     {
-        case 1:
-        internal_format = GL_RED,
-        data_format = GL_RED,
-        pixel_unpack_alignment = 1; 
-        break;
+        case 1: {
+            internal_format = GL_RED,
+            data_format = GL_RED,
+            pixel_unpack_alignment = 1; 
+        } break;
 
-        case 3:
-        internal_format = GL_RGB;
-        data_format = GL_RGB;
-        pixel_unpack_alignment = 1; // because RGB is weird case unpack alignment can't be 3
-        break;
+        case 3: {
+            internal_format = GL_RGB;
+            data_format = GL_RGB;
+            pixel_unpack_alignment = 1; // because RGB is weird case unpack alignment can't be 3
+        } break;
         
-        case 4:
-        internal_format = GL_RGBA;
-        data_format = GL_RGBA;
-        pixel_unpack_alignment = 4;
-        break;
+        case 4: {
+            internal_format = GL_RGBA;
+            data_format = GL_RGBA;
+            pixel_unpack_alignment = 4;
+        } break;
     }
     
     glPixelStorei(GL_UNPACK_ALIGNMENT, pixel_unpack_alignment);
@@ -278,40 +280,16 @@ void load_shader(Shader *shader)
 
     printf("loaded shader: ");
     for (u32 i = 0; i < SHADER_TYPE_AMOUNT; i++) {
-        free_file(&shader->files[i]);
-        if (shader->files[i].path != 0) 
+        if (shader->files[i].memory != 0) platform_free(&shader->files[i].memory);
+        shader->files[i].memory = 0;
+        
+        if (shader->files[i].path != 0) {
             shader->files[i] = read_file_terminated(shader->files[i].path);
+            printf("%s", shader->files[i].path);
+        }
     }
     printf("\n");
 }
-
-u32 common;
-b32 common_compiled = false;
-const char *common_shader = "#version 330 core\n"
-"struct Light_Source {"
-"    vec3 position;"
-"    vec3 ambient;"
-"    vec3 diffuse;"
-"    vec3 specular;"
-"    vec4 color;"
-"};"
-""
-"layout (std430) uniform Lights"
-"{"
-"    //Light_Source light;"
-"    float light[16];"
-"};"
-""
-"Light_Source get_light(float a[16]) {"
-"    Light_Source l;"
-"    l.position = vec3(light[0],  light[1],  light[2]);"
-"    l.ambient  = vec3(light[3],  light[4],  light[5]);"
-"    l.diffuse  = vec3(light[6],  light[7],  light[8]);"
-"    l.specular = vec3(light[9],  light[10], light[11]);"
-"    l.color    = vec4(light[12], light[13], light[14], light[15]);"
-"    return l;"
-"}"
-;
 
 bool compile_shader(u32 handle, const char *file, int type)
 {
@@ -325,15 +303,6 @@ bool compile_shader(u32 handle, const char *file, int type)
         opengl_debug(GL_SHADER, shader);
     } else {
         glAttachShader(handle, shader);
-
-        if (!common_compiled) {
-            common = glCreateShader((GLenum) GL_VERTEX_SHADER);
-            glShaderSource(common, 1, &common_shader, NULL);
-            glCompileShader(common);
-            common_compiled = true;
-        }
-
-        //glAttachShader(handle, common);
     }
     
     glDeleteShader(shader);
@@ -651,15 +620,15 @@ init_audio_player(Audio_Player *player)
     SDL_AudioSpec spec;
     char *device_name = 0;
     SDL_GetDefaultAudioInfo(&device_name, &spec, 0);
-    player->device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
+    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(device_name, 0, &desired, &obtained, 0);
     if (device_name) log("Audio device selected = %s.", device_name);
     else             log("Audio device not selected.");
     log("device audio spec:");
     print_audio_spec(&spec);
 #elif LINUX
-    player->device_id = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
+    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
 #endif
-    SDL_PauseAudioDevice(player->device_id, 0);
+    SDL_PauseAudioDevice(device_id, 0);
     
     log("obtained spec:");
     print_audio_spec(&obtained);
@@ -1479,7 +1448,7 @@ load_asset(Asset *asset, Asset_Load_Info *info)
     asset->type = info->type;
     asset->tag = info->tag;
     asset->tag_length = get_length(asset->tag);
-
+    //log("loading: %s", asset->tag);
     // how to load the various assets
     switch(asset->type)
     {
