@@ -91,6 +91,18 @@ struct Game_Data
 - make multiplayer good/fix bugs
 */
 
+// Enabling Dedicated Graphics
+// https://www.reddit.com/r/gamedev/comments/bk7xbe/psa_for_anyone_developing_a_gameengine_in_c/
+//
+// NOTE: If the laptop is in power saving mode (like it usually is when not plugged in) the graphics card
+// will be severely limited. 
+//
+extern "C" 
+{
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001; // Nvidia
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;   // AMD
+}
+
 function void
 init_controllers(Input *input)
 {
@@ -966,9 +978,9 @@ application()
 {
     Application app = {};
     init_window(&app.window, &app.matrices.update);
-    //if (load_assets(&app.assets, "../assets.ethan")) return 1;
-    //save_assets(&app.assets, "assets.save");
-    if (load_saved_assets(&app.assets, "assets.save")) return 1;
+    if (load_assets(&app.assets, "../assets.ethan")) return 1;
+    save_assets(&app.assets, "assets.save");
+    //if (load_saved_assets(&app.assets, "assets.save")) return 1;
     init_assets(&app.assets);
     init_audio_player(&app.player);
     return main_loop(&app);
