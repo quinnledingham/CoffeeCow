@@ -897,6 +897,8 @@ main_loop(Application *app)
 
     u32 matrices_ubo = init_uniform_buffer_object(2 * sizeof(m4x4), 0);
 
+    r32 target_frame_rate = 200.0f;
+
     while(1)
     {
         if (process_input(&app->window, &app->input)) return 0; // quit if input to quit
@@ -915,6 +917,9 @@ main_loop(Application *app)
 
         SDL_memset(app->player.buffer, 0, app->player.max_length);
         swap_window(&app->window);
+
+        // Hit target frame rate
+        
     }
 }
 
@@ -978,9 +983,9 @@ application()
 {
     Application app = {};
     init_window(&app.window, &app.matrices.update);
-    if (load_assets(&app.assets, "../assets.ethan")) return 1;
-    save_assets(&app.assets, "assets.save");
-    //if (load_saved_assets(&app.assets, "assets.save")) return 1;
+    //if (load_assets(&app.assets, "../assets.ethan")) return 1;
+    //save_assets(&app.assets, "assets.save");
+    if (load_saved_assets(&app.assets, "assets.save")) return 1;
     init_assets(&app.assets);
     init_audio_player(&app.player);
     return main_loop(&app);
